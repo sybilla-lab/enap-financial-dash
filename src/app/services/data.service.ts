@@ -1,63 +1,101 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject, Observable, map } from "rxjs";
+import { BehaviorSubject, Observable, forkJoin, map } from "rxjs";
 import * as Papa from "papaparse";
 import {
   Lancamento,
+  Recebimento,
   ProjetoResumo,
   CategoriaResumo,
   FluxoMensal,
   RecursoResumo,
+  RecursoDetalhado,
 } from "../models/lancamento.model";
 
 @Injectable({ providedIn: "root" })
 export class DataService {
   private lancamentosSubject = new BehaviorSubject<Lancamento[]>([]);
+  private recebimentosSubject = new BehaviorSubject<Recebimento[]>([]);
   lancamentos$ = this.lancamentosSubject.asObservable();
+  recebimentos$ = this.recebimentosSubject.asObservable();
 
   // Metas financeiras
   readonly META_APORTE = 3023000;
   readonly META_CAPTACAO = 17550525;
   readonly META_TOTAL = this.META_APORTE + this.META_CAPTACAO;
 
-  private readonly SHEET_URL =
+  private readonly SHEET_BASE =
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vTcM2aU8ucv35H649ATmgyUMR6S7pvkVaxPQSwN0p-Hs9DsvAIG5Mm-4PutXobweeZ0vp21mklhYqBM/pub?output=csv";
+  private readonly SHEET_PRINCIPAL = this.SHEET_BASE + "&gid=0";
+  private readonly SHEET_RECEBIMENTOS = this.SHEET_BASE + "&gid=595659211";
 
   constructor(private http: HttpClient) {
     this.carregarDados();
   }
 
   private carregarDados(): void {
-    this.http
-      .get(this.SHEET_URL, { responseType: "text" })
-      .subscribe((csvText) => {
-        const parsed = Papa.parse(csvText, {
-          header: false,
-          skipEmptyLines: true,
-        });
+    forkJoin({
+      principal: this.http.get(this.SHEET_PRINCIPAL, { responseType: "text" }),
+      recebimentos: this.http.get(this.SHEET_RECEBIMENTOS, { responseType: "text" }),
+    }).subscribe(({ principal, recebimentos }) => {
+      this.parsePrincipal(principal);
+      this.parseRecebimentos(recebimentos);
+    });
+  }
 
-        const rows = parsed.data as string[][];
-        const lancamentos: Lancamento[] = [];
+  private parsePrincipal(csvText: string): void {
+    const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = parsed.data as string[][];
+    const lancamentos: Lancamento[] = [];
 
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (row.length < 13) continue;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length < 13) continue;
 
-          const categoria = (row[8] || "").trim();
-          const observacao = (row[9] || "").trim();
-          const projeto = (row[10] || "").trim();
-          const mesAno = (row[11] || "").trim();
-          const valorStr = (row[12] || "").trim();
+      const categoria = (row[8] || "").trim();
+      const observacao = (row[9] || "").trim();
+      const projeto = (row[10] || "").trim();
+      const mesAno = (row[11] || "").trim();
+      const valorStr = (row[12] || "").trim();
+      const valor = this.parseValor(valorStr);
 
-          const valor = this.parseValor(valorStr);
+      if (categoria || projeto) {
+        lancamentos.push({ categoria, observacao, projeto, mesAno, valor });
+      }
+    }
 
-          if (categoria || projeto) {
-            lancamentos.push({ categoria, observacao, projeto, mesAno, valor });
-          }
-        }
+    this.lancamentosSubject.next(lancamentos);
+  }
 
-        this.lancamentosSubject.next(lancamentos);
+  private parseRecebimentos(csvText: string): void {
+    const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = parsed.data as string[][];
+    const recebimentos: Recebimento[] = [];
+
+    // Colunas: entrada/saída(0), tipo de recurso(1), data(2), valor(3), status(4),
+    //          fornecedor(5), categoria(6), observação(7), projeto(8), data(9), valor(10)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length < 11) continue;
+
+      const tipoRecurso = (row[1] || "").trim();
+      const data = (row[2] || "").trim();
+      const valorStr = (row[10] || "").trim(); // Coluna Valor (última)
+      const status = (row[4] || "").trim().toLowerCase();
+      const fornecedor = (row[5] || "").trim();
+      const categoria = (row[6] || "").trim();
+      const observacao = (row[7] || "").trim();
+      const projeto = (row[8] || "").trim();
+      const mesAno = (row[9] || "").trim();
+      const valor = this.parseValor(valorStr);
+
+      recebimentos.push({
+        tipoRecurso, data, valor, status, fornecedor,
+        categoria, observacao, projeto, mesAno,
       });
+    }
+
+    this.recebimentosSubject.next(recebimentos);
   }
 
   private parseValor(valorStr: string): number {
@@ -76,15 +114,14 @@ export class DataService {
     return isNegative ? -num : num;
   }
 
-  // ===== RECURSOS =====
+  // ===== RECURSOS (baseado na aba Recebimentos) =====
   getRecursos(): Observable<RecursoResumo[]> {
-    return this.lancamentos$.pipe(
-      map((l) => {
-        const recursos = l.filter((x) => x.categoria === "0.0.0 Recurso");
+    return this.recebimentos$.pipe(
+      map((recs) => {
         let totalAporte = 0;
         let totalCaptacao = 0;
 
-        recursos.forEach((r) => {
+        recs.forEach((r) => {
           const obs = r.observacao.toLowerCase();
           if (obs.includes("aporte")) {
             totalAporte += r.valor;
@@ -110,6 +147,46 @@ export class DataService {
     );
   }
 
+  getRecursoDetalhado(): Observable<RecursoDetalhado> {
+    return this.recebimentos$.pipe(
+      map((recs) => {
+        let aporteRecebido = 0;
+        let captacaoRecebida = 0;
+        let captacaoPrevista = 0;
+
+        recs.forEach((r) => {
+          const obs = r.observacao.toLowerCase();
+          const isAporte = obs.includes("aporte");
+          const isCaptacao = obs.includes("captação") || obs.includes("captacao");
+
+          if (isAporte) {
+            aporteRecebido += r.valor;
+          } else if (isCaptacao) {
+            if (r.status === "recebido") {
+              captacaoRecebida += r.valor;
+            } else if (r.status === "previsto") {
+              captacaoPrevista += r.valor;
+            }
+          }
+        });
+
+        const captacaoTotal = captacaoRecebida + captacaoPrevista;
+        return {
+          aporteRecebido,
+          captacaoRecebida,
+          captacaoPrevista,
+          captacaoTotal,
+          totalRecebido: aporteRecebido + captacaoRecebida,
+          totalComPrevisto: aporteRecebido + captacaoTotal,
+        };
+      })
+    );
+  }
+
+  getRecebimentosDetalhados(): Observable<Recebimento[]> {
+    return this.recebimentos$;
+  }
+
   getTotalRecebido(): Observable<number> {
     return this.lancamentos$.pipe(
       map((l) =>
@@ -124,10 +201,7 @@ export class DataService {
   getProjetoResumos(): Observable<ProjetoResumo[]> {
     return this.lancamentos$.pipe(
       map((lancs) => {
-        const porProjeto = new Map<
-          string,
-          { entradas: number; saidas: number }
-        >();
+        const porProjeto = new Map<string, { entradas: number; saidas: number }>();
 
         lancs.forEach((l) => {
           if (!l.projeto) return;
@@ -174,9 +248,7 @@ export class DataService {
         const porCategoria = new Map<string, number>();
 
         lancs
-          .filter(
-            (l) => l.categoria !== "0.0.0 Recurso" && l.categoria && l.valor < 0
-          )
+          .filter((l) => l.categoria !== "0.0.0 Recurso" && l.categoria && l.valor < 0)
           .forEach((l) => {
             const current = porCategoria.get(l.categoria) || 0;
             porCategoria.set(l.categoria, current + Math.abs(l.valor));

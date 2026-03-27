@@ -6,6 +6,18 @@ export interface Lancamento {
   valor: number;
 }
 
+export interface Recebimento {
+  tipoRecurso: string;
+  data: string;
+  valor: number;
+  status: string; // "recebido" | "previsto"
+  fornecedor: string;
+  categoria: string;
+  observacao: string;
+  projeto: string;
+  mesAno: string;
+}
+
 export interface ProjetoResumo {
   projeto: string;
   entradas: number;
@@ -30,4 +42,13 @@ export interface RecursoResumo {
   tipo: string;
   total: number;
   percentual: number;
+}
+
+export interface RecursoDetalhado {
+  aporteRecebido: number;
+  captacaoRecebida: number;
+  captacaoPrevista: number;
+  captacaoTotal: number;
+  totalRecebido: number;
+  totalComPrevisto: number;
 }
