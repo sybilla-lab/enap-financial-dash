@@ -20,13 +20,16 @@ export class DataService {
   readonly META_CAPTACAO = 17550525;
   readonly META_TOTAL = this.META_APORTE + this.META_CAPTACAO;
 
+  private readonly SHEET_URL =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTcM2aU8ucv35H649ATmgyUMR6S7pvkVaxPQSwN0p-Hs9DsvAIG5Mm-4PutXobweeZ0vp21mklhYqBM/pub?output=csv";
+
   constructor(private http: HttpClient) {
     this.carregarDados();
   }
 
   private carregarDados(): void {
     this.http
-      .get("MetricasEnapCSV.csv", { responseType: "text" })
+      .get(this.SHEET_URL, { responseType: "text" })
       .subscribe((csvText) => {
         const parsed = Papa.parse(csvText, {
           header: false,
