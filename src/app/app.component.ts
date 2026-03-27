@@ -32,17 +32,22 @@ interface NavItem {
   template: `
     <mat-sidenav-container class="app-container">
       <mat-sidenav #sidenav mode="side" opened class="app-sidenav" [class.collapsed]="sidenavCollapsed">
-        <!-- Logo -->
+        <!-- Sidebar header: Impact Hub logo -->
         <div class="sidenav-header">
           @if (!sidenavCollapsed) {
-            <div class="logo-full">
-              <mat-icon class="logo-icon">insights</mat-icon>
-              <span class="logo-text">FinControl</span>
-            </div>
+            <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub" />
           } @else {
-            <mat-icon class="logo-icon-small">insights</mat-icon>
+            <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub-small" />
           }
         </div>
+
+        <!-- App title -->
+        @if (!sidenavCollapsed) {
+        <div class="app-title-box">
+          <span class="app-title">FinControl</span>
+          <span class="app-subtitle">Análise Financeira</span>
+        </div>
+        }
 
         <!-- Nav items -->
         <mat-nav-list>
@@ -66,12 +71,14 @@ interface NavItem {
       </mat-sidenav>
 
       <mat-sidenav-content class="main-content">
-        <!-- Toolbar -->
+        <!-- Toolbar with ENAP logo -->
         <mat-toolbar class="app-toolbar">
           <button mat-icon-button (click)="sidenav.toggle()" class="menu-btn">
             <mat-icon>menu</mat-icon>
           </button>
-          <span class="toolbar-title">Sistema de Análise Financeira — ENAP</span>
+          <img src="logo-enap.png" alt="ENAP" class="toolbar-logo" />
+          <span class="toolbar-divider">|</span>
+          <span class="toolbar-title">Sistema de Análise Financeira</span>
           <span class="spacer"></span>
           <button mat-icon-button (click)="themeService.toggle()" [matTooltip]="themeService.isDark() ? 'Modo Claro' : 'Modo Escuro'">
             <mat-icon>{{ themeService.isDark() ? "light_mode" : "dark_mode" }}</mat-icon>
@@ -86,45 +93,120 @@ interface NavItem {
     </mat-sidenav-container>
   `,
   styles: `
+    /* ===== Container ===== */
     .app-container { height: 100vh; }
+
+    /* ===== Sidenav ===== */
     .app-sidenav {
-      width: 260px; background: var(--sidenav-bg) !important;
+      width: 260px;
+      background: var(--sidenav-bg) !important;
       border-right: 1px solid var(--border-color) !important;
       transition: width 0.3s ease;
-      display: flex; flex-direction: column;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
     }
     .app-sidenav.collapsed { width: 68px; }
+
+    :host ::ng-deep .app-sidenav .mat-drawer-inner-container {
+      background: var(--sidenav-bg) !important;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ===== Sidebar header: Impact Hub ===== */
     .sidenav-header {
-      padding: 20px 16px; display: flex; align-items: center;
+      padding: 20px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       border-bottom: 1px solid var(--border-color);
-      min-height: 64px;
+      min-height: 72px;
+      flex-shrink: 0;
     }
-    .logo-full { display: flex; align-items: center; gap: 12px; }
-    .logo-icon { color: #7c4dff; font-size: 32px; width: 32px; height: 32px; }
-    .logo-icon-small { color: #7c4dff; font-size: 28px; width: 28px; height: 28px; margin: 0 auto; }
-    .logo-text { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-primary);
+    .logo-hub {
+      height: 44px;
+      max-width: 200px;
+      object-fit: contain;
+    }
+    .logo-hub-small {
+      height: 36px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+
+
+    /* ===== App title ===== */
+    .app-title-box {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .app-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
       background: linear-gradient(135deg, #7c4dff, #448aff);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    mat-nav-list { flex: 1; padding-top: 8px; }
+    .app-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ===== Nav list ===== */
+    mat-nav-list { flex: 1; padding-top: 8px; overflow-y: auto; overflow-x: hidden; }
     mat-nav-list a { border-radius: 12px !important; margin: 4px 8px !important; height: 48px !important; }
     mat-nav-list a mat-icon { color: var(--text-secondary); }
     mat-nav-list a span { color: var(--text-primary); font-size: 14px; }
     .active-link { background: rgba(124, 77, 255, 0.12) !important; }
     .active-link mat-icon { color: #7c4dff !important; }
     .active-link span { color: #7c4dff !important; font-weight: 500; }
-    .sidenav-footer { padding: 8px; border-top: 1px solid var(--border-color); display: flex; justify-content: center; }
+
+    /* ===== Footer ===== */
+    .sidenav-footer {
+      padding: 8px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: center;
+      flex-shrink: 0;
+    }
     .sidenav-footer button mat-icon { color: var(--text-secondary); }
+
+    /* ===== Toolbar with ENAP logo ===== */
     .app-toolbar {
-      background: var(--toolbar-bg) !important; color: var(--text-primary) !important;
+      background: var(--toolbar-bg) !important;
+      color: var(--text-primary) !important;
       border-bottom: 1px solid var(--border-color);
       height: 64px;
       backdrop-filter: blur(10px);
+      gap: 12px;
+    }
+    .toolbar-logo {
+      height: 28px;
+      object-fit: contain;
+    }
+    :host-context(body.dark-theme) .toolbar-logo {
+      filter: brightness(0) invert(1);
+    }
+    .toolbar-divider {
+      color: var(--border-color);
+      font-size: 24px;
+      font-weight: 200;
     }
     .menu-btn { display: none; }
     @media (max-width: 768px) { .menu-btn { display: block; } }
-    .toolbar-title { font-size: 16px; font-weight: 400; margin-left: 8px; color: var(--text-secondary); }
+    .toolbar-title { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
     .spacer { flex: 1; }
+
+    /* ===== Main content ===== */
     .main-content { background: var(--bg-primary) !important; }
     .content-area { overflow-y: auto; height: calc(100vh - 64px); }
   `,

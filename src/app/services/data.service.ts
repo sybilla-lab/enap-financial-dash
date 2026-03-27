@@ -73,25 +73,26 @@ export class DataService {
     const recebimentos: Recebimento[] = [];
 
     // Colunas: entrada/saída(0), tipo de recurso(1), data(2), valor(3), status(4),
-    //          fornecedor(5), categoria(6), observação(7), projeto(8), data(9), valor(10)
+    //          fornecedor(5), categoria(6), observação(7), projeto(8), data(9), valor(10), observação 2(11)
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       if (row.length < 11) continue;
 
       const tipoRecurso = (row[1] || "").trim();
       const data = (row[2] || "").trim();
-      const valorStr = (row[10] || "").trim(); // Coluna Valor (última)
+      const valorStr = (row[10] || "").trim();
       const status = (row[4] || "").trim().toLowerCase();
       const fornecedor = (row[5] || "").trim();
       const categoria = (row[6] || "").trim();
       const observacao = (row[7] || "").trim();
       const projeto = (row[8] || "").trim();
       const mesAno = (row[9] || "").trim();
+      const observacao2 = (row[11] || "").trim().toLowerCase();
       const valor = this.parseValor(valorStr);
 
       recebimentos.push({
         tipoRecurso, data, valor, status, fornecedor,
-        categoria, observacao, projeto, mesAno,
+        categoria, observacao, projeto, mesAno, observacao2,
       });
     }
 
@@ -151,6 +152,8 @@ export class DataService {
     return this.recebimentos$.pipe(
       map((recs) => {
         let aporteRecebido = 0;
+        let aporteInflacao = 0;
+        let aportePrevisto = 0;
         let captacaoRecebida = 0;
         let captacaoPrevista = 0;
 
@@ -158,9 +161,16 @@ export class DataService {
           const obs = r.observacao.toLowerCase();
           const isAporte = obs.includes("aporte");
           const isCaptacao = obs.includes("captação") || obs.includes("captacao");
+          const isInflacao = r.observacao2.includes("inflação") || r.observacao2.includes("inflacao");
 
           if (isAporte) {
-            aporteRecebido += r.valor;
+            if (isInflacao) {
+              aporteInflacao += r.valor;
+            } else if (r.status === "recebido") {
+              aporteRecebido += r.valor;
+            } else if (r.status === "previsto") {
+              aportePrevisto += r.valor;
+            }
           } else if (isCaptacao) {
             if (r.status === "recebido") {
               captacaoRecebida += r.valor;
@@ -171,13 +181,17 @@ export class DataService {
         });
 
         const captacaoTotal = captacaoRecebida + captacaoPrevista;
+        const aporteRecebidoTotal = aporteRecebido + aporteInflacao;
         return {
           aporteRecebido,
+          aporteInflacao,
+          aporteRecebidoTotal,
+          aportePrevisto,
           captacaoRecebida,
           captacaoPrevista,
           captacaoTotal,
-          totalRecebido: aporteRecebido + captacaoRecebida,
-          totalComPrevisto: aporteRecebido + captacaoTotal,
+          totalRecebido: aporteRecebidoTotal + captacaoRecebida,
+          totalComPrevisto: aporteRecebidoTotal + aportePrevisto + captacaoTotal,
         };
       })
     );

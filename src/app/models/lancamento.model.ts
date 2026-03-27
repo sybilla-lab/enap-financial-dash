@@ -16,6 +16,7 @@ export interface Recebimento {
   observacao: string;
   projeto: string;
   mesAno: string;
+  observacao2: string; // "inflação" ou vazio
 }
 
 export interface ProjetoResumo {
@@ -45,7 +46,10 @@ export interface RecursoResumo {
 }
 
 export interface RecursoDetalhado {
-  aporteRecebido: number;
+  aporteRecebido: number;        // Aporte recebido SEM inflação
+  aporteInflacao: number;         // Valor da inflação recebida
+  aporteRecebidoTotal: number;    // Aporte recebido + inflação
+  aportePrevisto: number;         // Aporte previsto futuro
   captacaoRecebida: number;
   captacaoPrevista: number;
   captacaoTotal: number;

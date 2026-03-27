@@ -68,6 +68,19 @@ html, body {
   background: var(--card-bg) !important;
 }
 
+// ====== Sidenav background fix ======
+.mat-drawer-container {
+  background-color: var(--bg-primary) !important;
+}
+
+.mat-drawer {
+  background-color: var(--sidenav-bg) !important;
+}
+
+.mat-drawer-inner-container {
+  background: var(--sidenav-bg) !important;
+}
+
 // ====== Animations ======
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
