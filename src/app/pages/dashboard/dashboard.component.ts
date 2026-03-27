@@ -1,0 +1,262 @@
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { MatCardModule } from "@angular/material/card";
+import { MatIconModule } from "@angular/material/icon";
+import { MatDividerModule } from "@angular/material/divider";
+import { MatProgressBarModule } from "@angular/material/progress-bar";
+import { BaseChartDirective } from "ng2-charts";
+import { ChartConfiguration } from "chart.js";
+import { DataService } from "../../services/data.service";
+
+@Component({
+  selector: "app-dashboard",
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatIconModule,
+    MatDividerModule,
+    MatProgressBarModule,
+    BaseChartDirective,
+  ],
+  template: `
+    <div class="dashboard-container">
+      <h1 class="page-title">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard Geral
+      </h1>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <mat-card class="kpi-card kpi-recebido" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon">
+              <mat-icon>account_balance_wallet</mat-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Total Recebido</span>
+              <span class="kpi-value">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card kpi-executado" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon">
+              <mat-icon>payments</mat-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Total Executado</span>
+              <span class="kpi-value">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.2-2" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card kpi-saldo" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon">
+              <mat-icon>savings</mat-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Saldo Disponível</span>
+              <span class="kpi-value">{{ indicadores.saldoDisponivel | currency: "BRL":"symbol":"1.2-2" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card kpi-execucao" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon">
+              <mat-icon>speed</mat-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">% Execução</span>
+              <span class="kpi-value">{{ indicadores.percentualExecucao | number: "1.1-1" }}%</span>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="indicadores.percentualExecucao"></mat-progress-bar>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Second row - Operations -->
+      <div class="kpi-grid secondary">
+        <mat-card class="kpi-card" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Nº de Pagamentos</span>
+              <span class="kpi-value">{{ indicadores.numPagamentos }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>price_check</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Ticket Médio</span>
+              <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.2-2" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>flag</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Meta Total</span>
+              <span class="kpi-value">{{ dataService.META_TOTAL | currency: "BRL":"symbol":"1.2-2" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>trending_up</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">% Atingido (Meta Total)</span>
+              <span class="kpi-value">{{ percentualMeta | number: "1.1-1" }}%</span>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="percentualMeta"></mat-progress-bar>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Projects summary table -->
+      <mat-card class="summary-card" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>folder_special</mat-icon>
+            Resumo por Projeto
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Projeto</th>
+                  <th class="num">Entradas</th>
+                  <th class="num">Saídas</th>
+                  <th class="num">Saldo</th>
+                  <th class="num">Execução</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of projetos; track p.projeto) {
+                <tr>
+                  <td>{{ p.projeto }}</td>
+                  <td class="num positive">{{ p.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                  <td class="num negative">{{ p.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                  <td class="num" [class.positive]="p.saldo >= 0" [class.negative]="p.saldo < 0">
+                    {{ p.saldo | currency: "BRL":"symbol":"1.2-2" }}
+                  </td>
+                  <td class="num">{{ p.execucao | number: "1.1-1" }}%</td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  `,
+  styles: `
+    .dashboard-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .page-title {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 28px; font-weight: 300; margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 16px !important;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .kpi-card mat-card-content {
+      display: flex; flex-direction: column; gap: 12px; padding: 20px;
+    }
+    .kpi-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent-gradient);
+    }
+    .kpi-icon mat-icon { color: #fff; font-size: 28px; width: 28px; height: 28px; }
+    .kpi-recebido .kpi-icon { background: linear-gradient(135deg, #4caf50, #2e7d32); }
+    .kpi-executado .kpi-icon { background: linear-gradient(135deg, #f44336, #c62828); }
+    .kpi-saldo .kpi-icon { background: linear-gradient(135deg, #2196f3, #1565c0); }
+    .kpi-execucao .kpi-icon { background: linear-gradient(135deg, #ff9800, #e65100); }
+    .kpi-info { display: flex; flex-direction: column; }
+    .kpi-label { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); margin-top: 4px; }
+    mat-progress-bar { border-radius: 4px; height: 6px !important; }
+    .summary-card {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 16px !important;
+    }
+    .summary-card mat-card-header { padding: 20px 20px 0; }
+    .summary-card mat-card-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 18px; font-weight: 500; color: var(--text-primary);
+    }
+    .table-container { overflow-x: auto; padding: 16px; }
+    .data-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 14px;
+    }
+    .data-table th {
+      padding: 12px 16px; text-align: left;
+      border-bottom: 2px solid var(--border-color);
+      color: var(--text-secondary); font-weight: 600;
+      text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+    }
+    .data-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    .data-table tr:hover td { background: var(--hover-bg); }
+    .num { text-align: right !important; font-variant-numeric: tabular-nums; }
+    .positive { color: #4caf50 !important; }
+    .negative { color: #f44336 !important; }
+  `,
+})
+export class DashboardComponent implements OnInit {
+  indicadores = {
+    totalRecebido: 0,
+    totalExecutado: 0,
+    saldoDisponivel: 0,
+    percentualExecucao: 0,
+    numPagamentos: 0,
+    ticketMedio: 0,
+  };
+  projetos: any[] = [];
+  percentualMeta = 0;
+
+  constructor(public dataService: DataService) {}
+
+  ngOnInit(): void {
+    this.dataService.getIndicadoresOperacionais().subscribe((ind) => {
+      this.indicadores = ind;
+      this.percentualMeta =
+        this.dataService.META_TOTAL > 0
+          ? (ind.totalRecebido / this.dataService.META_TOTAL) * 100
+          : 0;
+    });
+
+    this.dataService.getProjetoResumos().subscribe((p) => {
+      this.projetos = p;
+    });
+  }
+}
