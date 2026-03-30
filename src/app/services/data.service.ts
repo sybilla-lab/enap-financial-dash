@@ -114,7 +114,9 @@ export class DataService {
         const row = rows[i];
         if (row.length < 2) continue;
         const projeto = (row[0] || "").trim();
-        const status = (row[1] || "").trim();
+        let status = (row[1] || "").trim();
+        // Remove all emojis and leading special characters
+        status = status.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').replace(/^[^\wÀ-ÿ]+/g, '').trim();
         if (projeto) {
             statusProjetos.push({ projeto, status });
         }
