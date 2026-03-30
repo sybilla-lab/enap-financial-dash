@@ -193,10 +193,23 @@ Chart.register(...registerables);
   styles: `
     .page-container { padding: 24px; max-width: 1600px; margin: 0 auto; animation: fadeIn 0.6s ease-out; }
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
-    .classic-card { background: var(--card-bg) !important; border-radius: 16px !important; margin-bottom: 8px; border: 1px solid var(--glass-border) !important; }
+    
     .kpi-grid-classic { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
     @media (max-width: 900px) { .kpi-grid-classic { grid-template-columns: 1fr; } }
     
+    /* Evitar sobreposição de Label e Placeholder */
+    .mat-mdc-form-field.mat-form-field-should-float .mdc-floating-label {
+      background: var(--bg-primary) !important;
+      padding: 0 8px !important;
+      border-radius: 4px;
+      transform: translateY(-24px) scale(0.75) !important;
+    }
+
+    .mat-mdc-form-field.mat-form-field-should-float .mdc-notched-outline__notch {
+      border-top: none !important;
+    }
+
+    .classic-card { background: var(--card-bg) !important; border-radius: 16px !important; margin-bottom: 8px; border: 1px solid var(--glass-border) !important; }
     .classic-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
     .classic-header { display: flex; align-items: center; gap: 15px; margin-bottom: 4px; }
     .classic-label { font-size: 13px; font-weight: 600; color: var(--text-muted); opacity: 0.8; letter-spacing: 0.5px; }
@@ -206,22 +219,29 @@ Chart.register(...registerables);
     
     .circle-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .circle-icon mat-icon { color: white; font-size: 24px; width: 24px; height: 24px; }
-    .circle-icon.teal { background: linear-gradient(135deg, #2DD4BF, #0D9488); box-shadow: 0 4px 10px rgba(45, 212, 191, 0.3); }
-    .circle-icon.orange { background: linear-gradient(135deg, #FB923C, #EA580C); box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); }
-    .circle-icon.green { background: linear-gradient(135deg, #4ADE80, #16A34A); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3); }
-    .circle-icon.orange-light { background: linear-gradient(135deg, #FDBA74, #F97316); box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3); }
+    .circle-icon.teal { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
+    .circle-icon.orange { background: linear-gradient(135deg, #FB923C, #EA580C); }
+    .circle-icon.green { background: linear-gradient(135deg, #4ADE80, #16A34A); }
+    .circle-icon.orange-light { background: linear-gradient(135deg, #FDBA74, #F97316); }
 
     .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
-    :host ::ng-deep .classic-progress.teal .mdc-linear-progress__bar-inner { border-color: #3B82F6 !important; }
-    :host ::ng-deep .classic-progress.red .mdc-linear-progress__bar-inner { border-color: #EF4444 !important; }
-    :host ::ng-deep .classic-progress.blue .mdc-linear-progress__bar-inner { border-color: #3B82F6 !important; }
-
     .consolidado-row-header { grid-column: 1 / -1; font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 20px 0 10px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
 
-    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status-badge.recebido { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.2); }
-    .status-badge.previsto { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.2); }
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px; margin-bottom: 24px; }
+    .chart-card.compact { height: 420px; }
+    .chart-wrapper-small { height: 320px; padding: 16px; position: relative; }
 
+    .table-card { background: var(--card-bg) !important; border-radius: 12px !important; width: 100%; }
+    .table-filters { display: flex; gap: 20px; padding: 24px; flex-wrap: wrap; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); }
+    .filter-field.mini { flex: 1; min-width: 200px; max-width: 350px; }
+    
+    .table-container { overflow-x: auto; width: 100%; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { padding: 16px 24px; text-align: left; background: rgba(255,255,255,0.03); color: var(--text-primary); border-bottom: 1px solid var(--border-color); }
+    .data-table td { padding: 14px 24px; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .status-badge.recebido { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); }
+    .status-badge.previsto { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); }
     .obs-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border-color); }
   `,
 
