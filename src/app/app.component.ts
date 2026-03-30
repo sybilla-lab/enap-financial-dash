@@ -41,13 +41,7 @@ interface NavItem {
           }
         </div>
 
-        <!-- App title -->
-        @if (!sidenavCollapsed) {
-        <div class="app-title-box">
-          <span class="app-title">FinControl</span>
-          <span class="app-subtitle">Análise Financeira</span>
-        </div>
-        }
+
 
         <!-- Nav items -->
         <mat-nav-list>
@@ -78,7 +72,7 @@ interface NavItem {
           </button>
           <img src="logo-enap.png" alt="ENAP" class="toolbar-logo" />
           <span class="toolbar-divider">|</span>
-          <span class="toolbar-title">Execuçao Financeira do Termo de Colaboração</span>
+          <span class="toolbar-title">Execuçao Financeira do Termo de Colaboração da Estratégia de Inovação Aberta</span>
           <span class="spacer"></span>
           <button mat-icon-button (click)="themeService.toggle()" [matTooltip]="themeService.isDark() ? 'Modo Claro' : 'Modo Escuro'">
             <mat-icon>{{ themeService.isDark() ? "light_mode" : "dark_mode" }}</mat-icon>
