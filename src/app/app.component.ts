@@ -78,7 +78,7 @@ interface NavItem {
           </button>
           <img src="logo-enap.png" alt="ENAP" class="toolbar-logo" />
           <span class="toolbar-divider">|</span>
-          <span class="toolbar-title">Sistema de Análise Financeira</span>
+          <span class="toolbar-title">Execuçao Financeira do Termo de Colaboração</span>
           <span class="spacer"></span>
           <button mat-icon-button (click)="themeService.toggle()" [matTooltip]="themeService.isDark() ? 'Modo Claro' : 'Modo Escuro'">
             <mat-icon>{{ themeService.isDark() ? "light_mode" : "dark_mode" }}</mat-icon>
@@ -222,5 +222,5 @@ export class AppComponent {
     { label: "Fluxo de Caixa", icon: "timeline", route: "/fluxo-caixa" },
   ];
 
-  constructor(public themeService: ThemeService) {}
+  constructor(public themeService: ThemeService) { }
 }

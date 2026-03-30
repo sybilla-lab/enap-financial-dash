@@ -33,16 +33,6 @@ Chart.register(...registerables);
         Prestação de Contas por Projeto
       </h1>
 
-      <!-- Stats -->
-      <div class="kpi-grid">
-        <mat-card class="kpi-card card-indicator-green" appearance="outlined">
-          <mat-card-content>
-            <div class="kpi-label">Execução Média</div>
-            <div class="kpi-value text-green">{{ stats.execucaoMedia | number: "1.1-1" }}%</div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-
       <!-- Filter -->
       <mat-card class="filter-card" appearance="outlined">
         <mat-card-content>
@@ -222,7 +212,7 @@ export class ProjetosComponent implements OnInit {
     },
   };
 
-  constructor(private dataService: DataService) {}
+  constructor(private dataService: DataService) { }
 
   ngOnInit(): void {
     this.dataService.getProjetoResumos().subscribe((p) => {
