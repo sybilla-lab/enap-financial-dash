@@ -66,6 +66,28 @@ html, body {
   --mdc-outlined-text-field-input-text-color: var(--text-primary);
 }
 
+.mat-mdc-select-value, .mat-mdc-input-element {
+  color: var(--text-primary) !important;
+}
+
+/* Tabelas Material Overrides */
+.mat-mdc-header-cell {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+.mat-mdc-cell {
+  color: var(--text-secondary) !important;
+}
+
+/* Sidenav Fix */
+.mat-drawer-container, .mat-drawer-content {
+  background-color: var(--bg-primary) !important;
+}
+.mat-drawer {
+  background-color: var(--sidenav-bg) !important;
+}
+
 // ====== Utility Classes for Card Indicators ======
 .card-indicator-green { border-left: 3px solid var(--accent-green) !important; }
 .card-indicator-blue { border-left: 3px solid var(--accent-blue) !important; }
@@ -88,3 +110,13 @@ h1, h2, h3, h4 {
   letter-spacing: -0.01em;
   text-transform: none !important;
 }
+
+/* Custom Data Table */
+.data-table th {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+.data-table td {
+  color: var(--text-secondary) !important;
+}
+

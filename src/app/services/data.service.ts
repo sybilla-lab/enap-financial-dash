@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject, Observable, forkJoin, map } from "rxjs";
+import { BehaviorSubject, Observable, forkJoin, map, combineLatest } from "rxjs";
 import * as Papa from "papaparse";
 import {
   Lancamento,
@@ -56,13 +56,13 @@ export class DataService {
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row.length < 13) continue;
+      if (row.length < 11) continue;
 
       const categoria = (row[8] || "").trim();
       const observacao = (row[9] || "").trim();
       const projeto = (row[10] || "").trim();
       const mesAno = (row[11] || "").trim();
-      const valorStr = (row[12] || "").trim();
+      const valorStr = (row[12] || row[4] || "").trim(); // Tenta coluna 12, se não, usa a 4
       const valor = this.parseValor(valorStr);
 
       if (categoria || projeto) {
@@ -236,14 +236,14 @@ export class DataService {
 
   // ===== PROJETOS =====
   getProjetoResumos(): Observable<ProjetoResumo[]> {
-    return forkJoin({
+    return combineLatest({
       lancs: this.lancamentos$,
       status: this.status$,
     }).pipe(
       map(({ lancs, status }) => {
         const porProjeto = new Map<string, { entradas: number; saidas: number }>();
 
-        lancs.forEach((l) => {
+        lancs.forEach((l: Lancamento) => {
           if (!l.projeto) return;
           if (!porProjeto.has(l.projeto)) {
             porProjeto.set(l.projeto, { entradas: 0, saidas: 0 });
@@ -258,7 +258,7 @@ export class DataService {
 
         return Array.from(porProjeto.entries())
           .map(([projeto, data]) => {
-            const statusInfo = status.find((s) => s.projeto === projeto);
+            const statusInfo = status.find((s: StatusProjeto) => s.projeto === projeto);
             return {
               projeto,
               entradas: data.entradas,
@@ -387,13 +387,13 @@ export class DataService {
 
   // ===== NOVOS INDICADORES GESTÃO =====
   getRunway(): Observable<number> {
-    return forkJoin({
+    return combineLatest({
       fluxo: this.getFluxoMensal(),
       inds: this.getIndicadoresOperacionais(),
     }).pipe(
       map(({ fluxo, inds }) => {
         if (fluxo.length === 0) return 0;
-        const mediaSaidas = fluxo.reduce((sum, m) => sum + m.saidas, 0) / fluxo.length;
+        const mediaSaidas = fluxo.reduce((sum: number, m: FluxoMensal) => sum + m.saidas, 0) / fluxo.length;
         return mediaSaidas > 0 ? inds.saldoDisponivel / mediaSaidas : 0;
       })
     );
