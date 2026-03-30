@@ -32,12 +32,14 @@ interface NavItem {
   template: `
     <mat-sidenav-container class="app-container">
       <mat-sidenav #sidenav mode="side" opened class="app-sidenav" [class.collapsed]="sidenavCollapsed">
-        <!-- Sidebar header: Impact Hub logo -->
+        <!-- Sidebar header: Logos -->
         <div class="sidenav-header">
           @if (!sidenavCollapsed) {
             <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub" />
+            <img src="logo-enap.png" alt="ENAP" class="logo-enap" />
           } @else {
             <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub-small" />
+            <img src="logo-enap.png" alt="ENAP" class="logo-enap-small" />
           }
         </div>
 
@@ -65,13 +67,11 @@ interface NavItem {
       </mat-sidenav>
 
       <mat-sidenav-content class="main-content">
-        <!-- Toolbar with ENAP logo -->
+        <!-- Toolbar -->
         <mat-toolbar class="app-toolbar">
           <button mat-icon-button (click)="sidenav.toggle()" class="menu-btn">
             <mat-icon>menu</mat-icon>
           </button>
-          <img src="logo-enap.png" alt="ENAP" class="toolbar-logo" />
-          <span class="toolbar-divider">|</span>
           <span class="toolbar-title">Execuçao Financeira do Termo de Colaboração da Estratégia de Inovação Aberta</span>
           <span class="spacer"></span>
           <button mat-icon-button (click)="themeService.toggle()" [matTooltip]="themeService.isDark() ? 'Modo Claro' : 'Modo Escuro'">
@@ -109,26 +109,39 @@ interface NavItem {
       overflow-x: hidden;
     }
 
-    /* ===== Sidebar header: Impact Hub ===== */
+    /* ===== Sidebar header: Logos ===== */
     .sidenav-header {
-      padding: 20px 16px;
+      padding: 24px 16px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 20px;
       border-bottom: 1px solid var(--border-color);
-      min-height: 72px;
+      min-height: 120px;
       flex-shrink: 0;
     }
     .logo-hub {
-      height: 44px;
-      max-width: 200px;
+      height: 48px;
+      max-width: 180px;
       object-fit: contain;
     }
     .logo-hub-small {
       height: 36px;
       object-fit: contain;
-      display: block;
-      margin: 0 auto;
+    }
+    .logo-enap {
+      height: 24px;
+      max-width: 140px;
+      object-fit: contain;
+    }
+    .logo-enap-small {
+      height: 18px;
+      object-fit: contain;
+    }
+    
+    :host-context(body.dark-theme) .logo-enap, :host-context(body.dark-theme) .logo-enap-small {
+      filter: brightness(0) invert(1);
     }
 
 
@@ -174,7 +187,7 @@ interface NavItem {
     }
     .sidenav-footer button mat-icon { color: var(--text-secondary); }
 
-    /* ===== Toolbar with ENAP logo ===== */
+    /* ===== Toolbar ===== */
     .app-toolbar {
       background: var(--toolbar-bg) !important;
       color: var(--text-primary) !important;
@@ -183,18 +196,7 @@ interface NavItem {
       backdrop-filter: blur(10px);
       gap: 12px;
     }
-    .toolbar-logo {
-      height: 28px;
-      object-fit: contain;
-    }
-    :host-context(body.dark-theme) .toolbar-logo {
-      filter: brightness(0) invert(1);
-    }
-    .toolbar-divider {
-      color: var(--border-color);
-      font-size: 24px;
-      font-weight: 200;
-    }
+    .menu-btn { display: none; }
     .menu-btn { display: none; }
     @media (max-width: 768px) { .menu-btn { display: block; } }
     .toolbar-title { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
