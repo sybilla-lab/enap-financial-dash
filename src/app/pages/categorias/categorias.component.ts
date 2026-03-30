@@ -20,6 +20,26 @@ Chart.register(...registerables);
         Despesas por Categoria
       </h1>
 
+      <div class="kpi-grid">
+        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-info">
+              <span class="kpi-label">Total de Categorias</span>
+              <span class="kpi-value text-blue">{{ categorias.length }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card card-indicator-green" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-info">
+              <span class="kpi-label">Total Executado</span>
+              <span class="kpi-value text-green">{{ totalDespesas | currency: "BRL":"symbol":"1.0-0" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
       <!-- Chart -->
       <mat-card class="chart-card" appearance="outlined">
         <mat-card-header><mat-card-title>Distribuição de Despesas</mat-card-title></mat-card-header>
@@ -72,18 +92,29 @@ Chart.register(...registerables);
   styles: `
     .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 300; margin-bottom: 24px; color: var(--text-primary); }
-    .chart-card, .table-card { background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 16px !important; margin-bottom: 24px; }
-    .chart-card mat-card-header, .table-card mat-card-header { padding: 20px 20px 0; }
-    .chart-card mat-card-title, .table-card mat-card-title { display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--text-primary); }
-    .chart-wrapper { padding: 16px; min-height: 400px; }
-    .table-container { overflow-x: auto; padding: 16px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
+    .kpi-card mat-card-content { display: flex; flex-direction: column; gap: 8px; padding: 24px; }
+    .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 26px; font-weight: 600; color: var(--text-primary); }
+
+    .text-green { color: var(--accent-green) !important; }
+    .text-blue { color: var(--accent-blue) !important; }
+
+    .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
+    .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
+    .chart-card mat-card-header, .table-card mat-card-header { padding: 24px 24px 0; }
+    .chart-card mat-card-title, .table-card mat-card-title { font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .chart-wrapper { height: 400px; padding: 24px; }
+
+    .table-container { overflow-x: auto; padding: 24px; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .data-table th { padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-    .data-table td { padding: 10px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+    .data-table th { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
     .data-table tr:hover td { background: var(--hover-bg); }
-    .total-row td { border-top: 2px solid var(--border-color); background: var(--hover-bg); }
     .num { text-align: right !important; font-variant-numeric: tabular-nums; }
-    .negative { color: #f44336 !important; }
+    .positive { color: var(--accent-green) !important; }
+    .negative { color: var(--accent-red) !important; }
   `,
 })
 export class CategoriasComponent implements OnInit {
@@ -98,24 +129,36 @@ export class CategoriasComponent implements OnInit {
     indexAxis: "y",
     plugins: { legend: { display: false } },
     scales: {
-      x: { ticks: { color: "#aaa" }, grid: { color: "rgba(255,255,255,0.05)" } },
-      y: { ticks: { color: "#aaa", font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.05)" } },
+      x: { ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
+      y: { ticks: { color: "#6B7280" }, grid: { display: false } },
     },
   };
 
   constructor(private dataService: DataService) {}
 
   ngOnInit(): void {
-    this.dataService.getCategoriaResumos().subscribe((cats) => {
-      this.categorias = cats;
-      this.totalDespesas = cats.reduce((s, c) => s + c.total, 0);
+    this.dataService.getCategoriaResumos().subscribe((allCats) => {
+      this.totalDespesas = allCats.reduce((s, c) => s + c.total, 0);
 
-      const colors = this.generateColors(cats.length);
+      // Top 10 logic
+      const top10 = allCats.slice(0, 10);
+      const others = allCats.slice(10);
+      
+      if (others.length > 0) {
+        const othersTotal = others.reduce((s, c) => s + c.total, 0);
+        this.categorias = [...top10, { categoria: "Outros", total: othersTotal }];
+      } else {
+        this.categorias = top10;
+      }
+
+      this.categorias.sort((a, b) => b.total - a.total);
+
+      const colors = this.generateColors(this.categorias.length);
 
       this.barChartData = {
-        labels: cats.map((c) => c.categoria),
+        labels: this.categorias.map((c) => c.categoria),
         datasets: [{
-          data: cats.map((c) => c.total),
+          data: this.categorias.map((c) => c.total),
           backgroundColor: colors,
           borderRadius: 6,
         }],

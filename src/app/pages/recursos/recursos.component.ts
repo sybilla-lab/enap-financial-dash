@@ -5,6 +5,11 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
+import { MatSelectModule } from "@angular/material/select";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatInputModule } from "@angular/material/input";
+import { FormsModule } from "@angular/forms";
+import { MatDividerModule } from "@angular/material/divider";
 import { DataService } from "../../services/data.service";
 import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
 
@@ -18,6 +23,11 @@ Chart.register(...registerables);
     MatCardModule,
     MatIconModule,
     MatProgressBarModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    MatInputModule,
+    FormsModule,
+    MatDividerModule,
     BaseChartDirective,
   ],
   template: `
@@ -70,69 +80,42 @@ Chart.register(...registerables);
       <!-- Captação row -->
       <div class="section-label">Captação Externa</div>
       <div class="kpi-grid">
-        <mat-card class="kpi-card" appearance="outlined">
+      <div class="kpi-grid">
+        <mat-card class="kpi-card card-indicator-green" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon captacao-recebida"><mat-icon>check_circle</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Captação Recebida</span>
-              <span class="kpi-value">{{ detalhado.captacaoRecebida | currency: "BRL":"symbol":"1.2-2" }}</span>
-              <span class="kpi-sub">Meta: {{ dataService.META_CAPTACAO | currency: "BRL":"symbol":"1.2-2" }}</span>
-            </div>
-            <mat-progress-bar mode="determinate" [value]="pctCaptacaoRecebida" color="accent"></mat-progress-bar>
-            <span class="kpi-pct">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta (recebido)</span>
+            <div class="kpi-label">Aporte Federal (Total)</div>
+            <div class="kpi-value text-green">{{ detalhado.aporteRecebido | currency: "BRL":"symbol":"1.0-0" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctAporte"></mat-progress-bar>
+            <div class="kpi-sub">{{ pctAporte | number: "1.1-1" }}% Recebido</div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card highlight" appearance="outlined">
+        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon captacao-total"><mat-icon>verified</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Captação Total (Recebida + Prevista)</span>
-              <span class="kpi-value">{{ detalhado.captacaoTotal | currency: "BRL":"symbol":"1.2-2" }}</span>
-              <span class="kpi-sub">Prevista: {{ detalhado.captacaoPrevista | currency: "BRL":"symbol":"1.2-2" }} (contratos assinados)</span>
-            </div>
-            <mat-progress-bar mode="determinate" [value]="pctCaptacaoTotal" color="warn"></mat-progress-bar>
-            <span class="kpi-pct">{{ pctCaptacaoTotal | number: "1.1-1" }}% da meta (total)</span>
-          </mat-card-content>
-        </mat-card>
-      </div>
-
-      <!-- Totals row -->
-      <div class="section-label">Consolidado</div>
-      <div class="kpi-grid secondary">
-        <mat-card class="kpi-card" appearance="outlined">
-          <mat-card-content>
-            <div class="kpi-icon total-recebido"><mat-icon>account_balance_wallet</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Recebido</span>
-              <span class="kpi-value">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</span>
-            </div>
-            <mat-progress-bar mode="determinate" [value]="pctTotalRecebido"></mat-progress-bar>
-            <span class="kpi-pct">{{ pctTotalRecebido | number: "1.1-1" }}% da meta total</span>
+            <div class="kpi-label">Captação Externa (Meta)</div>
+            <div class="kpi-value text-blue">{{ detalhado.captacaoTotal | currency: "BRL":"symbol":"1.0-0" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctCaptacaoRecebida"></mat-progress-bar>
+            <div class="kpi-sub">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta atingida</div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card highlight" appearance="outlined">
+        <mat-card class="kpi-card card-indicator-green" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon total-previsto"><mat-icon>assessment</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total com Previstos</span>
-              <span class="kpi-value">{{ detalhado.totalComPrevisto | currency: "BRL":"symbol":"1.2-2" }}</span>
-            </div>
-            <mat-progress-bar mode="determinate" [value]="pctTotalComPrevisto" color="warn"></mat-progress-bar>
-            <span class="kpi-pct">{{ pctTotalComPrevisto | number: "1.1-1" }}% da meta total</span>
+            <div class="kpi-label">Total Recebido (Geral)</div>
+            <div class="kpi-value text-green">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.0-0" }}</div>
+            <div class="kpi-sub">Soma de todas as fontes</div>
           </mat-card-content>
         </mat-card>
       </div>
 
       <!-- Charts -->
-      <div class="chart-row">
+      <div class="charts-grid">
         <mat-card class="chart-card" appearance="outlined">
           <mat-card-header><mat-card-title>Distribuição dos Recursos</mat-card-title></mat-card-header>
           <mat-card-content>
             <div class="chart-wrapper">
               @if (doughnutReady) {
-              <canvas baseChart [data]="doughnutData" [options]="doughnutOptions" [type]="'doughnut'"></canvas>
+              <canvas baseChart [data]="pieData" [options]="pieOptions" [type]="'pie'"></canvas>
               }
             </div>
           </mat-card-content>
@@ -146,6 +129,9 @@ Chart.register(...registerables);
               <canvas baseChart [data]="barData" [options]="barOptions" [type]="'bar'"></canvas>
               }
             </div>
+            <div class="chart-info">
+              <span class="info-item"><mat-icon>info</mat-icon> Comparação direta entre valores realizados e planejados</span>
+            </div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -156,6 +142,27 @@ Chart.register(...registerables);
           <mat-card-title><mat-icon>table_chart</mat-icon> Detalhamento de Recebimentos</mat-card-title>
         </mat-card-header>
         <mat-card-content>
+          <div class="table-filters">
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Filtrar Projeto</mat-label>
+              <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroProjeto" placeholder="Ex: Projeto X">
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Tipo</mat-label>
+              <mat-select [(ngModel)]="filtroTipo" (selectionChange)="applyFilter()">
+                <mat-option value="">Todos</mat-option>
+                <mat-option value="Aporte">Aporte</mat-option>
+                <mat-option value="Captação">Captação</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Período</mat-label>
+              <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroPeriodo" placeholder="Ex: 01/2026">
+            </mat-form-field>
+          </div>
+
           <div class="table-container">
             <table class="data-table">
               <thead>
@@ -170,7 +177,7 @@ Chart.register(...registerables);
                 </tr>
               </thead>
               <tbody>
-                @for (r of recebimentos; track $index) {
+                @for (r of recebimentosFiltrados; track $index) {
                 <tr>
                   <td>{{ r.projeto }}</td>
                   <td>{{ r.fornecedor }}</td>
@@ -197,58 +204,44 @@ Chart.register(...registerables);
     </div>
   `,
   styles: `
-    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .recursos-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 300; margin-bottom: 24px; color: var(--text-primary); }
-    .section-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; padding-left: 4px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
+    .kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+    .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 26px; font-weight: 600; color: var(--text-primary); margin: 4px 0; }
+    .kpi-sub { font-size: 11px; color: var(--text-muted); }
+    
+    .text-green { color: var(--accent-green) !important; }
+    .text-blue { color: var(--accent-blue) !important; }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .kpi-card { background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 16px !important; transition: transform 0.2s; }
-    .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-    .kpi-card.highlight { border-color: rgba(255, 171, 64, 0.3) !important; }
-    .kpi-card.inflacao-card { border-color: rgba(255, 193, 7, 0.2) !important; }
-    .kpi-card mat-card-content { display: flex; flex-direction: column; gap: 10px; padding: 20px; }
+    mat-progress-bar { height: 4px !important; border-radius: 2px; }
 
-    .kpi-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-    .kpi-icon mat-icon { color: #fff; font-size: 28px; width: 28px; height: 28px; }
-    .aporte { background: linear-gradient(135deg, #7c4dff, #651fff); }
-    .inflacao { background: linear-gradient(135deg, #ffc107, #ff8f00); }
-    .aporte-prev { background: linear-gradient(135deg, #9575cd, #7e57c2); }
-    .captacao-recebida { background: linear-gradient(135deg, #00bcd4, #0097a7); }
-    .captacao-total { background: linear-gradient(135deg, #ff9800, #e65100); }
-    .total-recebido { background: linear-gradient(135deg, #4caf50, #2e7d32); }
-    .total-previsto { background: linear-gradient(135deg, #ff9800, #f57c00); }
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; margin-bottom: 24px; }
+    .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
+    .chart-card mat-card-header, .table-card mat-card-header { padding: 24px 24px 0; }
+    .chart-card mat-card-title, .table-card mat-card-title { font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .chart-wrapper { height: 300px; padding: 24px; }
 
-    .kpi-info { display: flex; flex-direction: column; }
-    .kpi-label { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); }
-    .kpi-sub { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
-    .kpi-pct { font-size: 12px; color: var(--text-secondary); text-align: right; }
-    mat-progress-bar { border-radius: 4px; height: 6px !important; }
-
-    .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-    @media (max-width: 900px) { .chart-row { grid-template-columns: 1fr; } }
-    .chart-card { background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 16px !important; }
-    .chart-card mat-card-header { padding: 20px 20px 0; }
-    .chart-card mat-card-title { font-size: 16px; font-weight: 500; color: var(--text-primary); }
-    .chart-wrapper { padding: 16px; height: 300px; display: flex; align-items: center; justify-content: center; }
-    .chart-wrapper canvas { max-height: 280px; }
-
-    .table-card { background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 16px !important; }
-    .table-card mat-card-header { padding: 20px 20px 0; }
-    .table-card mat-card-title { display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--text-primary); }
-    .table-container { overflow-x: auto; padding: 16px; }
+    .table-container { overflow-x: auto; padding: 24px; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .data-table th { padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 12px; }
-    .data-table td { padding: 10px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+    .data-table th { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
     .data-table tr:hover td { background: var(--hover-bg); }
-    .num { text-align: right !important; }
-    .positive { color: #4caf50 !important; }
+    .num { text-align: right !important; font-variant-numeric: tabular-nums; }
+    .positive { color: var(--accent-green) !important; }
 
-    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status-badge.recebido { background: rgba(76, 175, 80, 0.15); color: #4caf50; }
-    .status-badge.previsto { background: rgba(255, 152, 0, 0.15); color: #ff9800; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .status-badge.recebido { background: rgba(52, 211, 153, 0.1); color: var(--accent-green); }
+    .status-badge.previsto { background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); }
 
-    .obs-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: rgba(255, 193, 7, 0.15); color: #ffc107; text-transform: uppercase; }
+    .obs-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: var(--hover-bg); color: var(--text-muted); text-transform: uppercase; }
+
+    .table-filters { display: flex; gap: 16px; padding: 24px; flex-wrap: wrap; }
+    .filter-field { flex: 1; min-width: 200px; }
+    .chart-info { display: flex; align-items: center; gap: 8px; padding: 0 24px 24px; color: var(--text-muted); font-size: 11px; }
+    .chart-info mat-icon { font-size: 14px; width: 14px; height: 14px; }
   `,
 })
 export class RecursosComponent implements OnInit {
@@ -258,6 +251,11 @@ export class RecursosComponent implements OnInit {
     captacaoTotal: 0, totalRecebido: 0, totalComPrevisto: 0,
   };
   recebimentos: Recebimento[] = [];
+  recebimentosFiltrados: Recebimento[] = [];
+
+  filtroProjeto = "";
+  filtroTipo = "";
+  filtroPeriodo = "";
 
   pctAporte = 0;
   pctCaptacaoRecebida = 0;
@@ -268,19 +266,22 @@ export class RecursosComponent implements OnInit {
   doughnutReady = false;
   barReady = false;
 
-  doughnutData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
-  doughnutOptions: ChartConfiguration<"doughnut">["options"] = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { position: "bottom", labels: { color: "#ccc", padding: 20 } } },
+  public pieData: ChartConfiguration["data"] = { labels: [], datasets: [] };
+  public pieOptions: ChartConfiguration["options"] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "right", labels: { color: "#9CA3AF", font: { size: 11 } } },
+    },
   };
 
   barData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barOptions: ChartConfiguration<"bar">["options"] = {
     responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { position: "top", labels: { color: "#ccc" } } },
+    plugins: { legend: { position: "top", labels: { color: "#9CA3AF", font: { size: 11 } } } },
     scales: {
-      x: { stacked: true, ticks: { color: "#aaa" }, grid: { color: "rgba(255,255,255,0.05)" } },
-      y: { stacked: true, ticks: { color: "#aaa" }, grid: { color: "rgba(255,255,255,0.05)" } },
+      x: { stacked: false, ticks: { color: "#6B7280" }, grid: { display: false } },
+      y: { stacked: false, ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
     },
   };
 
@@ -290,44 +291,35 @@ export class RecursosComponent implements OnInit {
     this.dataService.getRecursoDetalhado().subscribe((d) => {
       this.detalhado = d;
 
-      // Percentuais (aporte sem inflação para a meta)
       this.pctAporte = this.dataService.META_APORTE > 0 ? (d.aporteRecebido / this.dataService.META_APORTE) * 100 : 0;
       this.pctCaptacaoRecebida = this.dataService.META_CAPTACAO > 0 ? (d.captacaoRecebida / this.dataService.META_CAPTACAO) * 100 : 0;
       this.pctCaptacaoTotal = this.dataService.META_CAPTACAO > 0 ? (d.captacaoTotal / this.dataService.META_CAPTACAO) * 100 : 0;
       this.pctTotalRecebido = this.dataService.META_TOTAL > 0 ? (d.totalRecebido / this.dataService.META_TOTAL) * 100 : 0;
       this.pctTotalComPrevisto = this.dataService.META_TOTAL > 0 ? (d.totalComPrevisto / this.dataService.META_TOTAL) * 100 : 0;
 
-      // Doughnut
-      this.doughnutData = {
-        labels: ["Aporte Recebido", "Inflação", "Captação Recebida", "Captação Prevista", "Aporte Previsto"],
+      this.pieData = {
+        labels: ["Aporte Federal", "Captação Externa"],
         datasets: [{
-          data: [d.aporteRecebido, d.aporteInflacao, d.captacaoRecebida, d.captacaoPrevista, d.aportePrevisto],
-          backgroundColor: ["#7c4dff", "#ffc107", "#00bcd4", "#ff9800", "#9575cd"],
+          data: [d.aporteRecebido, d.captacaoRecebida],
+          backgroundColor: ["#34D399", "#38BDF8"],
           borderWidth: 0,
         }],
       };
       this.doughnutReady = true;
 
-      // Stacked bar: Recebido vs Previsto
       this.barData = {
         labels: ["Aporte", "Captação"],
         datasets: [
           {
             label: "Recebido",
             data: [d.aporteRecebido, d.captacaoRecebida],
-            backgroundColor: "rgba(124, 77, 255, 0.8)",
-            borderRadius: 4,
-          },
-          {
-            label: "Inflação",
-            data: [d.aporteInflacao, 0],
-            backgroundColor: "rgba(255, 193, 7, 0.8)",
+            backgroundColor: "#34D399",
             borderRadius: 4,
           },
           {
             label: "Previsto",
             data: [d.aportePrevisto, d.captacaoPrevista],
-            backgroundColor: "rgba(255, 152, 0, 0.6)",
+            backgroundColor: "rgba(56, 189, 248, 0.4)",
             borderRadius: 4,
           },
         ],
@@ -337,6 +329,20 @@ export class RecursosComponent implements OnInit {
 
     this.dataService.getRecebimentosDetalhados().subscribe((r) => {
       this.recebimentos = r;
+      this.applyFilter();
+    });
+  }
+
+  applyFilter(): void {
+    const proj = this.filtroProjeto.toLowerCase();
+    const period = this.filtroPeriodo.toLowerCase();
+    const type = this.filtroTipo.toLowerCase();
+
+    this.recebimentosFiltrados = this.recebimentos.filter(r => {
+      const matchProj = !proj || r.projeto.toLowerCase().includes(proj);
+      const matchPeriod = !period || (r.mesAno || "").toLowerCase().includes(period);
+      const matchType = !type || r.observacao.toLowerCase().includes(type);
+      return matchProj && matchPeriod && matchType;
     });
   }
 }

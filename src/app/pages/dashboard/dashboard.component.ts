@@ -28,99 +28,82 @@ import { DataService } from "../../services/data.service";
 
       <!-- KPI Cards -->
       <div class="kpi-grid">
-        <mat-card class="kpi-card kpi-recebido" appearance="outlined">
+        <mat-card class="kpi-card kpi-recebido card-indicator-green" appearance="outlined">
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>account_balance_wallet</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Total Recebido</span>
-              <span class="kpi-value">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</span>
+              <span class="kpi-value text-green">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.0-0" }}</span>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card kpi-executado" appearance="outlined">
+        <mat-card class="kpi-card kpi-executado card-indicator-red" appearance="outlined">
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>payments</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Total Executado</span>
-              <span class="kpi-value">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.2-2" }}</span>
+              <span class="kpi-value text-red">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.0-0" }}</span>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card kpi-saldo" appearance="outlined">
+        <mat-card class="kpi-card kpi-saldo card-indicator-blue" appearance="outlined">
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>savings</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Saldo Disponível</span>
-              <span class="kpi-value">{{ indicadores.saldoDisponivel | currency: "BRL":"symbol":"1.2-2" }}</span>
+              <span class="kpi-value text-blue">{{ indicadores.saldoDisponivel | currency: "BRL":"symbol":"1.0-0" }}</span>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card kpi-execucao" appearance="outlined">
+        <mat-card class="kpi-card kpi-execucao card-indicator-yellow" appearance="outlined">
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>speed</mat-icon>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">% Execução</span>
-              <span class="kpi-value">{{ indicadores.percentualExecucao | number: "1.1-1" }}%</span>
+              <span class="kpi-value text-yellow">{{ indicadores.percentualExecucao | number: "1.0-0" }}%</span>
             </div>
             <mat-progress-bar mode="determinate" [value]="indicadores.percentualExecucao"></mat-progress-bar>
           </mat-card-content>
         </mat-card>
-      </div>
 
-      <!-- Second row - Operations -->
-      <div class="kpi-grid secondary">
-        <mat-card class="kpi-card" appearance="outlined">
+        <mat-card class="kpi-card kpi-runway card-indicator-blue" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
+            <div class="kpi-icon">
+              <mat-icon>timer</mat-icon>
+            </div>
             <div class="kpi-info">
-              <span class="kpi-label">Nº de Pagamentos</span>
-              <span class="kpi-value">{{ indicadores.numPagamentos }}</span>
+              <span class="kpi-label">Runway (Meses)</span>
+              <span class="kpi-value">{{ runway | number: "1.1-1" }}</span>
+              <span class="kpi-sub">Sobrevivência estimada</span>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card" appearance="outlined">
+        <mat-card class="kpi-card kpi-gap card-indicator-blue" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon"><mat-icon>price_check</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Ticket Médio</span>
-              <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.2-2" }}</span>
+            <div class="kpi-icon">
+              <mat-icon>trending_down</mat-icon>
             </div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="kpi-card" appearance="outlined">
-          <mat-card-content>
-            <div class="kpi-icon"><mat-icon>flag</mat-icon></div>
             <div class="kpi-info">
-              <span class="kpi-label">Meta Total</span>
-              <span class="kpi-value">{{ dataService.META_TOTAL | currency: "BRL":"symbol":"1.2-2" }}</span>
+              <span class="kpi-label">Gap de Captação</span>
+              <span class="kpi-value">{{ gapCaptacao | currency: "BRL":"symbol":"1.0-0" }}</span>
+              <span class="kpi-sub">Falta para a meta</span>
             </div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="kpi-card" appearance="outlined">
-          <mat-card-content>
-            <div class="kpi-icon"><mat-icon>trending_up</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">% Atingido (Meta Total)</span>
-              <span class="kpi-value">{{ percentualMeta | number: "1.1-1" }}%</span>
-            </div>
-            <mat-progress-bar mode="determinate" [value]="percentualMeta"></mat-progress-bar>
           </mat-card-content>
         </mat-card>
       </div>
+
 
       <!-- Projects summary table -->
       <mat-card class="summary-card" appearance="outlined">
@@ -184,52 +167,56 @@ import { DataService } from "../../services/data.service";
       box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
     .kpi-card mat-card-content {
-      display: flex; flex-direction: column; gap: 12px; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px; padding: 24px;
     }
     .kpi-icon {
-      width: 48px; height: 48px; border-radius: 12px;
+      width: 44px; height: 44px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      background: var(--accent-gradient);
+      background: var(--hover-bg);
+      border: 1px solid var(--border-color);
     }
-    .kpi-icon mat-icon { color: #fff; font-size: 28px; width: 28px; height: 28px; }
-    .kpi-recebido .kpi-icon { background: linear-gradient(135deg, #4caf50, #2e7d32); }
-    .kpi-executado .kpi-icon { background: linear-gradient(135deg, #f44336, #c62828); }
-    .kpi-saldo .kpi-icon { background: linear-gradient(135deg, #2196f3, #1565c0); }
-    .kpi-execucao .kpi-icon { background: linear-gradient(135deg, #ff9800, #e65100); }
+    .kpi-icon mat-icon { color: var(--text-secondary); font-size: 24px; width: 24px; height: 24px; }
+    
     .kpi-info { display: flex; flex-direction: column; }
-    .kpi-label { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); margin-top: 4px; }
-    mat-progress-bar { border-radius: 4px; height: 6px !important; }
+    .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 26px; font-weight: 600; color: var(--text-primary); margin-top: 4px; }
+    .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    
+    .text-green { color: var(--accent-green) !important; }
+    .text-red { color: var(--accent-red) !important; }
+    .text-blue { color: var(--accent-blue) !important; }
+    .text-yellow { color: var(--accent-yellow) !important; }
+
+    mat-progress-bar { border-radius: 4px; height: 4px !important; margin-top: 8px; }
     .summary-card {
       background: var(--card-bg) !important;
-      border: 1px solid var(--border-color) !important;
-      border-radius: 16px !important;
+      border-radius: 12px !important;
     }
-    .summary-card mat-card-header { padding: 20px 20px 0; }
+    .summary-card mat-card-header { padding: 24px 24px 0; }
     .summary-card mat-card-title {
       display: flex; align-items: center; gap: 8px;
-      font-size: 18px; font-weight: 500; color: var(--text-primary);
+      font-size: 16px; font-weight: 500; color: var(--text-primary);
     }
-    .table-container { overflow-x: auto; padding: 16px; }
+    .table-container { overflow-x: auto; padding: 24px; }
     .data-table {
       width: 100%; border-collapse: collapse;
       font-size: 14px;
     }
     .data-table th {
       padding: 12px 16px; text-align: left;
-      border-bottom: 2px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
       color: var(--text-secondary); font-weight: 600;
-      text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+      text-transform: none; font-size: 12px;
     }
     .data-table td {
-      padding: 10px 16px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-primary);
     }
     .data-table tr:hover td { background: var(--hover-bg); }
     .num { text-align: right !important; font-variant-numeric: tabular-nums; }
-    .positive { color: #4caf50 !important; }
-    .negative { color: #f44336 !important; }
+    .positive { color: var(--accent-green) !important; }
+    .negative { color: var(--accent-red) !important; }
   `,
 })
 export class DashboardComponent implements OnInit {
@@ -238,22 +225,20 @@ export class DashboardComponent implements OnInit {
     totalExecutado: 0,
     saldoDisponivel: 0,
     percentualExecucao: 0,
-    numPagamentos: 0,
-    ticketMedio: 0,
   };
   projetos: any[] = [];
-  percentualMeta = 0;
+  runway = 0;
+  gapCaptacao = 0;
 
   constructor(public dataService: DataService) {}
 
   ngOnInit(): void {
     this.dataService.getIndicadoresOperacionais().subscribe((ind) => {
       this.indicadores = ind;
-      this.percentualMeta =
-        this.dataService.META_TOTAL > 0
-          ? (ind.totalRecebido / this.dataService.META_TOTAL) * 100
-          : 0;
     });
+
+    this.dataService.getRunway().subscribe(r => this.runway = r);
+    this.dataService.getGapCaptacao().subscribe(g => this.gapCaptacao = g);
 
     this.dataService.getProjetoResumos().subscribe((p) => {
       this.projetos = p;

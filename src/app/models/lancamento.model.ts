@@ -25,6 +25,12 @@ export interface ProjetoResumo {
   saidas: number;
   saldo: number;
   execucao: number;
+  status?: string; // Ativo, Em encerramento, Finalizado
+}
+
+export interface StatusProjeto {
+  projeto: string;
+  status: string;
 }
 
 export interface CategoriaResumo {

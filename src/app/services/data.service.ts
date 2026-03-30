@@ -10,14 +10,17 @@ import {
   FluxoMensal,
   RecursoResumo,
   RecursoDetalhado,
+  StatusProjeto,
 } from "../models/lancamento.model";
 
 @Injectable({ providedIn: "root" })
 export class DataService {
   private lancamentosSubject = new BehaviorSubject<Lancamento[]>([]);
   private recebimentosSubject = new BehaviorSubject<Recebimento[]>([]);
+  private statusSubject = new BehaviorSubject<StatusProjeto[]>([]);
   lancamentos$ = this.lancamentosSubject.asObservable();
   recebimentos$ = this.recebimentosSubject.asObservable();
+  status$ = this.statusSubject.asObservable();
 
   // Metas financeiras
   readonly META_APORTE = 3023000;
@@ -28,6 +31,7 @@ export class DataService {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vTcM2aU8ucv35H649ATmgyUMR6S7pvkVaxPQSwN0p-Hs9DsvAIG5Mm-4PutXobweeZ0vp21mklhYqBM/pub?output=csv";
   private readonly SHEET_PRINCIPAL = this.SHEET_BASE + "&gid=0";
   private readonly SHEET_RECEBIMENTOS = this.SHEET_BASE + "&gid=595659211";
+  private readonly SHEET_STATUS_PROJETOS = this.SHEET_BASE + "&gid=1699326950";
 
   constructor(private http: HttpClient) {
     this.carregarDados();
@@ -37,9 +41,11 @@ export class DataService {
     forkJoin({
       principal: this.http.get(this.SHEET_PRINCIPAL, { responseType: "text" }),
       recebimentos: this.http.get(this.SHEET_RECEBIMENTOS, { responseType: "text" }),
-    }).subscribe(({ principal, recebimentos }) => {
+      status: this.http.get(this.SHEET_STATUS_PROJETOS, { responseType: "text" }),
+    }).subscribe(({ principal, recebimentos, status }) => {
       this.parsePrincipal(principal);
       this.parseRecebimentos(recebimentos);
+      this.parseStatusProjetos(status);
     });
   }
 
@@ -97,6 +103,23 @@ export class DataService {
     }
 
     this.recebimentosSubject.next(recebimentos);
+  }
+
+  private parseStatusProjetos(csvText: string): void {
+    const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = parsed.data as string[][];
+    const statusProjetos: StatusProjeto[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 2) continue;
+        const projeto = (row[0] || "").trim();
+        const status = (row[1] || "").trim();
+        if (projeto) {
+            statusProjetos.push({ projeto, status });
+        }
+    }
+    this.statusSubject.next(statusProjetos);
   }
 
   private parseValor(valorStr: string): number {
@@ -213,8 +236,11 @@ export class DataService {
 
   // ===== PROJETOS =====
   getProjetoResumos(): Observable<ProjetoResumo[]> {
-    return this.lancamentos$.pipe(
-      map((lancs) => {
+    return forkJoin({
+      lancs: this.lancamentos$,
+      status: this.status$,
+    }).pipe(
+      map(({ lancs, status }) => {
         const porProjeto = new Map<string, { entradas: number; saidas: number }>();
 
         lancs.forEach((l) => {
@@ -231,13 +257,17 @@ export class DataService {
         });
 
         return Array.from(porProjeto.entries())
-          .map(([projeto, data]) => ({
-            projeto,
-            entradas: data.entradas,
-            saidas: data.saidas,
-            saldo: data.entradas - data.saidas,
-            execucao: data.entradas > 0 ? (data.saidas / data.entradas) * 100 : 0,
-          }))
+          .map(([projeto, data]) => {
+            const statusInfo = status.find((s) => s.projeto === projeto);
+            return {
+              projeto,
+              entradas: data.entradas,
+              saidas: data.saidas,
+              saldo: data.entradas - data.saidas,
+              execucao: data.entradas > 0 ? (data.saidas / data.entradas) * 100 : 0,
+              status: statusInfo ? statusInfo.status : "Ativo",
+            };
+          })
           .sort((a, b) => b.entradas - a.entradas);
       })
     );
@@ -352,6 +382,26 @@ export class DataService {
           ticketMedio,
         };
       })
+    );
+  }
+
+  // ===== NOVOS INDICADORES GESTÃO =====
+  getRunway(): Observable<number> {
+    return forkJoin({
+      fluxo: this.getFluxoMensal(),
+      inds: this.getIndicadoresOperacionais(),
+    }).pipe(
+      map(({ fluxo, inds }) => {
+        if (fluxo.length === 0) return 0;
+        const mediaSaidas = fluxo.reduce((sum, m) => sum + m.saidas, 0) / fluxo.length;
+        return mediaSaidas > 0 ? inds.saldoDisponivel / mediaSaidas : 0;
+      })
+    );
+  }
+
+  getGapCaptacao(): Observable<number> {
+    return this.getRecursoDetalhado().pipe(
+      map((d) => Math.max(0, this.META_CAPTACAO - d.captacaoRecebida))
     );
   }
 }

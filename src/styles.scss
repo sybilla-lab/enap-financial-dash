@@ -4,15 +4,23 @@
 
 // ====== CSS Variables for theming ======
 :root {
-  --bg-primary: #0f1117;
-  --card-bg: #1a1d27;
-  --sidenav-bg: #141720;
-  --toolbar-bg: rgba(20, 23, 32, 0.85);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --text-primary: #e8eaed;
-  --text-secondary: #9aa0a6;
-  --hover-bg: rgba(255, 255, 255, 0.04);
-  --accent-gradient: linear-gradient(135deg, #7c4dff, #448aff);
+  --bg-primary: #0B1F1C;
+  --card-bg: rgba(15, 42, 38, 0.7);
+  --glass-bg: rgba(15, 42, 38, 0.5);
+  --sidenav-bg: #091a18;
+  --toolbar-bg: rgba(11, 31, 28, 0.85);
+  --border-color: rgba(255, 255, 255, 0.05);
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --accent-green: #34D399;
+  --accent-green-soft: #6EE7B7;
+  --accent-blue: #38BDF8;
+  --accent-red: #F87171;
+  --accent-yellow: #FBBF24;
+  --hover-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(12px);
 }
 
 body.light-theme {
@@ -37,56 +45,46 @@ html, body {
 }
 
 // ====== Scrollbar styles ======
-::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(124, 77, 255, 0.3); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(124, 77, 255, 0.5); }
+::-webkit-scrollbar-thumb { background: rgba(52, 211, 153, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(52, 211, 153, 0.4); }
 
 // ====== Material overrides ======
 .mat-mdc-card {
   --mdc-elevated-card-container-color: var(--card-bg);
   --mdc-outlined-card-container-color: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border) !important;
 }
 
 .mat-mdc-form-field {
   --mdc-outlined-text-field-outline-color: var(--border-color);
-  --mdc-outlined-text-field-hover-outline-color: rgba(124, 77, 255, 0.5);
-  --mdc-outlined-text-field-focus-outline-color: #7c4dff;
+  --mdc-outlined-text-field-hover-outline-color: rgba(52, 211, 153, 0.4);
+  --mdc-outlined-text-field-focus-outline-color: var(--accent-green);
   --mdc-outlined-text-field-label-text-color: var(--text-secondary);
   --mdc-outlined-text-field-input-text-color: var(--text-primary);
 }
 
-.mat-mdc-option {
-  --mat-option-label-text-color: var(--text-primary);
-}
-
-.mdc-list-item__primary-text {
-  color: var(--text-primary) !important;
-}
-
-.mat-mdc-select-panel {
-  background: var(--card-bg) !important;
-}
-
-// ====== Sidenav background fix ======
-.mat-drawer-container {
-  background-color: var(--bg-primary) !important;
-}
-
-.mat-drawer {
-  background-color: var(--sidenav-bg) !important;
-}
-
-.mat-drawer-inner-container {
-  background: var(--sidenav-bg) !important;
-}
+// ====== Utility Classes for Card Indicators ======
+.card-indicator-green { border-left: 3px solid var(--accent-green) !important; }
+.card-indicator-blue { border-left: 3px solid var(--accent-blue) !important; }
+.card-indicator-red { border-left: 3px solid var(--accent-red) !important; }
+.card-indicator-yellow { border-left: 3px solid var(--accent-yellow) !important; }
 
 // ====== Animations ======
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 mat-card {
-  animation: fadeIn 0.4s ease-out;
+  animation: fadeIn 0.5s ease-out;
+}
+
+// ====== Global Typography Refinement ======
+h1, h2, h3, h4 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-transform: none !important;
 }
