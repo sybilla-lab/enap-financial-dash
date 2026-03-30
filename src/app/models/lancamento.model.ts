@@ -59,6 +59,7 @@ export interface RecursoDetalhado {
   captacaoRecebida: number;
   captacaoPrevista: number;
   captacaoTotal: number;
+  saldoACaptar: number;           // Valor que falta para atingir a meta de captação
   totalRecebido: number;
   totalComPrevisto: number;
 }

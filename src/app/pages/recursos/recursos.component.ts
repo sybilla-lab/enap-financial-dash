@@ -97,32 +97,60 @@ Chart.register(...registerables);
       </div>
 
       <!-- Captação Externa Section -->
-      <div class="consolidado-row-header">CAPTAÇÃO EXTERNA</div>
+      <div class="consolidado-row-header">CAPTAÇÃO EXTERNA (META R$ 17.550.525)</div>
       <div class="kpi-grid-classic">
-        <!-- Row 1: Captação -->
+        <!-- 1. Recebido -->
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
-              <div class="circle-icon teal"><mat-icon>check_circle</mat-icon></div>
+              <div class="circle-icon teal"><mat-icon>archive</mat-icon></div>
               <div class="classic-label">CAPTAÇÃO RECEBIDA</div>
             </div>
             <div class="classic-value">{{ detalhado.captacaoRecebida | currency: "BRL":"symbol":"1.2-2" }}</div>
-            <div class="classic-meta">Meta: {{ dataService.META_CAPTACAO | currency: "BRL":"symbol":"1.2-2" }}</div>
             <mat-progress-bar mode="determinate" [value]="pctCaptacaoRecebida" class="classic-progress teal"></mat-progress-bar>
-            <div class="classic-footer">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta (recebido)</div>
+            <div class="classic-footer">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta atingida</div>
           </mat-card-content>
         </mat-card>
 
+        <!-- 2. Previsto -->
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
-              <div class="circle-icon orange"><mat-icon>settings</mat-icon></div>
-              <div class="classic-label">CAPTAÇÃO TOTAL (RECEBIDA + PREVISTA)</div>
+              <div class="circle-icon teal-light"><mat-icon>schedule</mat-icon></div>
+              <div class="classic-label">CAPTAÇÃO PREVISTA</div>
             </div>
-            <div class="classic-value">{{ detalhado.captacaoTotal | currency: "BRL":"symbol":"1.2-2" }}</div>
-            <div class="classic-sub">Prevista: {{ detalhado.captacaoPrevista | currency: "BRL":"symbol":"1.2-2" }} (contratos assinados)</div>
-            <mat-progress-bar mode="determinate" [value]="pctCaptacaoTotal" class="classic-progress red"></mat-progress-bar>
-            <div class="classic-footer">{{ pctCaptacaoTotal | number: "1.1-1" }}% da meta (total)</div>
+            <div class="classic-value">{{ detalhado.captacaoPrevista | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Contratos assinados</div>
+            <mat-progress-bar mode="determinate" [value]="(detalhado.captacaoPrevista / dataService.META_CAPTACAO * 100)" class="classic-progress teal-bar"></mat-progress-bar>
+            <div class="classic-footer">{{ (detalhado.captacaoPrevista / dataService.META_CAPTACAO * 100) | number: "1.1-1" }}% do total</div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- 3. A Formalizar -->
+        <mat-card class="classic-card" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon orange-light"><mat-icon>assignment_late</mat-icon></div>
+              <div class="classic-label">A FORMALIZAR</div>
+            </div>
+            <div class="classic-value">{{ detalhado.saldoACaptar | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Saldo p/ atingir meta</div>
+            <mat-progress-bar mode="determinate" [value]="(detalhado.saldoACaptar / dataService.META_CAPTACAO * 100)" class="classic-progress orange-bar"></mat-progress-bar>
+            <div class="classic-footer">Remanescente contratual</div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- 4. Meta Total -->
+        <mat-card class="classic-card" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon teal-dark"><mat-icon>flag</mat-icon></div>
+              <div class="classic-label">META TOTAL CAPTAÇÃO</div>
+            </div>
+            <div class="classic-value">{{ dataService.META_CAPTACAO | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Total planejado</div>
+            <mat-progress-bar mode="determinate" [value]="100" class="classic-progress teal"></mat-progress-bar>
+            <div class="classic-footer">Objetivo de captação</div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -136,23 +164,24 @@ Chart.register(...registerables);
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon green"><mat-icon>account_balance_wallet</mat-icon></div>
-              <div class="classic-label">TOTAL RECEBIDO</div>
+              <div class="classic-label">TOTAL RECEBIDO (NET)</div>
             </div>
             <div class="classic-value">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
             <mat-progress-bar mode="determinate" [value]="pctTotalRecebido" class="classic-progress blue"></mat-progress-bar>
-            <div class="classic-footer">{{ pctTotalRecebido | number: "1.1-1" }}% da meta total</div>
+            <div class="classic-footer">{{ pctTotalRecebido | number: "1.1-1" }}% da meta total conquistada</div>
           </mat-card-content>
         </mat-card>
 
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
-              <div class="circle-icon orange-light"><mat-icon>bar_chart</mat-icon></div>
-              <div class="classic-label">TOTAL COM PREVISTOS</div>
+              <div class="circle-icon gold"><mat-icon>stars</mat-icon></div>
+              <div class="classic-label">POTENCIAL TOTAL (META)</div>
             </div>
-            <div class="classic-value">{{ detalhado.totalComPrevisto | currency: "BRL":"symbol":"1.2-2" }}</div>
-            <mat-progress-bar mode="determinate" [value]="pctTotalComPrevisto" class="classic-progress red"></mat-progress-bar>
-            <div class="classic-footer">{{ pctTotalComPrevisto | number: "1.1-1" }}% da meta total</div>
+            <div class="classic-value">{{ dataService.META_TOTAL | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Aporte + Captação Planejada</div>
+            <mat-progress-bar mode="determinate" [value]="pctTotalComPrevisto" class="classic-progress orange"></mat-progress-bar>
+            <div class="classic-footer">{{ pctTotalComPrevisto | number: "1.1-1" }}% das metas formalizadas</div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -315,7 +344,7 @@ export class RecursosComponent implements OnInit {
   detalhado: RecursoDetalhado = {
     aporteRecebido: 0, aporteInflacao: 0, aporteRecebidoTotal: 0, aportePrevisto: 0,
     captacaoRecebida: 0, captacaoPrevista: 0,
-    captacaoTotal: 0, totalRecebido: 0, totalComPrevisto: 0,
+    captacaoTotal: 0, saldoACaptar: 0, totalRecebido: 0, totalComPrevisto: 0,
   };
   recebimentos: Recebimento[] = [];
   recebimentosFiltrados: Recebimento[] = [];

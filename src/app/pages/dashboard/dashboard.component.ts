@@ -97,14 +97,25 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
+        <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>trending_up</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Inflação Recebida</span>
+              <span class="kpi-value text-orange">{{ inflacao | currency: "BRL":"symbol":"1.0-0" }}</span>
+              <span class="kpi-sub">Reajustes contratuais (extra)</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
         <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>analytics</mat-icon></div>
             <div class="kpi-info">
               <span class="kpi-label">% Atingido (Meta Total)</span>
-              <span class="kpi-value">{{ (indicadores.totalRecebido / dataService.META_TOTAL * 100) | number: "1.1-1" }}%</span>
+              <span class="kpi-value">{{ (totalRecebidoNet / dataService.META_TOTAL * 100) | number: "1.1-1" }}%</span>
             </div>
-            <mat-progress-bar mode="determinate" [value]="(indicadores.totalRecebido / dataService.META_TOTAL * 100)"></mat-progress-bar>
+            <mat-progress-bar mode="determinate" [value]="(totalRecebidoNet / dataService.META_TOTAL * 100)"></mat-progress-bar>
           </mat-card-content>
         </mat-card>
 
@@ -216,6 +227,7 @@ import { DataService } from "../../services/data.service";
     .text-red { color: var(--accent-red) !important; }
     .text-blue { color: var(--accent-blue) !important; }
     .text-yellow { color: var(--accent-yellow) !important; }
+    .text-orange { color: #fb923c !important; }
 
     mat-progress-bar { border-radius: 4px; height: 4px !important; margin-top: 8px; }
     .summary-card {
@@ -272,12 +284,19 @@ export class DashboardComponent implements OnInit {
   projetos: any[] = [];
   runway = 0;
   gapCaptacao = 0;
+  inflacao = 0;
+  totalRecebidoNet = 0;
 
   constructor(public dataService: DataService) {}
 
   ngOnInit(): void {
     this.dataService.getIndicadoresOperacionais().subscribe((ind) => {
       this.indicadores = ind;
+    });
+
+    this.dataService.getRecursoDetalhado().subscribe(rd => {
+       this.inflacao = rd.aporteInflacao;
+       this.totalRecebidoNet = rd.totalRecebido;
     });
 
     this.dataService.getRunway().subscribe(r => this.runway = r);

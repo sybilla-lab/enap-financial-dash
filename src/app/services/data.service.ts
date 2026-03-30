@@ -203,8 +203,11 @@ export class DataService {
           }
         });
 
-        const captacaoTotal = captacaoRecebida + captacaoPrevista;
+        const captacaoTotalPresente = captacaoRecebida + captacaoPrevista;
+        const saldoACaptar = Math.max(0, this.META_CAPTACAO - captacaoTotalPresente);
+        const captacaoTotal = captacaoTotalPresente + saldoACaptar;
         const aporteRecebidoTotal = aporteRecebido + aporteInflacao;
+
         return {
           aporteRecebido,
           aporteInflacao,
@@ -213,8 +216,9 @@ export class DataService {
           captacaoRecebida,
           captacaoPrevista,
           captacaoTotal,
-          totalRecebido: aporteRecebidoTotal + captacaoRecebida,
-          totalComPrevisto: aporteRecebidoTotal + aportePrevisto + captacaoTotal,
+          saldoACaptar,
+          totalRecebido: aporteRecebido + captacaoRecebida,
+          totalComPrevisto: this.META_TOTAL, 
         };
       })
     );
