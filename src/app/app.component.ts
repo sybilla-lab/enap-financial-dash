@@ -122,21 +122,21 @@ interface NavItem {
       flex-shrink: 0;
     }
     .logo-hub {
-      height: 48px;
-      max-width: 180px;
+      height: 72px;
+      max-width: 220px;
       object-fit: contain;
     }
     .logo-hub-small {
-      height: 36px;
+      height: 40px;
       object-fit: contain;
     }
     .logo-enap {
-      height: 24px;
-      max-width: 140px;
+      height: 36px;
+      max-width: 180px;
       object-fit: contain;
     }
     .logo-enap-small {
-      height: 18px;
+      height: 20px;
       object-fit: contain;
     }
     
