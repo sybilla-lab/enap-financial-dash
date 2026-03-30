@@ -12,6 +12,7 @@ import {
   RecursoDetalhado,
   StatusProjeto,
 } from "../models/lancamento.model";
+import { environment } from "../../environments/environment";
 
 @Injectable({ providedIn: "root" })
 export class DataService {
@@ -27,8 +28,7 @@ export class DataService {
   readonly META_CAPTACAO = 17550525;
   readonly META_TOTAL = this.META_APORTE + this.META_CAPTACAO;
 
-  private readonly SHEET_BASE =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTcM2aU8ucv35H649ATmgyUMR6S7pvkVaxPQSwN0p-Hs9DsvAIG5Mm-4PutXobweeZ0vp21mklhYqBM/pub?output=csv";
+  private readonly SHEET_BASE = environment.googleSheetsBaseUrl;
   private readonly SHEET_PRINCIPAL = this.SHEET_BASE + "&gid=0";
   private readonly SHEET_RECEBIMENTOS = this.SHEET_BASE + "&gid=595659211";
   private readonly SHEET_STATUS_PROJETOS = this.SHEET_BASE + "&gid=1699326950";
