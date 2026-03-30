@@ -112,9 +112,7 @@ Chart.register(...registerables);
     </div>
   `,
   styles: `
-    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
-    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-    .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 500; margin: 0; color: var(--text-primary); letter-spacing: -0.5px; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; flex-wrap: wrap; gap: 16px; }
     .year-filter { width: 100%; max-width: 250px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }

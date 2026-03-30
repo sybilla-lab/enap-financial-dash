@@ -20,7 +20,7 @@ import { DataService } from "../../services/data.service";
     BaseChartDirective,
   ],
   template: `
-    <div class="dashboard-container">
+    <div class="page-container">
       <h1 class="page-title">
         <mat-icon>dashboard</mat-icon>
         Dashboard Geral
@@ -184,12 +184,6 @@ import { DataService } from "../../services/data.service";
     </div>
   `,
   styles: `
-    .dashboard-container { padding: 24px; width: 100%; box-sizing: border-box; }
-    .page-title {
-      display: flex; align-items: center; gap: 12px;
-      font-size: 28px; font-weight: 300; margin-bottom: 24px;
-      color: var(--text-primary);
-    }
     .kpi-grid {
       display: flex;
       flex-wrap: wrap;

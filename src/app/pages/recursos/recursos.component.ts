@@ -310,8 +310,7 @@ Chart.register(...registerables);
     :host ::ng-deep .custom-panel .mat-expansion-panel-body { padding: 24px 0 0 0 !important; }
     .panel-title-text { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: 1.5px; padding-left: 12px; border-left: 3px solid var(--accent-green); display: flex; align-items: center; gap: 8px;}
     
-    .page-container { padding: 24px; width: 100%; box-sizing: border-box; animation: fadeIn 0.6s ease-out; }
-    .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); letter-spacing: -0.5px; }
+    .page-container { animation: fadeIn 0.6s ease-out; }
     
     .kpi-grid-classic { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 24px; }
     @media (max-width: 900px) { .kpi-grid-classic { display: grid; grid-template-columns: 1fr; } }
