@@ -264,6 +264,8 @@ export class DashboardComponent implements OnInit {
     totalExecutado: 0,
     saldoDisponivel: 0,
     percentualExecucao: 0,
+    numPagamentos: 0,
+    ticketMedio: 0,
   };
   projetos: any[] = [];
   runway = 0;
