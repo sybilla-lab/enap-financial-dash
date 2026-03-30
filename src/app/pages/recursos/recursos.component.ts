@@ -37,8 +37,38 @@ Chart.register(...registerables);
         Recursos — Aporte vs Captação
       </h1>
 
-      <!-- Aporte row -->
-      <!-- Captação & Consolidados (Classic Layout) -->
+      <!-- Aporte ENAP Section -->
+      <div class="consolidado-row-header first">APORTE ENAP</div>
+      <div class="kpi-grid-classic">
+        <mat-card class="classic-card" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon purple"><mat-icon>archive</mat-icon></div>
+              <div class="classic-label">APORTE ENAP RECEBIDO</div>
+            </div>
+            <div class="classic-value">{{ detalhado.aporteRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-meta">Meta: {{ dataService.META_APORTE | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctAporte" class="classic-progress blue"></mat-progress-bar>
+            <div class="classic-footer">{{ pctAporte | number: "1.1-1" }}% da meta de aporte</div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="classic-card" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon purple-light"><mat-icon>history_toggle_off</mat-icon></div>
+              <div class="classic-label">APORTE ENAP TOTAL (RECEBIDO + PREVISTO)</div>
+            </div>
+            <div class="classic-value">{{ (detalhado.aporteRecebido + detalhado.aportePrevisto) | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Previsto: {{ detalhado.aportePrevisto | currency: "BRL":"symbol":"1.2-2" }} (parcelas acordadas)</div>
+            <mat-progress-bar mode="determinate" [value]="((detalhado.aporteRecebido + detalhado.aportePrevisto) / dataService.META_APORTE * 100)" class="classic-progress blue"></mat-progress-bar>
+            <div class="classic-footer">Inclui Inflação e Parcelas Futuras</div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Captação Externa Section -->
+      <div class="consolidado-row-header">CAPTAÇÃO EXTERNA</div>
       <div class="kpi-grid-classic">
         <!-- Row 1: Captação -->
         <mat-card class="classic-card" appearance="outlined">
@@ -66,11 +96,13 @@ Chart.register(...registerables);
             <div class="classic-footer">{{ pctCaptacaoTotal | number: "1.1-1" }}% da meta (total)</div>
           </mat-card-content>
         </mat-card>
+      </div>
 
-        <!-- Divider / Section Label -->
-        <div class="consolidado-row-header">CONSOLIDADO</div>
+      <!-- Divider / Section Label -->
+      <div class="consolidado-row-header">CONSOLIDADO</div>
 
-        <!-- Row 2: Consolidado -->
+      <!-- Row 2: Consolidado -->
+      <div class="kpi-grid-classic">
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
@@ -191,7 +223,7 @@ Chart.register(...registerables);
     </div>
   `,
   styles: `
-    .page-container { padding: 24px; max-width: 1600px; margin: 0 auto; animation: fadeIn 0.6s ease-out; }
+    .page-container { padding: 24px; width: 100%; box-sizing: border-box; animation: fadeIn 0.6s ease-out; }
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
     
     .kpi-grid-classic { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
@@ -217,15 +249,16 @@ Chart.register(...registerables);
     .classic-meta, .classic-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
     .classic-footer { font-size: 12px; color: var(--text-secondary); text-align: right; }
     
-    .circle-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .circle-icon mat-icon { color: white; font-size: 24px; width: 24px; height: 24px; }
+    .circle-icon.purple { background: linear-gradient(135deg, #A78BFA, #7C3AED); }
+    .circle-icon.purple-light { background: linear-gradient(135deg, #DDD6FE, #8B5CF6); }
     .circle-icon.teal { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
     .circle-icon.orange { background: linear-gradient(135deg, #FB923C, #EA580C); }
     .circle-icon.green { background: linear-gradient(135deg, #4ADE80, #16A34A); }
     .circle-icon.orange-light { background: linear-gradient(135deg, #FDBA74, #F97316); }
 
     .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
-    .consolidado-row-header { grid-column: 1 / -1; font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 20px 0 10px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
+    .consolidado-row-header { font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 24px 0 12px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
+    .consolidado-row-header.first { margin-top: 0; }
 
     .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px; margin-bottom: 24px; }
     .chart-card.compact { height: 420px; }

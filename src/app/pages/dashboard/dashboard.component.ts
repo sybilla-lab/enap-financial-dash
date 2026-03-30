@@ -173,18 +173,20 @@ import { DataService } from "../../services/data.service";
     </div>
   `,
   styles: `
-    .dashboard-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .dashboard-container { padding: 24px; width: 100%; box-sizing: border-box; }
     .page-title {
       display: flex; align-items: center; gap: 12px;
       font-size: 28px; font-weight: 300; margin-bottom: 24px;
       color: var(--text-primary);
     }
     .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px; margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px; 
+      margin-bottom: 24px;
     }
     .kpi-card {
+      flex: 1 1 280px;
       background: var(--card-bg) !important;
       border: 1px solid var(--border-color) !important;
       border-radius: 16px !important;
@@ -248,7 +250,7 @@ import { DataService } from "../../services/data.service";
 
     /* Estendimento dos cards de gestão */
     .kpi-runway, .kpi-gap {
-      grid-column: span 2;
+      flex: 1 1 450px;
     }
     @media (max-width: 900px) {
       .kpi-runway, .kpi-gap {
