@@ -25,7 +25,7 @@ Chart.register(...registerables);
           <mat-card-content>
             <div class="kpi-info">
               <span class="kpi-label">Total de Categorias</span>
-              <span class="kpi-value text-blue">{{ categorias.length }}</span>
+              <span class="kpi-value text-blue">{{ allCategorias.length }}</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -35,6 +35,16 @@ Chart.register(...registerables);
             <div class="kpi-info">
               <span class="kpi-label">Total Executado</span>
               <span class="kpi-value text-green">{{ totalDespesas | currency: "BRL":"symbol":"1.0-0" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-info">
+              <span class="kpi-label">% Concentração Top 5</span>
+              <span class="kpi-value text-orange">{{ top5Percentual | number: "1.1-1" }}%</span>
+              <span class="kpi-sub" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">O Top 5 concentra {{ top5Percentual | number: "1.1-1" }}% das despesas</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -100,6 +110,7 @@ Chart.register(...registerables);
 
     .text-green { color: var(--accent-green) !important; }
     .text-blue { color: var(--accent-blue) !important; }
+    .text-orange { color: #fb923c !important; }
 
     .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
     .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
@@ -118,10 +129,10 @@ Chart.register(...registerables);
   `,
 })
 export class CategoriasComponent implements OnInit {
-  categorias: CategoriaResumo[] = []; // Compatibilidade (não usada)
   allCategorias: CategoriaResumo[] = [];
   chartCategorias: CategoriaResumo[] = [];
   totalDespesas = 0;
+  top5Percentual = 0;
   chartReady = false;
 
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
@@ -146,6 +157,10 @@ export class CategoriasComponent implements OnInit {
       
       // Full list for table
       this.allCategorias = sorted;
+
+      // Calcular Top 5
+      const top5Total = sorted.slice(0, 5).reduce((s, c) => s + c.total, 0);
+      this.top5Percentual = this.totalDespesas > 0 ? (top5Total / this.totalDespesas) * 100 : 0;
 
       // Top 15 for chart
       const top15 = sorted.slice(0, 15);
