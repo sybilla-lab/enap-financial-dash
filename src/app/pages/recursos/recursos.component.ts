@@ -10,6 +10,7 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { FormsModule } from "@angular/forms";
 import { MatDividerModule } from "@angular/material/divider";
+import { MatExpansionModule } from "@angular/material/expansion";
 import { DataService } from "../../services/data.service";
 import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
 
@@ -28,6 +29,7 @@ Chart.register(...registerables);
     MatInputModule,
     FormsModule,
     MatDividerModule,
+    MatExpansionModule,
     BaseChartDirective,
   ],
   template: `
@@ -37,10 +39,18 @@ Chart.register(...registerables);
         Recursos — Aporte vs Captação
       </h1>
 
-      <!-- Aporte ENAP Section -->
-      <div class="consolidado-row-header first">APORTE ENAP (META R{{ "{" }}3.023.000{{ "}" }})</div>
-      <div class="kpi-grid-classic">
-        <!-- 1. Recebido -->
+      <!-- Accordion Container -->
+      <mat-accordion multi="true" class="resource-accordion">
+        
+        <!-- Aporte ENAP Section -->
+        <mat-expansion-panel [expanded]="true" class="custom-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="panel-title-text"><mat-icon>account_balance</mat-icon> APORTE ENAP (META R{{ "{" }}3.023.000{{ "}" }})</div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="kpi-grid-classic">
+            <!-- 1. Recebido -->
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
@@ -94,12 +104,18 @@ Chart.register(...registerables);
             <div class="classic-footer">Reajustes contratuais</div>
           </mat-card-content>
         </mat-card>
-      </div>
+          </div>
+        </mat-expansion-panel>
 
-      <!-- Captação Externa Section -->
-      <div class="consolidado-row-header">CAPTAÇÃO EXTERNA (META R$ 17.550.525)</div>
-      <div class="kpi-grid-classic">
-        <!-- 1. Recebido -->
+        <!-- Captação Externa Section -->
+        <mat-expansion-panel [expanded]="true" class="custom-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="panel-title-text"><mat-icon>public</mat-icon> CAPTAÇÃO EXTERNA (META R$ 17.550.525)</div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="kpi-grid-classic">
+            <!-- 1. Recebido -->
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
@@ -153,14 +169,19 @@ Chart.register(...registerables);
             <div class="classic-footer">Objetivo de captação</div>
           </mat-card-content>
         </mat-card>
-      </div>
+          </div>
+        </mat-expansion-panel>
 
-      <!-- Divider / Section Label -->
-      <div class="consolidado-row-header">CONSOLIDADO</div>
-
-      <!-- Row 2: Consolidado -->
-      <div class="kpi-grid-classic">
-        <mat-card class="classic-card" appearance="outlined">
+        <!-- Consolidado Section -->
+        <mat-expansion-panel [expanded]="true" class="custom-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="panel-title-text"><mat-icon>account_balance_wallet</mat-icon> CONSOLIDADO</div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <!-- Row 2: Consolidado -->
+          <div class="kpi-grid-classic">
+            <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon green"><mat-icon>account_balance_wallet</mat-icon></div>
@@ -184,7 +205,9 @@ Chart.register(...registerables);
             <div class="classic-footer">{{ pctTotalComPrevisto | number: "1.1-1" }}% das metas formalizadas</div>
           </mat-card-content>
         </mat-card>
-      </div>
+          </div>
+        </mat-expansion-panel>
+      </mat-accordion>
 
       <!-- Charts & Insights -->
       <div class="charts-row">
@@ -281,6 +304,12 @@ Chart.register(...registerables);
     </div>
   `,
   styles: `
+    .resource-accordion { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+    :host ::ng-deep .custom-panel { background: transparent !important; box-shadow: none !important; }
+    :host ::ng-deep .custom-panel .mat-expansion-panel-header { padding: 0 16px; height: 56px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+    :host ::ng-deep .custom-panel .mat-expansion-panel-body { padding: 24px 0 0 0 !important; }
+    .panel-title-text { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: 1.5px; padding-left: 12px; border-left: 3px solid var(--accent-green); display: flex; align-items: center; gap: 8px;}
+    
     .page-container { padding: 24px; width: 100%; box-sizing: border-box; animation: fadeIn 0.6s ease-out; }
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
     
