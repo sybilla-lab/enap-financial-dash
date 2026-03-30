@@ -46,15 +46,27 @@ Chart.register(...registerables);
       <!-- Filter -->
       <mat-card class="filter-card" appearance="outlined">
         <mat-card-content>
-          <mat-form-field appearance="outline">
-            <mat-label>Filtrar por Projeto</mat-label>
-            <mat-select [(ngModel)]="projetoSelecionado" (selectionChange)="onProjetoChange()">
-              <mat-option value="">Todos os projetos</mat-option>
-              @for (p of projetosLista; track p) {
-              <mat-option [value]="p">{{ p }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <div class="filters-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Filtrar por Projeto</mat-label>
+              <mat-select [(ngModel)]="projetoSelecionado" (selectionChange)="onFiltroChange()">
+                <mat-option value="">Todos os projetos</mat-option>
+                @for (p of projetosLista; track p) {
+                <mat-option [value]="p">{{ p }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Filtrar por Status</mat-label>
+              <mat-select [(ngModel)]="statusSelecionado" (selectionChange)="onFiltroChange()">
+                <mat-option value="">Todos os status</mat-option>
+                @for (s of statusLista; track s) {
+                <mat-option [value]="s">{{ s }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
         </mat-card-content>
       </mat-card>
 
@@ -150,7 +162,8 @@ Chart.register(...registerables);
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 300; margin-bottom: 24px; color: var(--text-primary); }
     .filter-card { background: var(--card-bg) !important; border-radius: 12px !important; margin-bottom: 24px; }
     .filter-card mat-card-content { padding: 16px 24px; }
-    mat-form-field { width: 100%; max-width: 400px; }
+    .filters-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    mat-form-field { width: 100%; max-width: 400px; flex: 1 1 300px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
@@ -190,7 +203,9 @@ export class ProjetosComponent implements OnInit {
   projetos: ProjetoResumo[] = [];
   projetosFiltrados: ProjetoResumo[] = [];
   projetosLista: string[] = [];
+  statusLista: string[] = [];
   projetoSelecionado = "";
+  statusSelecionado = "";
   lancamentosAlimenta: Lancamento[] = [];
   stats = { ativos: 0, execucaoMedia: 0 };
 
@@ -214,6 +229,7 @@ export class ProjetosComponent implements OnInit {
       this.projetos = p;
       this.projetosFiltrados = p;
       this.projetosLista = p.map((x) => x.projeto);
+      this.statusLista = Array.from(new Set(p.map((x) => x.status || "Ativo"))).sort();
       this.stats = {
         ativos: p.filter(x => x.status !== 'Finalizado').length,
         execucaoMedia: p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length
@@ -222,14 +238,13 @@ export class ProjetosComponent implements OnInit {
     });
   }
 
-  onProjetoChange(): void {
-    if (this.projetoSelecionado) {
-      this.projetosFiltrados = this.projetos.filter(
-        (p) => p.projeto === this.projetoSelecionado
-      );
-    } else {
-      this.projetosFiltrados = this.projetos;
-    }
+  onFiltroChange(): void {
+    this.projetosFiltrados = this.projetos.filter((p) => {
+      const matchProjeto = !this.projetoSelecionado || p.projeto === this.projetoSelecionado;
+      const matchStatus = !this.statusSelecionado || (p.status || "Ativo") === this.statusSelecionado;
+      return matchProjeto && matchStatus;
+    });
+
     this.buildChart(this.projetosFiltrados);
 
     if (this.projetoSelecionado === "Alimenta +1000 Cidades") {
