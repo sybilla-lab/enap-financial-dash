@@ -38,71 +38,60 @@ Chart.register(...registerables);
       </h1>
 
       <!-- Aporte row -->
-      <div class="section-label">Aporte ENAP</div>
-      <div class="kpi-grid">
-        <mat-card class="kpi-card" appearance="outlined">
+      <!-- Captação & Consolidados (Classic Layout) -->
+      <div class="kpi-grid-classic">
+        <!-- Row 1: Captação -->
+        <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon aporte"><mat-icon>arrow_downward</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Aporte Recebido (sem inflação)</span>
-              <span class="kpi-value">{{ detalhado.aporteRecebido | currency: "BRL":"symbol":"1.2-2" }}</span>
-              <span class="kpi-sub">Meta: {{ dataService.META_APORTE | currency: "BRL":"symbol":"1.2-2" }}</span>
+            <div class="classic-header">
+              <div class="circle-icon teal"><mat-icon>check_circle</mat-icon></div>
+              <div class="classic-label">CAPTAÇÃO RECEBIDA</div>
             </div>
-            <mat-progress-bar mode="determinate" [value]="pctAporte" color="primary"></mat-progress-bar>
-            <span class="kpi-pct">{{ pctAporte | number: "1.1-1" }}% da meta</span>
+            <div class="classic-value">{{ detalhado.captacaoRecebida | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-meta">Meta: {{ dataService.META_CAPTACAO | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctCaptacaoRecebida" class="classic-progress teal"></mat-progress-bar>
+            <div class="classic-footer">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta (recebido)</div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card inflacao-card" appearance="outlined">
+        <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon inflacao"><mat-icon>trending_up</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Inflação Recebida</span>
-              <span class="kpi-value">{{ detalhado.aporteInflacao | currency: "BRL":"symbol":"1.2-2" }}</span>
-              <span class="kpi-sub">Previsto em parceria (R$500k/ano + inflação)</span>
-              <span class="kpi-sub">Não contabiliza na meta</span>
+            <div class="classic-header">
+              <div class="circle-icon orange"><mat-icon>settings</mat-icon></div>
+              <div class="classic-label">CAPTAÇÃO TOTAL (RECEBIDA + PREVISTA)</div>
             </div>
+            <div class="classic-value">{{ detalhado.captacaoTotal | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Prevista: {{ detalhado.captacaoPrevista | currency: "BRL":"symbol":"1.2-2" }} (contratos assinados)</div>
+            <mat-progress-bar mode="determinate" [value]="pctCaptacaoTotal" class="classic-progress red"></mat-progress-bar>
+            <div class="classic-footer">{{ pctCaptacaoTotal | number: "1.1-1" }}% da meta (total)</div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card" appearance="outlined">
+        <!-- Divider / Section Label -->
+        <div class="consolidado-row-header">CONSOLIDADO</div>
+
+        <!-- Row 2: Consolidado -->
+        <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon aporte-prev"><mat-icon>schedule</mat-icon></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Aporte Previsto</span>
-              <span class="kpi-value">{{ detalhado.aportePrevisto | currency: "BRL":"symbol":"1.2-2" }}</span>
-              <span class="kpi-sub">Parcelas futuras previstas</span>
+            <div class="classic-header">
+              <div class="circle-icon green"><mat-icon>account_balance_wallet</mat-icon></div>
+              <div class="classic-label">TOTAL RECEBIDO</div>
             </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-
-      <!-- Captação row -->
-      <div class="section-label">Captação Externa</div>
-      <div class="kpi-grid">
-        <mat-card class="kpi-card card-indicator-green" appearance="outlined">
-          <mat-card-content>
-            <div class="kpi-label">Aporte Federal (Total)</div>
-            <div class="kpi-value text-green">{{ detalhado.aporteRecebido | currency: "BRL":"symbol":"1.0-0" }}</div>
-            <mat-progress-bar mode="determinate" [value]="pctAporte"></mat-progress-bar>
-            <div class="kpi-sub">{{ pctAporte | number: "1.1-1" }}% Recebido</div>
+            <div class="classic-value">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctTotalRecebido" class="classic-progress blue"></mat-progress-bar>
+            <div class="classic-footer">{{ pctTotalRecebido | number: "1.1-1" }}% da meta total</div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+        <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-label">Captação Externa (Meta)</div>
-            <div class="kpi-value text-blue">{{ detalhado.captacaoTotal | currency: "BRL":"symbol":"1.0-0" }}</div>
-            <mat-progress-bar mode="determinate" [value]="pctCaptacaoRecebida"></mat-progress-bar>
-            <div class="kpi-sub">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta atingida</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="kpi-card card-indicator-green" appearance="outlined">
-          <mat-card-content>
-            <div class="kpi-label">Total Recebido (Geral)</div>
-            <div class="kpi-value text-green">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.0-0" }}</div>
-            <div class="kpi-sub">Soma de todas as fontes</div>
+            <div class="classic-header">
+              <div class="circle-icon orange-light"><mat-icon>bar_chart</mat-icon></div>
+              <div class="classic-label">TOTAL COM PREVISTOS</div>
+            </div>
+            <div class="classic-value">{{ detalhado.totalComPrevisto | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctTotalComPrevisto" class="classic-progress red"></mat-progress-bar>
+            <div class="classic-footer">{{ pctTotalComPrevisto | number: "1.1-1" }}% da meta total</div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -204,44 +193,30 @@ Chart.register(...registerables);
   styles: `
     .page-container { padding: 24px; max-width: 1600px; margin: 0 auto; animation: fadeIn 0.6s ease-out; }
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
-    .section-label { font-size: 14px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 12px; }
+    .classic-card { background: var(--card-bg) !important; border-radius: 16px !important; margin-bottom: 8px; border: 1px solid var(--glass-border) !important; }
+    .kpi-grid-classic { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .kpi-grid-classic { grid-template-columns: 1fr; } }
     
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; transition: transform 0.2s; }
-    .kpi-card:hover { transform: translateY(-2px); }
-    .kpi-card mat-card-content { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-    .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
-    .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 4px 0; }
-    .kpi-sub { font-size: 11px; color: var(--text-muted); }
+    .classic-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+    .classic-header { display: flex; align-items: center; gap: 15px; margin-bottom: 4px; }
+    .classic-label { font-size: 13px; font-weight: 600; color: var(--text-muted); opacity: 0.8; letter-spacing: 0.5px; }
+    .classic-value { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+    .classic-meta, .classic-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .classic-footer { font-size: 12px; color: var(--text-secondary); text-align: right; }
     
-    .text-green { color: var(--accent-green) !important; }
-    .text-blue { color: var(--accent-blue) !important; }
-    .font-medium { font-weight: 500; }
-    .font-bold { font-weight: 600; }
-    .white-text { color: var(--text-primary) !important; }
+    .circle-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .circle-icon mat-icon { color: white; font-size: 24px; width: 24px; height: 24px; }
+    .circle-icon.teal { background: linear-gradient(135deg, #2DD4BF, #0D9488); box-shadow: 0 4px 10px rgba(45, 212, 191, 0.3); }
+    .circle-icon.orange { background: linear-gradient(135deg, #FB923C, #EA580C); box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); }
+    .circle-icon.green { background: linear-gradient(135deg, #4ADE80, #16A34A); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3); }
+    .circle-icon.orange-light { background: linear-gradient(135deg, #FDBA74, #F97316); box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3); }
 
-    mat-progress-bar { height: 6px !important; border-radius: 3px; }
+    .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
+    :host ::ng-deep .classic-progress.teal .mdc-linear-progress__bar-inner { border-color: #3B82F6 !important; }
+    :host ::ng-deep .classic-progress.red .mdc-linear-progress__bar-inner { border-color: #EF4444 !important; }
+    :host ::ng-deep .classic-progress.blue .mdc-linear-progress__bar-inner { border-color: #3B82F6 !important; }
 
-    .charts-row { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; margin-bottom: 24px; }
-    @media (max-width: 1100px) { .charts-row { grid-template-columns: 1fr; } }
-    
-    .chart-card.compact { min-height: 320px; }
-    .chart-wrapper-small { height: 240px; padding: 16px; position: relative; }
-
-    .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
-    .table-filters { display: flex; gap: 12px; padding: 16px 24px; flex-wrap: wrap; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); }
-    .filter-field.mini { flex: 1; min-width: 150px; }
-    :host ::ng-deep .mini .mat-mdc-text-field-wrapper { height: 48px !important; padding-top: 0 !important; }
-
-    .table-container { overflow-x: auto; padding: 0; }
-    .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th { padding: 16px 24px; text-align: left; background: rgba(255,255,255,0.03); color: var(--text-primary); font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--border-color); }
-    .data-table td { padding: 14px 24px; border-bottom: 1px solid var(--border-color); font-size: 14px; }
-    .data-table tr:hover td { background: var(--hover-bg); }
-    
-    .num { text-align: right !important; font-variant-numeric: tabular-nums; }
-    .positive { color: var(--accent-green) !important; }
-    .text-muted { color: var(--text-secondary); font-size: 13px; }
+    .consolidado-row-header { grid-column: 1 / -1; font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 20px 0 10px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
 
     .status-badge { display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     .status-badge.recebido { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.2); }

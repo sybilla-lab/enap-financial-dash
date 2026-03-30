@@ -70,7 +70,7 @@ Chart.register(...registerables);
                 </tr>
               </thead>
               <tbody>
-                @for (c of categorias; track c.categoria) {
+                @for (c of allCategorias; track c.categoria) {
                 <tr>
                   <td>{{ c.categoria }}</td>
                   <td class="num negative">{{ c.total | currency: "BRL":"symbol":"1.2-2" }}</td>
@@ -118,7 +118,9 @@ Chart.register(...registerables);
   `,
 })
 export class CategoriasComponent implements OnInit {
-  categorias: CategoriaResumo[] = [];
+  categorias: CategoriaResumo[] = []; // Compatibilidade (não usada)
+  allCategorias: CategoriaResumo[] = [];
+  chartCategorias: CategoriaResumo[] = [];
   totalDespesas = 0;
   chartReady = false;
 
@@ -140,25 +142,28 @@ export class CategoriasComponent implements OnInit {
     this.dataService.getCategoriaResumos().subscribe((allCats) => {
       this.totalDespesas = allCats.reduce((s, c) => s + c.total, 0);
 
-      // Top 10 logic
-      const top10 = allCats.slice(0, 10);
-      const others = allCats.slice(10);
+      const sorted = [...allCats].sort((a, b) => b.total - a.total);
+      
+      // Full list for table
+      this.allCategorias = sorted;
+
+      // Top 15 for chart
+      const top15 = sorted.slice(0, 15);
+      const others = sorted.slice(15);
       
       if (others.length > 0) {
         const othersTotal = others.reduce((s, c) => s + c.total, 0);
-        this.categorias = [...top10, { categoria: "Outros", total: othersTotal }];
+        this.chartCategorias = [...top15, { categoria: "Outros", total: othersTotal }];
       } else {
-        this.categorias = top10;
+        this.chartCategorias = top15;
       }
 
-      this.categorias.sort((a, b) => b.total - a.total);
-
-      const colors = this.generateColors(this.categorias.length);
+      const colors = this.generateColors(this.chartCategorias.length);
 
       this.barChartData = {
-        labels: this.categorias.map((c) => c.categoria),
+        labels: this.chartCategorias.map((c) => c.categoria),
         datasets: [{
-          data: this.categorias.map((c) => c.total),
+          data: this.chartCategorias.map((c) => c.total),
           backgroundColor: colors,
           borderRadius: 6,
         }],

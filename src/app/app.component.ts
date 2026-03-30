@@ -166,9 +166,9 @@ interface NavItem {
     mat-nav-list a { border-radius: 12px !important; margin: 4px 8px !important; height: 48px !important; }
     mat-nav-list a mat-icon { color: var(--text-secondary); }
     mat-nav-list a span { color: var(--text-primary); font-size: 14px; }
-    .active-link { background: rgba(124, 77, 255, 0.12) !important; }
-    .active-link mat-icon { color: #7c4dff !important; }
-    .active-link span { color: #7c4dff !important; font-weight: 500; }
+    .active-link { background: rgba(16, 185, 129, 0.12) !important; }
+    .active-link mat-icon { color: var(--accent-green) !important; }
+    .active-link span { color: var(--accent-green) !important; font-weight: 500; }
 
     /* ===== Footer ===== */
     .sidenav-footer {

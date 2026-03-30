@@ -35,13 +35,6 @@ Chart.register(...registerables);
 
       <!-- Stats -->
       <div class="kpi-grid">
-        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
-          <mat-card-content>
-            <div class="kpi-label">Projetos Ativos</div>
-            <div class="kpi-value text-blue">{{ stats.ativos }}</div>
-          </mat-card-content>
-        </mat-card>
-
         <mat-card class="kpi-card card-indicator-green" appearance="outlined">
           <mat-card-content>
             <div class="kpi-label">Execução Média</div>
