@@ -2,6 +2,9 @@ import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
+import { MatSelectModule } from "@angular/material/select";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { FormsModule } from "@angular/forms";
 import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { DataService } from "../../services/data.service";
@@ -12,13 +15,26 @@ Chart.register(...registerables);
 @Component({
   selector: "app-fluxo-caixa",
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, BaseChartDirective],
+  imports: [CommonModule, MatCardModule, MatIconModule, MatSelectModule, MatFormFieldModule, FormsModule, BaseChartDirective],
   template: `
     <div class="page-container">
-      <h1 class="page-title">
-        <mat-icon>timeline</mat-icon>
-        Fluxo de Caixa
-      </h1>
+      <div class="header-row">
+        <h1 class="page-title">
+          <mat-icon>timeline</mat-icon>
+          Fluxo de Caixa
+        </h1>
+        
+        <mat-form-field appearance="outline" class="year-filter">
+          <mat-label>Filtrar por Ano</mat-label>
+          <mat-select [(ngModel)]="filtroAno" (selectionChange)="aplicarFiltroAno()">
+            <mat-option value="">Todos os anos</mat-option>
+            <mat-option value="2023">2023</mat-option>
+            <mat-option value="2024">2024</mat-option>
+            <mat-option value="2025">2025</mat-option>
+            <mat-option value="2026">2026</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
 
       <div class="kpi-grid">
         <mat-card class="kpi-card card-indicator-green" appearance="outlined">
@@ -96,8 +112,10 @@ Chart.register(...registerables);
     </div>
   `,
   styles: `
-    .fluxo-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 300; margin-bottom: 24px; color: var(--text-primary); }
+    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 500; margin: 0; color: var(--text-primary); letter-spacing: -0.5px; }
+    .year-filter { width: 100%; max-width: 250px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
@@ -125,9 +143,11 @@ Chart.register(...registerables);
   `,
 })
 export class FluxoCaixaComponent implements OnInit {
+  fluxoOriginal: FluxoMensal[] = [];
   fluxo: FluxoMensal[] = [];
   chartReady = false;
   totais = { entradas: 0, saidas: 0, saldoAtual: 0 };
+  filtroAno = "";
 
   mixedChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   mixedChartOptions: ChartConfiguration<"bar">["options"] = {
@@ -152,22 +172,34 @@ export class FluxoCaixaComponent implements OnInit {
 
   ngOnInit(): void {
     this.dataService.getFluxoMensal().subscribe((fluxo: FluxoMensal[]) => {
-      this.fluxo = fluxo;
-      
-      // Calculando totais com tipagem explícita
-      this.totais = {
-        entradas: fluxo.reduce((acc: number, curr: FluxoMensal) => acc + curr.entradas, 0),
-        saidas: fluxo.reduce((acc: number, curr: FluxoMensal) => acc + curr.saidas, 0),
-        saldoAtual: fluxo[fluxo.length - 1]?.saldoAcumulado || 0
-      };
+      this.fluxoOriginal = fluxo;
+      this.aplicarFiltroAno();
+    });
+  }
 
+  aplicarFiltroAno(): void {
+    let filtrado = this.fluxoOriginal;
+    if (this.filtroAno) {
+      filtrado = this.fluxoOriginal.filter(f => f.mesAno.endsWith(this.filtroAno));
+    }
+    this.fluxo = filtrado;
+    
+    // Calculando totais com tipagem explícita
+    this.totais = {
+      entradas: this.fluxo.reduce((acc: number, curr: FluxoMensal) => acc + curr.entradas, 0),
+      saidas: this.fluxo.reduce((acc: number, curr: FluxoMensal) => acc + curr.saidas, 0),
+      saldoAtual: this.fluxo[this.fluxo.length - 1]?.saldoAcumulado || 0
+    };
+
+    this.chartReady = false;
+    setTimeout(() => {
       this.mixedChartData = {
-        labels: fluxo.map((f: FluxoMensal) => f.mesAno),
+        labels: this.fluxo.map((f: FluxoMensal) => f.mesAno),
         datasets: [
           {
             type: "bar",
             label: "Entradas",
-            data: fluxo.map((f: FluxoMensal) => f.entradas),
+            data: this.fluxo.map((f: FluxoMensal) => f.entradas),
             backgroundColor: "rgba(52, 211, 153, 0.4)",
             borderColor: "#34D399",
             borderWidth: 1,
@@ -177,7 +209,7 @@ export class FluxoCaixaComponent implements OnInit {
           {
             type: "bar",
             label: "Saídas",
-            data: fluxo.map((f: FluxoMensal) => f.saidas),
+            data: this.fluxo.map((f: FluxoMensal) => f.saidas),
             backgroundColor: "rgba(248, 113, 113, 0.4)",
             borderColor: "#F87171",
             borderWidth: 1,
@@ -187,7 +219,7 @@ export class FluxoCaixaComponent implements OnInit {
           {
             type: "line",
             label: "Saldo Acumulado",
-            data: fluxo.map((f: FluxoMensal) => f.saldoAcumulado),
+            data: this.fluxo.map((f: FluxoMensal) => f.saldoAcumulado),
             borderColor: "#38BDF8",
             backgroundColor: "rgba(56, 189, 248, 0.1)",
             borderWidth: 3,
@@ -200,6 +232,6 @@ export class FluxoCaixaComponent implements OnInit {
         ],
       };
       this.chartReady = true;
-    });
+    }, 50);
   }
 }

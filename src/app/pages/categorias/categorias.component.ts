@@ -101,7 +101,7 @@ Chart.register(...registerables);
   `,
   styles: `
     .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 300; margin-bottom: 24px; color: var(--text-primary); }
+    .page-title { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); letter-spacing: -0.5px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { display: flex; flex-direction: column; gap: 8px; padding: 24px; }
