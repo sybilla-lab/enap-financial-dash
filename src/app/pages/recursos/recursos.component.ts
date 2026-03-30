@@ -299,7 +299,7 @@ Chart.register(...registerables);
       border-top: none !important;
     }
 
-    .classic-card { background: var(--card-bg) !important; border-radius: 16px !important; margin-bottom: 8px; border: 1px solid var(--glass-border) !important; }
+    .classic-card { flex: 1; min-width: 220px; background: var(--card-bg) !important; border-radius: 16px !important; margin-bottom: 8px; border: 1px solid var(--glass-border) !important; }
     .classic-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
     .classic-header { display: flex; align-items: center; gap: 15px; margin-bottom: 4px; }
     .classic-label { font-size: 13px; font-weight: 600; color: var(--text-muted); opacity: 0.8; letter-spacing: 0.5px; }

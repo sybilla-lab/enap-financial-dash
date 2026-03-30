@@ -197,7 +197,7 @@ import { DataService } from "../../services/data.service";
       margin-bottom: 24px;
     }
     .kpi-card {
-      flex: 1 1 280px;
+      flex: 1 1 220px;
       background: var(--card-bg) !important;
       border: 1px solid var(--border-color) !important;
       border-radius: 16px !important;
