@@ -1,0 +1,7 @@
+// Copie este arquivo para environment.development.ts e preencha com os valores reais.
+// NÃO commitar o environment.development.ts — ele está no .gitignore.
+
+export const environment = {
+  production: false,
+  googleSheetsBaseUrl: "COLE_AQUI_A_URL_DA_PLANILHA"
+};
