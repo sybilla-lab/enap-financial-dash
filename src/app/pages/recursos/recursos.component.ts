@@ -38,31 +38,60 @@ Chart.register(...registerables);
       </h1>
 
       <!-- Aporte ENAP Section -->
-      <div class="consolidado-row-header first">APORTE ENAP</div>
+      <div class="consolidado-row-header first">APORTE ENAP (META R{{ "{" }}3.023.000{{ "}" }})</div>
       <div class="kpi-grid-classic">
+        <!-- 1. Recebido -->
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon purple"><mat-icon>archive</mat-icon></div>
-              <div class="classic-label">APORTE ENAP RECEBIDO</div>
+              <div class="classic-label">APORTE RECEBIDO</div>
             </div>
             <div class="classic-value">{{ detalhado.aporteRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
-            <div class="classic-meta">Meta: {{ dataService.META_APORTE | currency: "BRL":"symbol":"1.2-2" }}</div>
             <mat-progress-bar mode="determinate" [value]="pctAporte" class="classic-progress blue"></mat-progress-bar>
-            <div class="classic-footer">{{ pctAporte | number: "1.1-1" }}% da meta de aporte</div>
+            <div class="classic-footer">{{ pctAporte | number: "1.1-1" }}% da meta atingida</div>
           </mat-card-content>
         </mat-card>
 
+        <!-- 2. Previsto -->
         <mat-card class="classic-card" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
-              <div class="circle-icon purple-light"><mat-icon>history_toggle_off</mat-icon></div>
-              <div class="classic-label">APORTE ENAP TOTAL (RECEBIDO + PREVISTO)</div>
+              <div class="circle-icon purple-light"><mat-icon>schedule</mat-icon></div>
+              <div class="classic-label">APORTE PREVISTO</div>
             </div>
-            <div class="classic-value">{{ (detalhado.aporteRecebido + detalhado.aportePrevisto) | currency: "BRL":"symbol":"1.2-2" }}</div>
-            <div class="classic-sub">Previsto: {{ detalhado.aportePrevisto | currency: "BRL":"symbol":"1.2-2" }} (parcelas acordadas)</div>
-            <mat-progress-bar mode="determinate" [value]="((detalhado.aporteRecebido + detalhado.aportePrevisto) / dataService.META_APORTE * 100)" class="classic-progress blue"></mat-progress-bar>
-            <div class="classic-footer">Inclui Inflação e Parcelas Futuras</div>
+            <div class="classic-value">{{ detalhado.aportePrevisto | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Parcelas futuras acordadas</div>
+            <mat-progress-bar mode="determinate" [value]="(detalhado.aportePrevisto / dataService.META_APORTE * 100)" class="classic-progress purple-bar"></mat-progress-bar>
+            <div class="classic-footer">{{ (detalhado.aportePrevisto / dataService.META_APORTE * 100) | number: "1.1-1" }}% do total</div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- 3. Meta Total -->
+        <mat-card class="classic-card" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon purple-dark"><mat-icon>flag</mat-icon></div>
+              <div class="classic-label">META TOTAL APORTE</div>
+            </div>
+            <div class="classic-value">{{ dataService.META_APORTE | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Recebido + Previsto acordado</div>
+            <mat-progress-bar mode="determinate" [value]="100" class="classic-progress blue"></mat-progress-bar>
+            <div class="classic-footer">Valor final do projeto</div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- 4. Inflação (Separado) -->
+        <mat-card class="classic-card" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon orange-light"><mat-icon>trending_up</mat-icon></div>
+              <div class="classic-label">INFLAÇÃO RECEBIDA</div>
+            </div>
+            <div class="classic-value">{{ detalhado.aporteInflacao | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Saldo extra (não conta para a meta)</div>
+            <mat-progress-bar mode="determinate" [value]="0" class="classic-progress gray"></mat-progress-bar>
+            <div class="classic-footer">Reajustes contratuais</div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -226,8 +255,8 @@ Chart.register(...registerables);
     .page-container { padding: 24px; width: 100%; box-sizing: border-box; animation: fadeIn 0.6s ease-out; }
     .page-title { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
     
-    .kpi-grid-classic { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-    @media (max-width: 900px) { .kpi-grid-classic { grid-template-columns: 1fr; } }
+    .kpi-grid-classic { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .kpi-grid-classic { display: grid; grid-template-columns: 1fr; } }
     
     /* Evitar sobreposição de Label e Placeholder */
     .mat-mdc-form-field.mat-form-field-should-float .mdc-floating-label {
@@ -251,12 +280,15 @@ Chart.register(...registerables);
     
     .circle-icon.purple { background: linear-gradient(135deg, #A78BFA, #7C3AED); }
     .circle-icon.purple-light { background: linear-gradient(135deg, #DDD6FE, #8B5CF6); }
+    .circle-icon.purple-dark { background: linear-gradient(135deg, #4C1D95, #7c4dff); }
     .circle-icon.teal { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
     .circle-icon.orange { background: linear-gradient(135deg, #FB923C, #EA580C); }
     .circle-icon.green { background: linear-gradient(135deg, #4ADE80, #16A34A); }
     .circle-icon.orange-light { background: linear-gradient(135deg, #FDBA74, #F97316); }
 
     .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
+    :host ::ng-deep .classic-progress.gray .mdc-linear-progress__bar-inner { border-color: #9CA3AF !important; }
+    :host ::ng-deep .classic-progress.purple-bar .mdc-linear-progress__bar-inner { border-color: #8B5CF6 !important; }
     .consolidado-row-header { font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 24px 0 12px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
     .consolidado-row-header.first { margin-top: 0; }
 
