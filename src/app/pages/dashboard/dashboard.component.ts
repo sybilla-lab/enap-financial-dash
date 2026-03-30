@@ -71,34 +71,62 @@ import { DataService } from "../../services/data.service";
             </div>
             <div class="kpi-info">
               <span class="kpi-label">% Execução</span>
-              <span class="kpi-value text-yellow">{{ indicadores.percentualExecucao | number: "1.0-0" }}%</span>
+              <span class="kpi-value text-yellow">{{ indicadores.percentualExecucao | number: "1.0-1" }}%</span>
             </div>
             <mat-progress-bar mode="determinate" [value]="indicadores.percentualExecucao"></mat-progress-bar>
           </mat-card-content>
         </mat-card>
 
+        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">N° de Pagamentos</span>
+              <span class="kpi-value">{{ indicadores.numPagamentos }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>paid</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Ticket Médio</span>
+              <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.0-0" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>analytics</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">% Atingido (Meta Total)</span>
+              <span class="kpi-value">{{ (indicadores.totalRecebido / dataService.META_TOTAL * 100) | number: "1.1-1" }}%</span>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="(indicadores.totalRecebido / dataService.META_TOTAL * 100)"></mat-progress-bar>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Gestão Estratégica -->
         <mat-card class="kpi-card kpi-runway card-indicator-blue" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon">
-              <mat-icon>timer</mat-icon>
-            </div>
+            <div class="kpi-icon"><mat-icon>timer</mat-icon></div>
             <div class="kpi-info">
               <span class="kpi-label">Runway (Meses)</span>
               <span class="kpi-value">{{ runway | number: "1.1-1" }}</span>
-              <span class="kpi-sub">Sobrevivência estimada</span>
+              <span class="kpi-sub">Tempo estimado de sobrevivência</span>
             </div>
           </mat-card-content>
         </mat-card>
 
         <mat-card class="kpi-card kpi-gap card-indicator-blue" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-icon">
-              <mat-icon>trending_down</mat-icon>
-            </div>
+            <div class="kpi-icon"><mat-icon>not_interested</mat-icon></div>
             <div class="kpi-info">
               <span class="kpi-label">Gap de Captação</span>
-              <span class="kpi-value">{{ gapCaptacao | currency: "BRL":"symbol":"1.0-0" }}</span>
-              <span class="kpi-sub">Falta para a meta</span>
+              <span class="kpi-value text-red">{{ gapCaptacao | currency: "BRL":"symbol":"1.0-0" }}</span>
+              <span class="kpi-sub">Déficit vs Meta Total</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -217,7 +245,18 @@ import { DataService } from "../../services/data.service";
     .num { text-align: right !important; font-variant-numeric: tabular-nums; }
     .positive { color: var(--accent-green) !important; }
     .negative { color: var(--accent-red) !important; }
+
+    /* Estendimento dos cards de gestão */
+    .kpi-runway, .kpi-gap {
+      grid-column: span 2;
+    }
+    @media (max-width: 900px) {
+      .kpi-runway, .kpi-gap {
+        grid-column: span 1;
+      }
+    }
   `,
+
 })
 export class DashboardComponent implements OnInit {
   indicadores = {

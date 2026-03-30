@@ -110,11 +110,11 @@ Chart.register(...registerables);
       <!-- Charts & Insights -->
       <div class="charts-row">
         <mat-card class="chart-card compact" appearance="outlined">
-          <mat-card-header><mat-card-title>Distribuição de Recursos</mat-card-title></mat-card-header>
+          <mat-card-header><mat-card-title>Distribuição dos Recursos</mat-card-title></mat-card-header>
           <mat-card-content>
             <div class="chart-wrapper-small">
               @if (doughnutReady) {
-              <canvas baseChart [data]="pieData" [options]="pieOptions" [type]="'pie'"></canvas>
+              <canvas baseChart [data]="pieData" [options]="pieOptions" [type]="'doughnut'"></canvas>
               }
             </div>
           </mat-card-content>
@@ -142,7 +142,7 @@ Chart.register(...registerables);
             <div class="table-filters">
               <mat-form-field appearance="outline" class="filter-field mini">
                 <mat-label>Projeto</mat-label>
-                <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroProjeto" placeholder="Buscar projeto...">
+                <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroProjeto" placeholder="projeto...">
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="filter-field mini">
@@ -153,10 +153,10 @@ Chart.register(...registerables);
                   <mat-option value="Captação">Captação</mat-option>
                 </mat-select>
               </mat-form-field>
-
+              
               <mat-form-field appearance="outline" class="filter-field mini">
                 <mat-label>Mês/Ano</mat-label>
-                <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroPeriodo" placeholder="Ex: 01/2026">
+                <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroPeriodo" placeholder="01/2026">
               </mat-form-field>
             </div>
           </div>
@@ -273,12 +273,13 @@ export class RecursosComponent implements OnInit {
   doughnutReady = false;
   barReady = false;
 
-  public pieData: ChartConfiguration["data"] = { labels: [], datasets: [] };
-  public pieOptions: ChartConfiguration["options"] = {
+  public pieData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
+  public pieOptions: ChartConfiguration<"doughnut">["options"] = {
     responsive: true,
     maintainAspectRatio: false,
+    cutout: "65%",
     plugins: {
-      legend: { position: "right", labels: { color: "#9CA3AF", font: { size: 11 } } },
+      legend: { position: "right", labels: { color: "#F3F4F6", font: { size: 10, weight: "bold" }, usePointStyle: true, padding: 15 } },
     },
   };
 
@@ -305,10 +306,23 @@ export class RecursosComponent implements OnInit {
       this.pctTotalComPrevisto = this.dataService.META_TOTAL > 0 ? (d.totalComPrevisto / this.dataService.META_TOTAL) * 100 : 0;
 
       this.pieData = {
-        labels: ["Aporte Federal", "Captação Externa"],
+        labels: ["Aporte Recebido", "Inflação", "Captação Recebida", "Captação Prevista", "Aporte Previsto"],
         datasets: [{
-          data: [d.aporteRecebido, d.captacaoRecebida],
-          backgroundColor: ["#34D399", "#38BDF8"],
+          data: [
+            d.aporteRecebido, 
+            d.aporteInflacao, 
+            d.captacaoRecebida, 
+            d.captacaoPrevista, 
+            d.aportePrevisto
+          ],
+          backgroundColor: [
+            "#8B5CF6", // Roxo - Aporte
+            "#FBBF24", // Amarelo - Inflação
+            "#22D3EE", // Ciano - Captação Recebida
+            "#FB923C", // Laranja - Captação Prevista
+            "#A78BFA"  // Roxo Claro - Aporte Previsto
+          ],
+          hoverOffset: 12,
           borderWidth: 0,
         }],
       };

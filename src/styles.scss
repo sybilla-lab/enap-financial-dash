@@ -52,23 +52,66 @@ html, body {
 
 // ====== Material overrides ======
 .mat-mdc-card {
+  background: var(--card-bg) !important;
   --mdc-elevated-card-container-color: var(--card-bg);
   --mdc-outlined-card-container-color: var(--card-bg);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border) !important;
+  color: var(--text-primary) !important;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+}
+
+.mat-mdc-card-header {
+  padding: 24px 24px 10px !important;
+  background: transparent !important;
+}
+
+.mat-mdc-card-title {
+  color: var(--text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+.mat-mdc-card-title mat-icon {
+  color: var(--accent-green) !important;
+  font-size: 20px !important;
+  width: 20px !important;
+  height: 20px !important;
 }
 
 .mat-mdc-form-field {
-  --mdc-outlined-text-field-outline-color: var(--border-color);
-  --mdc-outlined-text-field-hover-outline-color: rgba(52, 211, 153, 0.4);
+  --mdc-outlined-text-field-outline-color: var(--glass-border);
+  --mdc-outlined-text-field-hover-outline-color: var(--accent-green-soft);
   --mdc-outlined-text-field-focus-outline-color: var(--accent-green);
   --mdc-outlined-text-field-label-text-color: var(--text-secondary);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent-green);
   --mdc-outlined-text-field-input-text-color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
-.mat-mdc-select-value, .mat-mdc-input-element {
+/* Evitar sobreposição de Label e Placeholder */
+.mat-mdc-form-field.mat-form-field-should-float .mdc-floating-label {
+  background: var(--bg-primary) !important;
+  padding: 0 6px !important;
+  border-radius: 4px;
+}
+
+.mat-mdc-input-element::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.4 !important;
+}
+
+.mat-mdc-select-value {
   color: var(--text-primary) !important;
 }
+
+
+
+
 
 /* Tabelas Material Overrides */
 .mat-mdc-header-cell {
