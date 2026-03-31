@@ -300,8 +300,9 @@ export class DataService {
         lancs
           .filter((l) => l.categoria !== "0.0.0 Recurso" && l.categoria && l.valor < 0)
           .forEach((l) => {
-            const current = porCategoria.get(l.categoria) || 0;
-            porCategoria.set(l.categoria, current + Math.abs(l.valor));
+            const cleanCategoria = l.categoria.replace(/^\d+(\.\d+)*\s*/, "").trim();
+            const current = porCategoria.get(cleanCategoria) || 0;
+            porCategoria.set(cleanCategoria, current + Math.abs(l.valor));
           });
 
         return Array.from(porCategoria.entries())
@@ -408,6 +409,41 @@ export class DataService {
   getGapCaptacao(): Observable<number> {
     return this.getRecursoDetalhado().pipe(
       map((d) => Math.max(0, this.META_CAPTACAO - d.captacaoRecebida))
+    );
+  }
+
+  getRecebimentosPorFinanciador(): Observable<{ financiador: string; valor: number }[]> {
+    return this.recebimentos$.pipe(
+      map((recs) => {
+        const mapa = new Map<string, number>();
+        recs.forEach((r) => {
+          if (r.valor && r.status === "recebido" && r.tipoRecurso !== "Aporte") { // assumindo que tipoRecurso=="Aporte" é da ENAP, financiadores são captação.
+             const f = r.fornecedor || "Não identificado";
+             mapa.set(f, (mapa.get(f) || 0) + r.valor);
+          }
+        });
+        return Array.from(mapa.entries())
+          .map(([financiador, valor]) => ({ financiador, valor }))
+          .sort((a, b) => b.valor - a.valor);
+      })
+    );
+  }
+
+  getSaldosResgatadosOperacaoBasica(): Observable<number> {
+    return this.lancamentos$.pipe(
+      map((lancs) => {
+        let total = 0;
+        lancs.forEach((l) => {
+          if (l.projeto === "Operação Básica" && l.valor > 0) {
+            const obs = l.observacao.toLowerCase();
+            const cat = l.categoria.toLowerCase();
+            if (obs.includes("saldo") || obs.includes("sobra") || cat.includes("saldo") || cat.includes("sobra")) {
+              total += l.valor;
+            }
+          }
+        });
+        return total;
+      })
     );
   }
 }

@@ -28,7 +28,20 @@ import { DataService } from "../../services/data.service";
 
       <!-- KPI Cards -->
       <div class="kpi-grid">
-        <mat-card class="kpi-card kpi-recebido card-indicator-green" appearance="outlined">
+        <mat-card class="kpi-card kpi-recebido card-indicator-green custom-tooltip-container" appearance="outlined">
+          <div class="custom-tooltip">
+            <strong>Recebido por Financiador</strong>
+            <mat-divider style="margin: 8px 0; border-color: rgba(255,255,255,0.1);"></mat-divider>
+            @for (f of financiadores; track f.financiador) {
+              <div class="tooltip-row">
+                <span>{{ f.financiador }}</span>
+                <span class="num">{{ f.valor | currency: "BRL":"symbol":"1.0-0" }}</span>
+              </div>
+            }
+            @if (financiadores.length === 0) {
+               <div class="tooltip-row"><span>Nenhum financiamento detalhado</span></div>
+            }
+          </div>
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>account_balance_wallet</mat-icon>
@@ -40,7 +53,17 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card kpi-executado card-indicator-red" appearance="outlined">
+        <mat-card class="kpi-card kpi-executado card-indicator-red custom-tooltip-container" appearance="outlined">
+          <div class="custom-tooltip">
+            <strong>Execução de Projetos Ativos</strong>
+            <mat-divider style="margin: 8px 0; border-color: rgba(255,255,255,0.1);"></mat-divider>
+            @for (p of projetosAtivos; track p.projeto) {
+              <div class="tooltip-row">
+                <span>{{ p.projeto }}</span>
+                <span class="num">{{ p.execucao | number: "1.0-1" }}%</span>
+              </div>
+            }
+          </div>
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>payments</mat-icon>
@@ -77,7 +100,14 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+        <mat-card class="kpi-card card-indicator-blue custom-tooltip-container" appearance="outlined">
+          <div class="custom-tooltip">
+            <strong>Sobre os Pagamentos</strong>
+            <div style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
+               Este número representa o total de transações de saída realizadas para a execução dos projetos.
+               Pode ser utilizado para dimensionar o esforço operacional da equipe financeira mensalmente.
+            </div>
+          </div>
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
             <div class="kpi-info">
@@ -87,7 +117,14 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+        <mat-card class="kpi-card card-indicator-blue custom-tooltip-container" appearance="outlined">
+          <div class="custom-tooltip">
+            <strong>Sobre o Ticket Médio</strong>
+            <div style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
+               Valor médio por pagamento efetuado (Total Executado / N° de Pagamentos).
+               Indica o padrão de gastos transacionais dos projetos, ajudando em projeções de caixa.
+            </div>
+          </div>
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>paid</mat-icon></div>
             <div class="kpi-info">
@@ -120,7 +157,14 @@ import { DataService } from "../../services/data.service";
         </mat-card>
 
         <!-- Gestão Estratégica -->
-        <mat-card class="kpi-card kpi-runway card-indicator-blue" appearance="outlined">
+        <mat-card class="kpi-card kpi-runway card-indicator-blue custom-tooltip-container" appearance="outlined">
+          <div class="custom-tooltip">
+            <strong>Runway Estimado</strong>
+            <div style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
+               Tempo estimado em meses que os recursos atuais cobrirão as despesas, baseado na média mensal histórica de saídas. 
+               Isso permite à gestão saber quando iniciar novas captações caso seja necessário.
+            </div>
+          </div>
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>timer</mat-icon></div>
             <div class="kpi-info">
@@ -254,6 +298,30 @@ import { DataService } from "../../services/data.service";
     .positive { color: var(--accent-green) !important; }
     .negative { color: var(--accent-red) !important; }
 
+    /* Tooltips customizados CSS */
+    .custom-tooltip-container { position: relative; overflow: visible !important; cursor: pointer; }
+    .custom-tooltip {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 42, 38, 0.95);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      padding: 16px; border-radius: 12px;
+      backdrop-filter: blur(12px);
+      width: max-content; max-width: 320px;
+      z-index: 1000;
+      opacity: 0; visibility: hidden;
+      transition: all 0.2s ease;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    :host-context(body.light-theme) .custom-tooltip {
+      background: rgba(255, 255, 255, 0.95);
+      color: #1f1f1f;
+    }
+    .custom-tooltip-container:hover .custom-tooltip { opacity: 1; visibility: visible; transform: translate(-50%, -4px); }
+    .tooltip-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px; font-size: 13px; }
+    .tooltip-row:last-child { margin-bottom: 0; }
+
     /* Estendimento dos cards de gestão */
     .kpi-runway, .kpi-gap {
       flex: 1 1 450px;
@@ -276,6 +344,8 @@ export class DashboardComponent implements OnInit {
     ticketMedio: 0,
   };
   projetos: any[] = [];
+  projetosAtivos: { projeto: string; execucao: number }[] = [];
+  financiadores: { financiador: string; valor: number }[] = [];
   runway = 0;
   gapCaptacao = 0;
   inflacao = 0;
@@ -293,11 +363,18 @@ export class DashboardComponent implements OnInit {
        this.totalRecebidoNet = rd.totalRecebido;
     });
 
+    this.dataService.getRecebimentosPorFinanciador().subscribe((f) => {
+       this.financiadores = f;
+    });
+
     this.dataService.getRunway().subscribe(r => this.runway = r);
     this.dataService.getGapCaptacao().subscribe(g => this.gapCaptacao = g);
 
     this.dataService.getProjetoResumos().subscribe((p) => {
       this.projetos = p;
+      this.projetosAtivos = p
+         .filter(x => x.status && x.status.toLowerCase() !== "finalizado" && x.status.toLowerCase() !== "encerrado")
+         .map(x => ({ projeto: x.projeto, execucao: x.execucao }));
     });
   }
 }

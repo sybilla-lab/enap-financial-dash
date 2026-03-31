@@ -8,6 +8,7 @@ import { FormsModule } from "@angular/forms";
 import { MatTableModule } from "@angular/material/table";
 import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
+import { combineLatest } from "rxjs";
 import { DataService } from "../../services/data.service";
 import { ProjetoResumo, Lancamento } from "../../models/lancamento.model";
 
@@ -62,7 +63,7 @@ Chart.register(...registerables);
 
       <!-- Chart -->
       <mat-card class="chart-card" appearance="outlined">
-        <mat-card-header><mat-card-title>Entradas vs Saídas por Projeto</mat-card-title></mat-card-header>
+        <mat-card-header><mat-card-title>Balanço Operacional de Receitas e Despesas</mat-card-title></mat-card-header>
         <mat-card-content>
           <div class="chart-wrapper">
             @if (chartReady) {
@@ -196,30 +197,55 @@ export class ProjetosComponent implements OnInit {
   statusSelecionado = "";
   lancamentosAlimenta: Lancamento[] = [];
   stats = { ativos: 0, execucaoMedia: 0 };
+  saldosOpBasica = 0;
 
   chartReady = false;
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
-  barChartOptions: ChartConfiguration<"bar">["options"] = {
+  barChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: "y",
-    plugins: { legend: { position: "top", labels: { color: "#9CA3AF" } } },
+    plugins: { 
+      legend: { position: "top", labels: { color: "#9CA3AF" } },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            let label = context.dataset.label || "";
+            if (label) {
+                label += ": ";
+            }
+            if (context.parsed.x !== null) {
+                label += new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(context.parsed.x);
+            }
+            return label;
+          },
+          afterBody: (tooltipItems: any[]) => {
+            // Se estivermos em uma tooltip misturada do stack, calculamos o ratio.
+            return ""; 
+          }
+        }
+      }
+    },
     scales: {
-      x: { ticks: { color: "#6B7280" }, grid: { display: false } },
-      y: { ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
+      x: { stacked: true, ticks: { color: "#6B7280" }, grid: { display: false } },
+      y: { stacked: true, ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
     },
   };
 
   constructor(private dataService: DataService) { }
 
   ngOnInit(): void {
-    this.dataService.getProjetoResumos().subscribe((p) => {
+    combineLatest({
+      p: this.dataService.getProjetoResumos(),
+      saldos: this.dataService.getSaldosResgatadosOperacaoBasica()
+    }).subscribe(({ p, saldos }) => {
+      this.saldosOpBasica = saldos;
       this.projetos = p;
       this.projetosFiltrados = p;
       this.projetosLista = p.map((x) => x.projeto);
       this.statusLista = Array.from(new Set(p.map((x) => x.status || "Ativo"))).sort();
       this.stats = {
-        ativos: p.filter(x => x.status !== 'Finalizado').length,
+        ativos: p.filter(x => x.status && x.status.toLowerCase() !== "finalizado").length,
         execucaoMedia: p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length
       };
       this.buildChart(p);
@@ -247,20 +273,41 @@ export class ProjetosComponent implements OnInit {
   private buildChart(p: ProjetoResumo[]): void {
     this.chartReady = false;
     setTimeout(() => {
+      const entradasNormais = p.map(x => {
+          if (x.projeto === "Operação Básica") {
+              return Math.max(0, x.entradas - this.saldosOpBasica);
+          }
+          return x.entradas;
+      });
+
+      const saldosExtras = p.map(x => {
+          if (x.projeto === "Operação Básica") return this.saldosOpBasica;
+          return 0;
+      });
+
       this.barChartData = {
         labels: p.map((x) => x.projeto),
         datasets: [
           {
-            label: "Entradas",
-            data: p.map(x => x.entradas),
+            label: "Receitas",
+            data: entradasNormais,
             backgroundColor: "#34D399",
             borderRadius: 4,
+            stack: "Stack 0",
           },
           {
-            label: "Saídas",
+            label: "Saldos Recuperados",
+            data: saldosExtras,
+            backgroundColor: "#059669",
+            borderRadius: 4,
+            stack: "Stack 0",
+          },
+          {
+            label: "Despesas",
             data: p.map(x => x.saidas),
             backgroundColor: "#38BDF8",
             borderRadius: 4,
+            stack: "Stack 1",
           },
         ],
       };

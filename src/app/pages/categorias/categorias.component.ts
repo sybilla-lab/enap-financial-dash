@@ -6,8 +6,9 @@ import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { CategoriaResumo } from "../../models/lancamento.model";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
-Chart.register(...registerables);
+Chart.register(...registerables, ChartDataLabels);
 
 @Component({
   selector: "app-categorias",
@@ -134,11 +135,42 @@ export class CategoriasComponent implements OnInit {
   chartReady = false;
 
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
-  barChartOptions: ChartConfiguration<"bar">["options"] = {
+  barChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: "y",
-    plugins: { legend: { display: false } },
+    plugins: { 
+      legend: { display: false },
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        color: "#9CA3AF",
+        font: { weight: "bold" },
+        formatter: (value: any, ctx: any) => {
+          const datasetData = ctx.chart.data.datasets[0].data as number[];
+          const total = datasetData.reduce((a, b) => a + b, 0);
+          const percent = total > 0 ? (value / total) * 100 : 0;
+          return percent.toFixed(1).replace(".", ",") + "%";
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            let label = context.dataset.label || "";
+            if (label) {
+                label += ": ";
+            }
+            if (context.parsed.x !== null) {
+                label += new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(context.parsed.x);
+            }
+            return label;
+          }
+        }
+      }
+    },
+    layout: {
+      padding: { right: 50 } // Espaço para as labels não cortarem
+    },
     scales: {
       x: { ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
       y: { ticks: { color: "#6B7280" }, grid: { display: false } },
