@@ -36,10 +36,10 @@ interface NavItem {
         <div class="sidenav-header">
           @if (!sidenavCollapsed) {
             <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub" />
-            <img src="logo-enap.png" alt="ENAP" class="logo-enap" />
+            <img src="enap_40.png" alt="ENAP" class="enap_40" />
           } @else {
             <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub-small" />
-            <img src="logo-enap.png" alt="ENAP" class="logo-enap-small" />
+            <img src="enap_40.png" alt="ENAP" class="enap_40-small" />
           }
         </div>
 
@@ -143,17 +143,16 @@ interface NavItem {
       height: 40px;
       object-fit: contain;
     }
-    .logo-enap {
-      height: 36px;
-      max-width: 180px;
+    .enap_40 {
+      height: 100px;
       object-fit: contain;
     }
-    .logo-enap-small {
-      height: 20px;
+    .enap_40-small {
+      height: 50px;
       object-fit: contain;
     }
     
-    :host-context(body.dark-theme) .logo-enap, :host-context(body.dark-theme) .logo-enap-small {
+    :host-context(body.dark-theme) .logo-hub, :host-context(body.dark-theme) .logo-hub-small {
       filter: brightness(0) invert(1);
     }
 
