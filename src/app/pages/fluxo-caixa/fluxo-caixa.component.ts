@@ -9,8 +9,7 @@ import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { FluxoMensal } from "../../models/lancamento.model";
-
-Chart.register(...registerables);
+// Chart.register foi movido para o main.ts
 
 @Component({
   selector: "app-fluxo-caixa",

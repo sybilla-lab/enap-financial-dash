@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from "@angular/core";
+import { Component, OnInit, Inject, ChangeDetectorRef } from "@angular/core";
 import { CommonModule, CurrencyPipe, DecimalPipe } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
@@ -10,7 +10,7 @@ import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { DashboardConfigService } from "../../services/dashboard-config.service";
-import ChartDataLabels from "chartjs-plugin-datalabels";
+// ChartDataLabels foi movido para o registro global no main.ts
 
 // --- INÍCIO DOS COMPONENTES DE MODAL ---
 
@@ -64,6 +64,7 @@ export class ModalFinanciadoresComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<ModalFinanciadoresComponent>,
+    private cdr: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) public data: { financiador: string; valor: number }[]
   ) { }
 
@@ -81,7 +82,8 @@ export class ModalFinanciadoresComponent implements OnInit {
         }]
       };
       this.renderChart = true;
-    }, 300);
+      this.cdr.detectChanges();
+    }, 400);
   }
 }
 
@@ -132,6 +134,7 @@ export class ModalExecucaoComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<ModalExecucaoComponent>,
+    private cdr: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) public data: { projeto: string; execucao: number }[]
   ) { }
 
@@ -146,7 +149,8 @@ export class ModalExecucaoComponent implements OnInit {
         }]
       };
       this.renderChart = true;
-    }, 300);
+      this.cdr.detectChanges();
+    }, 400);
   }
 }
 

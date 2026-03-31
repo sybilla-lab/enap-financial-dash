@@ -13,8 +13,7 @@ import { MatDividerModule } from "@angular/material/divider";
 import { MatExpansionModule } from "@angular/material/expansion";
 import { DataService } from "../../services/data.service";
 import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
-
-Chart.register(...registerables);
+// Chart.register foi movido para o main.ts
 
 @Component({
   selector: "app-recursos",
