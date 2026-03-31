@@ -335,13 +335,26 @@ Chart.register(...registerables);
     .classic-meta, .classic-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
     .classic-footer { font-size: 12px; color: var(--text-secondary); text-align: right; }
     
-    .circle-icon.purple { background: linear-gradient(135deg, #A78BFA, #7C3AED); }
-    .circle-icon.purple-light { background: linear-gradient(135deg, #DDD6FE, #8B5CF6); }
-    .circle-icon.purple-dark { background: linear-gradient(135deg, #4C1D95, #7c4dff); }
-    .circle-icon.teal { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
-    .circle-icon.orange { background: linear-gradient(135deg, #FB923C, #EA580C); }
-    .circle-icon.green { background: linear-gradient(135deg, #4ADE80, #16A34A); }
-    .circle-icon.orange-light { background: linear-gradient(135deg, #FDBA74, #F97316); }
+    .circle-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #ffffff !important;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .circle-icon mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+    .circle-icon.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .circle-icon.purple-light { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+    .circle-icon.purple-dark { background: linear-gradient(135deg, #5b21b6, #4c1d95); }
+    .circle-icon.teal { background: linear-gradient(135deg, #2dd4bf, #0d9488); }
+    .circle-icon.teal-light { background: linear-gradient(135deg, #5eead4, #14b8a6); }
+    .circle-icon.teal-dark { background: linear-gradient(135deg, #0f766e, #115e59); }
+    .circle-icon.orange { background: linear-gradient(135deg, #fb923c, #ea580c); }
+    .circle-icon.orange-light { background: linear-gradient(135deg, #fdba74, #f97316); }
+    .circle-icon.green { background: linear-gradient(135deg, #4ade80, #16a34a); }
+    .circle-icon.gold { background: linear-gradient(135deg, #facc15, #ca8a04); }
 
     .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
     :host ::ng-deep .classic-progress.gray .mdc-linear-progress__bar-inner { border-color: #9CA3AF !important; }
