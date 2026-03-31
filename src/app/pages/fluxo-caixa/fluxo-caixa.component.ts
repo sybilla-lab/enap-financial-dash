@@ -151,7 +151,7 @@ export class FluxoCaixaComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top", labels: { color: "#9CA3AF" } },
+      legend: { position: "top", labels: { color: "#1f2937", font: { weight: 'bold' } } },
       datalabels: { display: false },
     },
     scales: {

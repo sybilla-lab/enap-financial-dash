@@ -232,7 +232,7 @@ export class ProjetosComponent implements OnInit {
     maintainAspectRatio: false,
     indexAxis: "y",
     plugins: {
-      legend: { position: "top", labels: { color: "#374151", font: { weight: '600' } } },
+      legend: { position: "top", labels: { color: "#1f2937", font: { weight: 'bold' } } },
       datalabels: { display: false },
       tooltip: {
         callbacks: {

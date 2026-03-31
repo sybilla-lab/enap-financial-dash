@@ -416,7 +416,7 @@ export class RecursosComponent implements OnInit {
     maintainAspectRatio: false,
     cutout: "65%",
     plugins: {
-      legend: { position: "right", labels: { color: "#4B5563", font: { size: 10, weight: "bold" }, usePointStyle: true, padding: 15 } },
+      legend: { position: "right", labels: { color: "#1f2937", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 15 } },
       datalabels: { display: false }
     },
   };
@@ -425,7 +425,7 @@ export class RecursosComponent implements OnInit {
   barOptions: ChartConfiguration<"bar">["options"] = {
     responsive: true, maintainAspectRatio: false,
     plugins: { 
-      legend: { position: "top", labels: { color: "#4B5563", font: { size: 11 } } },
+      legend: { position: "top", labels: { color: "#1f2937", font: { size: 12, weight: "bold" } } },
       datalabels: { display: false }
     },
     scales: {
