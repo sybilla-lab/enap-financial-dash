@@ -36,23 +36,23 @@ Chart.register(...registerables, ChartDataLabels);
 
       <div class="filter-bar">
         <mat-form-field appearance="outline" class="filter-select">
-          <mat-label>Filtrar por Categorias</mat-label>
-          <mat-select [formControl]="categoryFilter" multiple (selectionChange)="onFilterChange()">
+          <mat-label>Filtrar por Projetos</mat-label>
+          <mat-select [formControl]="projectFilter" multiple (selectionChange)="onFilterChange()">
             <mat-select-trigger>
-              {{ categoryFilter.value?.length ? categoryFilter.value[0] : '' }}
-              @if ((categoryFilter.value?.length || 0) > 1) {
+              {{ (projectFilter.value && projectFilter.value.length > 0) ? projectFilter.value[0] : '' }}
+              @if ((projectFilter.value?.length || 0) > 1) {
                 <span class="additional-selection">
-                  (+{{ (categoryFilter.value?.length || 0) - 1 }} {{ (categoryFilter.value?.length || 0) === 2 ? 'outra' : 'outras' }})
+                  (+{{ (projectFilter.value?.length || 0) - 1 }} {{ (projectFilter.value?.length || 0) === 2 ? 'outro' : 'outros' }})
                 </span>
               }
             </mat-select-trigger>
-            @for (cat of allAvailableCategories; track cat) {
-              <mat-option [value]="cat">{{ cat }}</mat-option>
+            @for (proj of allAvailableProjects; track proj) {
+              <mat-option [value]="proj">{{ proj }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
         
-        @if (categoryFilter.value && categoryFilter.value.length > 0) {
+        @if (projectFilter.value && projectFilter.value.length > 0) {
           <button mat-button color="warn" (click)="clearFilters()" class="clear-btn">
             <mat-icon>filter_list_off</mat-icon>
             Limpar Filtros
@@ -180,9 +180,9 @@ export class CategoriasComponent implements OnInit {
   top5Percentual = 0;
   chartReady = false;
 
-  private fullData: CategoriaResumo[] = [];
-  allAvailableCategories: string[] = [];
-  categoryFilter = new FormControl<string[]>([]);
+  private allLancamentos: any[] = [];
+  allAvailableProjects: string[] = [];
+  projectFilter = new FormControl<string[]>([]);
 
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barChartOptions: any = {
@@ -230,10 +230,13 @@ export class CategoriasComponent implements OnInit {
   constructor(private dataService: DataService) {}
 
   ngOnInit(): void {
-    this.dataService.getCategoriaResumos().subscribe((allCats) => {
-      this.fullData = [...allCats].sort((a, b) => b.total - a.total);
-      this.allAvailableCategories = this.fullData.map(c => c.categoria);
-      this.processData();
+    // Subscreve ao stream principal de lançamentos e projetos
+    this.dataService.lancamentos$.subscribe((lancs) => {
+      this.allLancamentos = lancs;
+      this.dataService.getProjetosUnicos().subscribe(projs => {
+         this.allAvailableProjects = projs.sort();
+         this.processData();
+      });
     });
   }
 
@@ -242,33 +245,46 @@ export class CategoriasComponent implements OnInit {
   }
 
   clearFilters(): void {
-    this.categoryFilter.setValue([]);
+    this.projectFilter.setValue([]);
     this.processData();
   }
 
   private processData(): void {
-    const selected = this.categoryFilter.value || [];
-    let filtered = this.fullData;
-
-    if (selected.length > 0) {
-      filtered = this.fullData.filter(c => selected.includes(c.categoria));
+    const selectedProjects = this.projectFilter.value || [];
+    
+    // 1. Filtrar lançamentos por projeto (se houver seleção)
+    let filteredLancs = this.allLancamentos;
+    if (selectedProjects.length > 0) {
+      filteredLancs = this.allLancamentos.filter(l => selectedProjects.includes(l.projeto));
     }
 
-    this.totalDespesas = filtered.reduce((s, c) => s + c.total, 0);
-    this.allCategorias = filtered;
+    // 2. Agrupar por categoria (lógica movida da DataService para maior flexibilidade local)
+    const mapaCategorias = new Map<string, number>();
+    filteredLancs
+      .filter((l) => l.categoria !== "0.0.0 Recurso" && l.categoria && l.valor < 0)
+      .forEach((l) => {
+        const cleanCat = l.categoria.replace(/^\d+(\.\d+)*\s*/, "").trim();
+        const current = mapaCategorias.get(cleanCat) || 0;
+        mapaCategorias.set(cleanCat, current + Math.abs(l.valor));
+      });
 
-    // Calcular KPIs baseados no conjunto filtrado
-    const top5Total = filtered.slice(0, 5).reduce((s, c) => s + c.total, 0);
+    const result: CategoriaResumo[] = Array.from(mapaCategorias.entries())
+      .map(([categoria, total]) => ({ categoria, total }))
+      .sort((a, b) => b.total - a.total);
+
+    this.allCategorias = result;
+    this.totalDespesas = result.reduce((s, c) => s + c.total, 0);
+
+    // 3. KPIs
+    const top5Total = result.slice(0, 5).reduce((s, c) => s + c.total, 0);
     this.top5Percentual = this.totalDespesas > 0 ? (top5Total / this.totalDespesas) * 100 : 0;
 
-    // Lógica do Gráfico
-    if (selected.length > 0) {
-      // Se filtrado, mostra exatamente as selecionadas sem "Outros"
-      this.chartCategorias = filtered;
+    // 4. Gráfico (Top 15 + Outros se não filtrado, exatamente os filtrados se houver seleção)
+    if (selectedProjects.length > 0) {
+       this.chartCategorias = result;
     } else {
-      // Se não filtrado, mantém a lógica de top 15 + Outros
-      const top15 = filtered.slice(0, 15);
-      const others = filtered.slice(15);
+      const top15 = result.slice(0, 15);
+      const others = result.slice(15);
       if (others.length > 0) {
         const othersTotal = others.reduce((s, c) => s + c.total, 0);
         this.chartCategorias = [...top15, { categoria: "Outros", total: othersTotal }];
@@ -278,7 +294,6 @@ export class CategoriasComponent implements OnInit {
     }
 
     const colors = this.generateColors(this.chartCategorias.length);
-
     this.barChartData = {
       labels: this.chartCategorias.map((c) => c.categoria),
       datasets: [{
