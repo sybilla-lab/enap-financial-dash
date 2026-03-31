@@ -121,7 +121,6 @@ interface NavItem {
       flex-direction: column;
       overflow: hidden;
     }
-    }
  
      /* ===== Sidebar header: Logos ===== */
     .sidenav-header {
