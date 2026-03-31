@@ -260,6 +260,7 @@ export class ModalInfoComponent {
                 <span class="kpi-value text-green">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.0-0" }}</span>
               }
             </div>
+            <mat-icon class="view-more-icon">visibility</mat-icon>
           </mat-card-content>
         </mat-card>
         }
@@ -278,6 +279,7 @@ export class ModalInfoComponent {
                 <span class="kpi-value text-red">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.0-0" }}</span>
               }
             </div>
+            <mat-icon class="view-more-icon">visibility</mat-icon>
           </mat-card-content>
         </mat-card>
         }
@@ -320,7 +322,7 @@ export class ModalInfoComponent {
         }
 
         @if (config().pagamentos) {
-        <mat-card class="kpi-card clickable card-indicator-blue" appearance="outlined" (click)="abrirModal('pagamentos')">
+        <mat-card class="kpi-card clickable card-indicator-gray" appearance="outlined" (click)="abrirModal('pagamentos')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
             <div class="kpi-info">
@@ -331,12 +333,13 @@ export class ModalInfoComponent {
                 <span class="kpi-value">{{ indicadores.numPagamentos }}</span>
               }
             </div>
+            <mat-icon class="view-more-icon">visibility</mat-icon>
           </mat-card-content>
         </mat-card>
         }
 
         @if (config().ticket) {
-        <mat-card class="kpi-card clickable card-indicator-blue" appearance="outlined" (click)="abrirModal('ticket')">
+        <mat-card class="kpi-card clickable card-indicator-gray" appearance="outlined" (click)="abrirModal('ticket')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>paid</mat-icon></div>
             <div class="kpi-info">
@@ -347,6 +350,7 @@ export class ModalInfoComponent {
                 <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.0-0" }}</span>
               }
             </div>
+            <mat-icon class="view-more-icon">visibility</mat-icon>
           </mat-card-content>
         </mat-card>
         }
@@ -369,7 +373,7 @@ export class ModalInfoComponent {
         }
 
         @if (config().meta) {
-        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+        <mat-card class="kpi-card card-indicator-purple" appearance="outlined">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>analytics</mat-icon></div>
             <div class="kpi-info">
@@ -387,7 +391,7 @@ export class ModalInfoComponent {
 
         <!-- Gestão Estratégica -->
         @if (config().runway) {
-        <mat-card class="kpi-card clickable kpi-runway card-indicator-blue" appearance="outlined" (click)="abrirModal('runway')">
+        <mat-card class="kpi-card clickable kpi-runway card-indicator-gray" appearance="outlined" (click)="abrirModal('runway')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>timer</mat-icon></div>
             <div class="kpi-info">
@@ -399,12 +403,13 @@ export class ModalInfoComponent {
               }
               <span class="kpi-sub">Tempo estimado de sobrevivência</span>
             </div>
+            <mat-icon class="view-more-icon">visibility</mat-icon>
           </mat-card-content>
         </mat-card>
         }
 
         @if (config().gap) {
-        <mat-card class="kpi-card clickable kpi-gap card-indicator-blue" appearance="outlined" (click)="abrirModal('gap')">
+        <mat-card class="kpi-card clickable kpi-gap card-indicator-red" appearance="outlined" (click)="abrirModal('gap')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>not_interested</mat-icon></div>
             <div class="kpi-info">
@@ -416,6 +421,7 @@ export class ModalInfoComponent {
               }
               <span class="kpi-sub">Déficit vs Meta Total</span>
             </div>
+            <mat-icon class="view-more-icon">visibility</mat-icon>
           </mat-card-content>
         </mat-card>
         }
@@ -511,8 +517,45 @@ export class ModalInfoComponent {
       display: flex; align-items: center; justify-content: center;
       background: var(--hover-bg);
       border: 1px solid var(--border-color);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      flex-shrink: 0;
     }
-    .kpi-icon mat-icon { color: var(--text-secondary); font-size: 24px; width: 24px; height: 24px; }
+    .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
+    
+    /* Fundos preenchidos baseados no indicador do card */
+    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, #4ade80, #16a34a); border: none; }
+    .card-indicator-red .kpi-icon { background: linear-gradient(135deg, #f87171, #ef4444); border: none; }
+    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, #38bdf8, #0ea5e9); border: none; }
+    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, #fbbf24, #d97706); border: none; }
+    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, #fb923c, #ea580c); border: none; }
+    .card-indicator-gray .kpi-icon { background: linear-gradient(135deg, #9ca3af, #4b5563); border: none; }
+    .card-indicator-purple .kpi-icon { background: linear-gradient(135deg, #a78bfa, #7c3aed); border: none; }
+
+    /* Garantia de visibilidade dos indicadores de 5px no Dashboard */
+    .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+    .kpi-card.card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
+    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
+    .kpi-card.card-indicator-yellow { border-left: 5px solid var(--accent-yellow) !important; }
+    .kpi-card.card-indicator-orange { border-left: 5px solid #fb923c !important; }
+    .kpi-card.card-indicator-purple { border-left: 5px solid #7c3aed !important; }
+    .kpi-card.card-indicator-gray { border-left: 5px solid #6b7280 !important; }
+
+    .view-more-icon {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--text-muted);
+      opacity: 0.3;
+      transition: all 0.2s ease-in-out;
+    }
+    .kpi-card:hover .view-more-icon {
+      opacity: 1;
+      color: var(--text-primary);
+      transform: scale(1.1);
+    }
     
     .kpi-info { display: flex; flex-direction: column; }
     .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
@@ -620,7 +663,7 @@ export class DashboardComponent implements OnInit {
       this.projetosAtivos = p
         .filter(x => x.status && x.status.toLowerCase() !== "finalizado" && x.status.toLowerCase() !== "encerrado")
         .map(x => ({ projeto: x.projeto, execucao: x.execucao }));
-      
+
       // Reintroduzindo o delay de 1.5 segundos solicitado para efeito de skeleton loader
       setTimeout(() => {
         this.isLoading = false;

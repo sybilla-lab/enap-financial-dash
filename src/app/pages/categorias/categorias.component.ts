@@ -63,24 +63,27 @@ Chart.register(...registerables, ChartDataLabels);
       <div class="kpi-grid">
         <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
           <mat-card-content>
+            <div class="kpi-icon"><mat-icon>category</mat-icon></div>
             <div class="kpi-info">
               <span class="kpi-label">Total de Categorias </span>
               <span class="kpi-value text-blue">{{ allCategorias.length }}</span>
             </div>
           </mat-card-content>
         </mat-card>
-
+ 
         <mat-card class="kpi-card card-indicator-green" appearance="outlined">
           <mat-card-content>
+            <div class="kpi-icon"><mat-icon>payments</mat-icon></div>
             <div class="kpi-info">
               <span class="kpi-label">Total Executado </span>
-              <span class="kpi-value text-green">{{ totalDespesas | currency: "BRL":"symbol":"1.0-0" }}</span>
+              <span class="kpi-value text-green">{{ totalDespesas | currency: "BRL":"symbol":"1.2-2" }}</span>
             </div>
           </mat-card-content>
         </mat-card>
-
+ 
         <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
           <mat-card-content>
+            <div class="kpi-icon"><mat-icon>pie_chart</mat-icon></div>
             <div class="kpi-info">
               <span class="kpi-label">% Concentração Top5 </span>
               <span class="kpi-value text-orange">{{ top5Percentual | number: "1.1-1" }}%</span>
@@ -144,11 +147,35 @@ Chart.register(...registerables, ChartDataLabels);
     .filter-select { flex: 1; max-width: 400px; margin-bottom: -1.25em; } /* Ajuste fino para remover o espaço reservado para hints/erros */
     .clear-btn { height: 56px; border-radius: 8px; display: flex; align-items: center; gap: 8px; }
     .additional-selection { opacity: 0.7; font-size: 0.85em; margin-left: 4px; }
-    .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
-    .kpi-card mat-card-content { display: flex; flex-direction: column; gap: 8px; padding: 24px; }
-    .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 26px; font-weight: 600; color: var(--text-primary); }
+    .kpi-card { 
+      background: var(--card-bg) !important; 
+      border-radius: 12px !important; 
+      border: 1px solid var(--border-color) !important;
+    }
+    
+    /* Garantia de visibilidade dos indicadores nesta guia */
+    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
+    .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+    .kpi-card.card-indicator-orange { border-left: 5px solid #fb923c !important; }
 
+    .kpi-card mat-card-content { display: flex; align-items: center; gap: 16px; padding: 24px; }
+    .kpi-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
+
+    /* Estilos luxo preenchidos para Categorias */
+    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
+    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, #4ade80, #16a34a); }
+    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, #fb923c, #ea580c); }
+
+    .kpi-info { display: flex; flex-direction: column; }
+    .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); }
+    
     .text-green { color: var(--accent-green) !important; }
     .text-blue { color: var(--accent-blue) !important; }
     .text-orange { color: #fb923c !important; }

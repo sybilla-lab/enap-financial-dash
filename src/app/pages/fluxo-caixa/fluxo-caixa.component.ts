@@ -38,22 +38,22 @@ import { FluxoMensal } from "../../models/lancamento.model";
       <div class="kpi-grid">
         <mat-card class="kpi-card card-indicator-green" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-label">Total de Entradas</div>
-            <div class="kpi-value text-green">{{ totais.entradas | currency: "BRL":"symbol":"1.0-0" }}</div>
+            <div class="kpi-label">Total Entradas</div>
+            <div class="kpi-value text-green">{{ totais.entradas | currency: "BRL":"symbol":"1.2-2" }}</div>
           </mat-card-content>
         </mat-card>
 
         <mat-card class="kpi-card card-indicator-red" appearance="outlined">
           <mat-card-content>
-            <div class="kpi-label">Total de Saídas</div>
-            <div class="kpi-value text-red">{{ totais.saidas | currency: "BRL":"symbol":"1.0-0" }}</div>
+            <div class="kpi-label">Total Saídas</div>
+            <div class="kpi-value text-red">{{ totais.saidas | currency: "BRL":"symbol":"1.2-2" }}</div>
           </mat-card-content>
         </mat-card>
 
         <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
           <mat-card-content>
             <div class="kpi-label">Saldo Atual</div>
-            <div class="kpi-value text-blue">{{ totais.saldoAtual | currency: "BRL":"symbol":"1.0-0" }}</div>
+            <div class="kpi-value text-blue">{{ totais.saldoAtual | currency: "BRL":"symbol":"1.2-2" }}</div>
           </mat-card-content>
         </mat-card>
       </div>

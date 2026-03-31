@@ -132,10 +132,15 @@ html, body {
 }
 
 // ====== Utility Classes for Card Indicators ======
-.card-indicator-green { border-left: 3px solid var(--accent-green) !important; }
-.card-indicator-blue { border-left: 3px solid var(--accent-blue) !important; }
-.card-indicator-red { border-left: 3px solid var(--accent-red) !important; }
-.card-indicator-yellow { border-left: 3px solid var(--accent-yellow) !important; }
+.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
+.card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
+.card-indicator-yellow { border-left: 5px solid var(--accent-yellow) !important; }
+.card-indicator-orange { border-left: 5px solid #fb923c !important; }
+.card-indicator-purple { border-left: 5px solid #7c3aed !important; }
+.card-indicator-gray { border-left: 5px solid #6b7280 !important; }
+.card-indicator-gold { border-left: 5px solid #facc15 !important; }
+.card-indicator-teal { border-left: 5px solid #2dd4bf !important; }
 
 // ====== Animations ======
 @keyframes fadeIn {

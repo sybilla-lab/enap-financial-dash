@@ -50,7 +50,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
           </mat-expansion-panel-header>
           <div class="kpi-grid-classic">
             <!-- 1. Recebido -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-purple" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon purple"><mat-icon>archive</mat-icon></div>
@@ -63,7 +63,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
         </mat-card>
 
         <!-- 2. Previsto -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-purple" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon purple-light"><mat-icon>schedule</mat-icon></div>
@@ -77,7 +77,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
         </mat-card>
 
         <!-- 3. Meta Total -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-purple" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon purple-dark"><mat-icon>flag</mat-icon></div>
@@ -91,7 +91,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
         </mat-card>
 
         <!-- 4. Inflação (Separado) -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-orange" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon orange-light"><mat-icon>trending_up</mat-icon></div>
@@ -115,7 +115,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
           </mat-expansion-panel-header>
           <div class="kpi-grid-classic">
             <!-- 1. Recebido -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-teal" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon teal"><mat-icon>archive</mat-icon></div>
@@ -128,7 +128,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
         </mat-card>
 
         <!-- 2. Previsto -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-teal" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon teal-light"><mat-icon>schedule</mat-icon></div>
@@ -142,7 +142,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
         </mat-card>
 
         <!-- 3. A Formalizar -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-orange" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon orange-light"><mat-icon>assignment_late</mat-icon></div>
@@ -156,7 +156,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
         </mat-card>
 
         <!-- 4. Meta Total -->
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-teal" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon teal-dark"><mat-icon>flag</mat-icon></div>
@@ -180,7 +180,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
           </mat-expansion-panel-header>
           <!-- Row 2: Consolidado -->
           <div class="kpi-grid-classic">
-            <mat-card class="classic-card" appearance="outlined">
+            <mat-card class="classic-card card-indicator-green" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon green"><mat-icon>account_balance_wallet</mat-icon></div>
@@ -192,7 +192,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="classic-card" appearance="outlined">
+        <mat-card class="classic-card card-indicator-gold" appearance="outlined">
           <mat-card-content>
             <div class="classic-header">
               <div class="circle-icon gold"><mat-icon>stars</mat-icon></div>
@@ -367,6 +367,14 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
     :host ::ng-deep .classic-progress.purple-bar .mdc-linear-progress__bar-inner { border-color: #8B5CF6 !important; }
     .consolidado-row-header { font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 24px 0 12px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
     .consolidado-row-header.first { margin-top: 0; }
+
+    /* Garantia de visibilidade dos indicadores de 5px na página de Recursos */
+    .classic-card.card-indicator-purple { border-left: 5px solid #7c3aed !important; }
+    .classic-card.card-indicator-teal { border-left: 5px solid #2dd4bf !important; }
+    .classic-card.card-indicator-orange { border-left: 5px solid #fb923c !important; }
+    .classic-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+    .classic-card.card-indicator-gold { border-left: 5px solid #facc15 !important; }
+    .classic-card.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
 
     .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px; margin-bottom: 24px; }
     .chart-card.compact { height: 420px; }

@@ -33,6 +33,49 @@ Chart.register(...registerables);
         <mat-icon>folder_special</mat-icon>
         Prestação de Contas por Projeto
       </h1>
+ 
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>folder</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Total de Projetos</span>
+              <span class="kpi-value text-blue">{{ projetos.length }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+ 
+        <mat-card class="kpi-card card-indicator-green" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>check_circle</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Projetos Ativos</span>
+              <span class="kpi-value text-green">{{ stats.ativos }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+ 
+        <mat-card class="kpi-card card-indicator-yellow" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>speed</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Execução Média</span>
+              <span class="kpi-value term-yellow">{{ stats.execucaoMedia | number: "1.1-1" }}%</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+ 
+        <mat-card class="kpi-card card-indicator-teal" appearance="outlined">
+          <mat-card-content>
+            <div class="kpi-icon"><mat-icon>history</mat-icon></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Saldos Recuperados</span>
+              <span class="kpi-value text-teal">{{ saldosOpBasica | currency: "BRL":"symbol":"1.2-2" }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
 
       <!-- Filter -->
       <mat-card class="filter-card" appearance="outlined">
@@ -180,12 +223,29 @@ Chart.register(...registerables);
     mat-form-field { width: 100%; max-width: 400px; flex: 1 1 300px; margin-bottom: -1.25em; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
-    .kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+    .kpi-card mat-card-content { padding: 24px; display: flex; align-items: center; gap: 16px; }
+    .kpi-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
+
+    /* Estilos luxo preenchidos para Projetos */
+    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
+    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, #4ade80, #16a34a); }
+    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, #fbbf24, #d97706); }
+    .card-indicator-teal .kpi-icon { background: linear-gradient(135deg, #2dd4bf, #0d9488); }
+
+    .kpi-info { display: flex; flex-direction: column; }
     .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 26px; font-weight: 600; color: var(--text-primary); }
+    .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); }
     
     .text-green { color: var(--accent-green) !important; }
     .text-blue { color: var(--accent-blue) !important; }
+    .term-yellow { color: var(--accent-yellow) !important; }
+    .text-teal { color: #2dd4bf !important; }
 
     .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
     .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
