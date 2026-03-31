@@ -43,7 +43,7 @@ Chart.register(...registerables);
       <mat-accordion multi="true" class="resource-accordion">
         
         <!-- Aporte ENAP Section -->
-        <mat-expansion-panel [expanded]="true" class="custom-panel">
+        <mat-expansion-panel [expanded]="false" class="custom-panel">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <div class="panel-title-text"><mat-icon>account_balance</mat-icon> APORTE ENAP (META R$ 3.023.000)</div>
@@ -108,7 +108,7 @@ Chart.register(...registerables);
         </mat-expansion-panel>
 
         <!-- Captação Externa Section -->
-        <mat-expansion-panel [expanded]="true" class="custom-panel">
+        <mat-expansion-panel [expanded]="false" class="custom-panel">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <div class="panel-title-text"><mat-icon>public</mat-icon> CAPTAÇÃO EXTERNA (META R$ 17.550.525)</div>
@@ -173,7 +173,7 @@ Chart.register(...registerables);
         </mat-expansion-panel>
 
         <!-- Consolidado Section -->
-        <mat-expansion-panel [expanded]="true" class="custom-panel">
+        <mat-expansion-panel [expanded]="false" class="custom-panel">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <div class="panel-title-text"><mat-icon>account_balance_wallet</mat-icon> CONSOLIDADO</div>
