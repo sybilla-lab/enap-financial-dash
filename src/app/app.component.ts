@@ -192,8 +192,7 @@ interface NavItem {
 
     /* ===== Footer ===== */
     .sidenav-footer {
-      padding: 8px;
-      border-top: 1px solid var(--border-color);
+      padding: 4px 8px 12px;
       display: flex;
       justify-content: center;
       flex-shrink: 0;
@@ -214,7 +213,7 @@ interface NavItem {
     @media (max-width: 768px) { .menu-btn { display: block; } }
     .toolbar-title { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
     .spacer { flex: 1; }
-    .bottom-nav { flex-shrink: 0; padding-bottom: 0; }
+    .bottom-nav { flex-shrink: 0; padding: 0 !important; }
     .app-sidenav .spacer { flex: 1; }
 
     /* ===== Main content ===== */
