@@ -58,6 +58,19 @@ interface NavItem {
           }
         </mat-nav-list>
 
+        <div class="spacer"></div>
+
+        <!-- System items -->
+        <mat-nav-list class="bottom-nav">
+          <a mat-list-item routerLink="/gerenciar" routerLinkActive="active-link"
+            [matTooltip]="sidenavCollapsed ? 'Gerenciar' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon>settings_suggest</mat-icon>
+            @if (!sidenavCollapsed) {
+            <span matListItemTitle>Gerenciar</span>
+            }
+          </a>
+        </mat-nav-list>
+
         <!-- Collapse button -->
         <div class="sidenav-footer">
           <button mat-icon-button (click)="sidenavCollapsed = !sidenavCollapsed" matTooltip="Recolher menu">
@@ -201,6 +214,8 @@ interface NavItem {
     @media (max-width: 768px) { .menu-btn { display: block; } }
     .toolbar-title { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
     .spacer { flex: 1; }
+    .bottom-nav { flex-shrink: 0; padding-bottom: 0; }
+    .app-sidenav .spacer { flex: 1; }
 
     /* ===== Main content ===== */
     .main-content { background: var(--bg-primary) !important; }
@@ -216,7 +231,6 @@ export class AppComponent {
     { label: "Projetos", icon: "folder_special", route: "/projetos" },
     { label: "Categorias", icon: "category", route: "/categorias" },
     { label: "Fluxo de Caixa", icon: "timeline", route: "/fluxo-caixa" },
-    { label: "Gerenciar", icon: "settings_suggest", route: "/gerenciar" },
   ];
 
   constructor(public themeService: ThemeService) { }
