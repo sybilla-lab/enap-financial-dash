@@ -66,12 +66,14 @@ Chart.register(...registerables);
         <mat-card-header><mat-card-title>Balanço Operacional de Receitas e Despesas</mat-card-title></mat-card-header>
         <mat-card-content>
           <div class="chart-wrapper">
-            @if (chartReady) {
-            <canvas baseChart
-              [data]="barChartData"
-              [options]="barChartOptions"
-              [type]="'bar'">
-            </canvas>
+            @if (isLoading) {
+              <div class="skeleton-box" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+            } @else if (chartReady) {
+              <canvas baseChart
+                [data]="barChartData"
+                [options]="barChartOptions"
+                [type]="'bar'">
+              </canvas>
             }
           </div>
         </mat-card-content>
@@ -94,19 +96,32 @@ Chart.register(...registerables);
                 </tr>
               </thead>
               <tbody>
-                @for (p of projetosFiltrados; track p.projeto) {
-                <tr>
-                  <td>{{ p.projeto }}</td>
-                  <td class="num positive">{{ p.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
-                  <td class="num negative">{{ p.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
-                  <td class="num" [class.positive]="p.saldo >= 0" [class.negative]="p.saldo < 0">{{ p.saldo | currency: "BRL":"symbol":"1.2-2" }}</td>
-                  <td class="num">{{ p.execucao | number: "1.1-1" }}%</td>
-                  <td class="status-col">
-                    <span class="status-badge" [ngClass]="p.status?.toLowerCase() || ''">
-                      {{ p.status || 'Ativo' }}
-                    </span>
-                  </td>
-                </tr>
+                @if (isLoading) {
+                  @for (i of [1,2,3,4,5]; track i) {
+                    <tr>
+                      <td><div class="skeleton-box" style="width: 150px; height: 16px; border-radius: 4px;"></div></td>
+                      <td><div class="skeleton-box" style="width: 100px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
+                      <td><div class="skeleton-box" style="width: 100px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
+                      <td><div class="skeleton-box" style="width: 100px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
+                      <td><div class="skeleton-box" style="width: 60px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
+                      <td class="status-col"><div class="skeleton-box" style="width: 100px; height: 24px; border-radius: 20px; margin: 0 auto;"></div></td>
+                    </tr>
+                  }
+                } @else {
+                  @for (p of projetosFiltrados; track p.projeto) {
+                  <tr>
+                    <td>{{ p.projeto }}</td>
+                    <td class="num positive">{{ p.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                    <td class="num negative">{{ p.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                    <td class="num" [class.positive]="p.saldo >= 0" [class.negative]="p.saldo < 0">{{ p.saldo | currency: "BRL":"symbol":"1.2-2" }}</td>
+                    <td class="num">{{ p.execucao | number: "1.1-1" }}%</td>
+                    <td class="status-col">
+                      <span class="status-badge" [ngClass]="p.status?.toLowerCase() || ''">
+                        {{ p.status || 'Ativo' }}
+                      </span>
+                    </td>
+                  </tr>
+                  }
                 }
               </tbody>
             </table>
@@ -149,6 +164,16 @@ Chart.register(...registerables);
     </div>
   `,
   styles: `
+    .skeleton-box {
+      background: linear-gradient(90deg, var(--hover-bg) 25%, rgba(255,255,255,0.08) 50%, var(--hover-bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
     .filter-card { background: var(--card-bg) !important; border-radius: 12px !important; margin-bottom: 24px; }
     .filter-card mat-card-content { padding: 16px 24px; }
     .filters-row { display: flex; gap: 24px; flex-wrap: wrap; }
@@ -189,6 +214,7 @@ Chart.register(...registerables);
   `,
 })
 export class ProjetosComponent implements OnInit {
+  isLoading = true;
   projetos: ProjetoResumo[] = [];
   projetosFiltrados: ProjetoResumo[] = [];
   projetosLista: string[] = [];
@@ -205,8 +231,9 @@ export class ProjetosComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: "y",
-    plugins: { 
+    plugins: {
       legend: { position: "top", labels: { color: "#9CA3AF" } },
+      datalabels: { display: false },
       tooltip: {
         callbacks: {
           label: (context: any) => {
@@ -248,6 +275,9 @@ export class ProjetosComponent implements OnInit {
         ativos: p.filter(x => x.status && x.status.toLowerCase() !== "finalizado").length,
         execucaoMedia: p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length
       };
+      setTimeout(() => {
+        this.isLoading = false;
+      }, 3000);
       this.buildChart(p);
     });
   }

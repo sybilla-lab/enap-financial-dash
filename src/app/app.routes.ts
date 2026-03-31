@@ -41,4 +41,11 @@ export const routes: Routes = [
         (m) => m.FluxoCaixaComponent
       ),
   },
+  {
+    path: "gerenciar",
+    loadComponent: () =>
+      import("./pages/gerenciar/gerenciar.component").then(
+        (m) => m.GerenciarComponent
+      ),
+  },
 ];

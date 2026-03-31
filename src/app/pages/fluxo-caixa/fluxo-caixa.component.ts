@@ -153,6 +153,7 @@ export class FluxoCaixaComponent implements OnInit {
     maintainAspectRatio: false,
     plugins: {
       legend: { position: "top", labels: { color: "#9CA3AF" } },
+      datalabels: { display: false },
     },
     scales: {
       x: { ticks: { color: "#6B7280" }, grid: { display: false } },
