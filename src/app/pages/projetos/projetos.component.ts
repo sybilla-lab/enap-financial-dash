@@ -175,9 +175,9 @@ Chart.register(...registerables);
     }
 
     .filter-card { background: var(--card-bg) !important; border-radius: 12px !important; margin-bottom: 24px; }
-    .filter-card mat-card-content { padding: 16px 24px; }
-    .filters-row { display: flex; gap: 24px; flex-wrap: wrap; }
-    mat-form-field { width: 100%; max-width: 400px; flex: 1 1 300px; }
+    .filter-card mat-card-content { padding: 20px 24px; }
+    .filters-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+    mat-form-field { width: 100%; max-width: 400px; flex: 1 1 300px; margin-bottom: -1.25em; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }

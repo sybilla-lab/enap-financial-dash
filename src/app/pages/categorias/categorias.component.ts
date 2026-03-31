@@ -18,12 +18,12 @@ Chart.register(...registerables, ChartDataLabels);
   selector: "app-categorias",
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     ReactiveFormsModule,
-    MatCardModule, 
-    MatIconModule, 
-    MatSelectModule, 
-    MatFormFieldModule, 
+    MatCardModule,
+    MatIconModule,
+    MatSelectModule,
+    MatFormFieldModule,
     MatButtonModule,
     BaseChartDirective
   ],
@@ -64,7 +64,7 @@ Chart.register(...registerables, ChartDataLabels);
         <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
           <mat-card-content>
             <div class="kpi-info">
-              <span class="kpi-label">Total de Categorias</span>
+              <span class="kpi-label">Total de Categorias </span>
               <span class="kpi-value text-blue">{{ allCategorias.length }}</span>
             </div>
           </mat-card-content>
@@ -73,7 +73,7 @@ Chart.register(...registerables, ChartDataLabels);
         <mat-card class="kpi-card card-indicator-green" appearance="outlined">
           <mat-card-content>
             <div class="kpi-info">
-              <span class="kpi-label">Total Executado</span>
+              <span class="kpi-label">Total Executado </span>
               <span class="kpi-value text-green">{{ totalDespesas | currency: "BRL":"symbol":"1.0-0" }}</span>
             </div>
           </mat-card-content>
@@ -82,9 +82,8 @@ Chart.register(...registerables, ChartDataLabels);
         <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
           <mat-card-content>
             <div class="kpi-info">
-              <span class="kpi-label">% Concentração Top 5</span>
+              <span class="kpi-label">% Concentração Top5 </span>
               <span class="kpi-value text-orange">{{ top5Percentual | number: "1.1-1" }}%</span>
-              <span class="kpi-sub" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">O Top 5 concentra {{ top5Percentual | number: "1.1-1" }}% das despesas</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -186,7 +185,7 @@ export class CategoriasComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: "y",
-    plugins: { 
+    plugins: {
       legend: { display: false },
       datalabels: {
         anchor: "end",
@@ -205,10 +204,10 @@ export class CategoriasComponent implements OnInit {
           label: (context: any) => {
             let label = context.dataset.label || "";
             if (label) {
-                label += ": ";
+              label += ": ";
             }
             if (context.parsed.x !== null) {
-                label += new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(context.parsed.x);
+              label += new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(context.parsed.x);
             }
             return label;
           }
@@ -224,15 +223,15 @@ export class CategoriasComponent implements OnInit {
     },
   };
 
-  constructor(private dataService: DataService) {}
+  constructor(private dataService: DataService) { }
 
   ngOnInit(): void {
     // Subscreve ao stream principal de lançamentos e projetos
     this.dataService.lancamentos$.subscribe((lancs) => {
       this.allLancamentos = lancs;
       this.dataService.getProjetosUnicos().subscribe(projs => {
-         this.allAvailableProjects = projs.sort();
-         this.processData();
+        this.allAvailableProjects = projs.sort();
+        this.processData();
       });
     });
   }
@@ -248,7 +247,7 @@ export class CategoriasComponent implements OnInit {
 
   private processData(): void {
     const selectedProjects = this.projectFilter.value || [];
-    
+
     // 1. Filtrar lançamentos por projeto (se houver seleção)
     let filteredLancs = this.allLancamentos;
     if (selectedProjects.length > 0) {
@@ -278,7 +277,7 @@ export class CategoriasComponent implements OnInit {
 
     // 4. Gráfico (Top 15 + Outros se não filtrado, exatamente os filtrados se houver seleção)
     if (selectedProjects.length > 0) {
-       this.chartCategorias = result;
+      this.chartCategorias = result;
     } else {
       const top15 = result.slice(0, 15);
       const others = result.slice(15);
