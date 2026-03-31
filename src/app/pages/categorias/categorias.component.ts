@@ -141,12 +141,9 @@ Chart.register(...registerables, ChartDataLabels);
   `,
   styles: `
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .filter-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; background: var(--card-bg); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-color); }
-    .filter-select { flex: 1; max-width: 400px; }
-    .filter-select ::ng-deep .mat-mdc-text-field-wrapper { height: 48px; background: transparent !important; }
-    .filter-select ::ng-deep .mat-mdc-form-field-flex { height: 48px; align-items: center; }
-    .filter-select ::ng-deep .mat-mdc-form-field-infix { padding-top: 4px !important; padding-bottom: 4px !important; width: 100% !important; min-height: 40px !important; }
-    .clear-btn { height: 48px; border-radius: 8px; }
+    .filter-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; background: var(--card-bg); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border-color); }
+    .filter-select { flex: 1; max-width: 400px; margin-bottom: -1.25em; } /* Ajuste fino para remover o espaço reservado para hints/erros */
+    .clear-btn { height: 56px; border-radius: 8px; display: flex; align-items: center; gap: 8px; }
     .additional-selection { opacity: 0.7; font-size: 0.85em; margin-left: 4px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { display: flex; flex-direction: column; gap: 8px; padding: 24px; }
