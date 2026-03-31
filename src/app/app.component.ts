@@ -111,7 +111,7 @@ interface NavItem {
       transition: width 0.3s ease;
       display: flex;
       flex-direction: column;
-      overflow-x: hidden;
+      overflow: hidden;
     }
     .app-sidenav.collapsed { width: 68px; }
 
@@ -119,7 +119,7 @@ interface NavItem {
       background: var(--sidenav-bg) !important;
       display: flex;
       flex-direction: column;
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
     /* ===== Sidebar header: Logos ===== */
@@ -182,7 +182,7 @@ interface NavItem {
     }
 
     /* ===== Nav list ===== */
-    mat-nav-list { flex: 1; padding-top: 8px; overflow-y: auto; overflow-x: hidden; }
+    mat-nav-list { padding-top: 8px; flex-shrink: 0; }
     mat-nav-list a { border-radius: 12px !important; margin: 4px 8px !important; height: 48px !important; }
     mat-nav-list a mat-icon { color: var(--text-secondary); }
     mat-nav-list a span { color: var(--text-primary); font-size: 14px; }
