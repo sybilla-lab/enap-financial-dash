@@ -49,11 +49,9 @@ import { DashboardConfigService } from "../../services/dashboard-config.service"
       display: flex; 
       flex-direction: column; 
     }
-    @media (prefers-color-scheme: dark) {
-      .modal-box { 
-        background: #1e293b !important; 
-        color: #f8fafc !important; 
-      }
+    :host-context(body.dark-theme) .modal-box { 
+      background: #1e293b !important; 
+      color: #f8fafc !important; 
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
@@ -69,7 +67,7 @@ export class ModalFinanciadoresComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top", labels: { color: "#374151", font: { weight: '600' } } },
+      legend: { position: "right", labels: { color: "#374151", font: { weight: 'bold', size: 12 } } },
       datalabels: { display: false },
     }
   };
@@ -127,11 +125,9 @@ export class ModalFinanciadoresComponent implements OnInit {
       display: flex; 
       flex-direction: column; 
     }
-    @media (prefers-color-scheme: dark) {
-      .modal-box { 
-        background: #1e293b !important; 
-        color: #f8fafc !important; 
-      }
+    :host-context(body.dark-theme) .modal-box { 
+      background: #1e293b !important; 
+      color: #f8fafc !important; 
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
@@ -144,7 +140,7 @@ export class ModalExecucaoComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false, indexAxis: "y",
     plugins: {
-      legend: { position: "top", labels: { color: "#374151", font: { weight: '600' } } },
+      legend: { position: "bottom", labels: { color: "#374151", font: { weight: 'bold' } } },
       datalabels: { display: false }
     },
     layout: { padding: { right: 50 } },
@@ -166,6 +162,7 @@ export class ModalExecucaoComponent implements OnInit {
       this.chartData = {
         labels: this.data.map(d => d.projeto),
         datasets: [{
+          label: 'Execução %',
           data: this.data.map(d => Math.min(d.execucao, 100)),
           backgroundColor: "#F87171",
           borderRadius: 4
@@ -205,11 +202,9 @@ export class ModalExecucaoComponent implements OnInit {
       display: flex; 
       flex-direction: column; 
     }
-    @media (prefers-color-scheme: dark) {
-      .modal-box { 
-        background: #1e293b !important; 
-        color: #f8fafc !important; 
-      }
+    :host-context(body.dark-theme) .modal-box { 
+      background: #1e293b !important; 
+      color: #f8fafc !important; 
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
