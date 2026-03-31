@@ -438,7 +438,9 @@ export class RecursosComponent implements OnInit {
 
   ngOnInit(): void {
     this.dataService.getRecursoDetalhado().subscribe((d) => {
-      this.isLoading = false;
+      setTimeout(() => {
+        this.isLoading = false;
+      }, 1500);
       this.detalhado = d;
 
       this.pctAporte = this.dataService.META_APORTE > 0 ? (d.aporteRecebido / this.dataService.META_APORTE) * 100 : 0;

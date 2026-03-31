@@ -275,7 +275,9 @@ export class ProjetosComponent implements OnInit {
         ativos: p.filter(x => x.status && x.status.toLowerCase() !== "finalizado").length,
         execucaoMedia: p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length
       };
-      this.isLoading = false;
+      setTimeout(() => {
+        this.isLoading = false;
+      }, 1500);
       this.buildChart(p);
     });
   }
