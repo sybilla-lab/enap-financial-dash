@@ -232,7 +232,7 @@ export class ProjetosComponent implements OnInit {
     maintainAspectRatio: false,
     indexAxis: "y",
     plugins: {
-      legend: { position: "top", labels: { color: "#9CA3AF" } },
+      legend: { position: "top", labels: { color: "#374151", font: { weight: '600' } } },
       datalabels: { display: false },
       tooltip: {
         callbacks: {
@@ -277,7 +277,7 @@ export class ProjetosComponent implements OnInit {
       };
       setTimeout(() => {
         this.isLoading = false;
-      }, 3000);
+      }, 1500);
       this.buildChart(p);
     });
   }

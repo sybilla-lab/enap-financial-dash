@@ -326,7 +326,14 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
       border-top: none !important;
     }
 
-    .classic-card { flex: 1; min-width: 220px; background: var(--card-bg) !important; border-radius: 16px !important; margin-bottom: 8px; border: 1px solid var(--glass-border) !important; }
+    .classic-card { 
+      flex: 1; min-width: 220px; 
+      background: var(--card-bg) !important; 
+      border-radius: 16px !important; 
+      margin-bottom: 8px; 
+      border: 1px solid var(--glass-border) !important;
+      opacity: 1 !important;
+    }
     .classic-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
     .classic-header { display: flex; align-items: center; gap: 15px; margin-bottom: 4px; }
     .classic-label { font-size: 13px; font-weight: 600; color: var(--text-muted); opacity: 0.8; letter-spacing: 0.5px; }
@@ -392,6 +399,7 @@ export class RecursosComponent implements OnInit {
   filtroProjeto = "";
   filtroTipo = "";
   filtroPeriodo = "";
+  isLoading = true;
 
   pctAporte = 0;
   pctCaptacaoRecebida = 0;
@@ -408,14 +416,18 @@ export class RecursosComponent implements OnInit {
     maintainAspectRatio: false,
     cutout: "65%",
     plugins: {
-      legend: { position: "right", labels: { color: "#F3F4F6", font: { size: 10, weight: "bold" }, usePointStyle: true, padding: 15 } },
+      legend: { position: "right", labels: { color: "#4B5563", font: { size: 10, weight: "bold" }, usePointStyle: true, padding: 15 } },
+      datalabels: { display: false }
     },
   };
 
   barData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barOptions: ChartConfiguration<"bar">["options"] = {
     responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { position: "top", labels: { color: "#9CA3AF", font: { size: 11 } } } },
+    plugins: { 
+      legend: { position: "top", labels: { color: "#4B5563", font: { size: 11 } } },
+      datalabels: { display: false }
+    },
     scales: {
       x: { stacked: false, ticks: { color: "#6B7280" }, grid: { display: false } },
       y: { stacked: false, ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
@@ -426,6 +438,9 @@ export class RecursosComponent implements OnInit {
 
   ngOnInit(): void {
     this.dataService.getRecursoDetalhado().subscribe((d) => {
+      setTimeout(() => {
+        this.isLoading = false;
+      }, 1500);
       this.detalhado = d;
 
       this.pctAporte = this.dataService.META_APORTE > 0 ? (d.aporteRecebido / this.dataService.META_APORTE) * 100 : 0;

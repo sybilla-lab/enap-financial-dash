@@ -41,7 +41,20 @@ import { DashboardConfigService } from "../../services/dashboard-config.service"
     </div>
   `,
   styles: [`
-    .modal-box { padding: 0; background: var(--card-bg); color: var(--text-primary); height: 100%; display: flex; flex-direction: column; }
+    .modal-box { 
+      padding: 0; 
+      background: #ffffff !important; 
+      color: #1e293b !important; 
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+    }
+    @media (prefers-color-scheme: dark) {
+      .modal-box { 
+        background: #1e293b !important; 
+        color: #f8fafc !important; 
+      }
+    }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
     .modal-content { padding: 24px; flex: 1; display: flex; gap: 24px; min-height: 0; }
@@ -56,8 +69,8 @@ export class ModalFinanciadoresComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'right', labels: { color: '#9CA3AF' } },
-      datalabels: { display: false } // Desativa datalabels numérico pra rosca
+      legend: { position: "top", labels: { color: "#374151", font: { weight: '600' } } },
+      datalabels: { display: false },
     }
   };
   renderChart = false;
@@ -106,7 +119,20 @@ export class ModalFinanciadoresComponent implements OnInit {
     </div>
   `,
   styles: [`
-    .modal-box { padding: 0; background: var(--card-bg); color: var(--text-primary); height: 100%; display: flex; flex-direction: column; }
+    .modal-box { 
+      padding: 0; 
+      background: #ffffff !important; 
+      color: #1e293b !important; 
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+    }
+    @media (prefers-color-scheme: dark) {
+      .modal-box { 
+        background: #1e293b !important; 
+        color: #f8fafc !important; 
+      }
+    }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
     .modal-content { padding: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -118,11 +144,8 @@ export class ModalExecucaoComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false, indexAxis: "y",
     plugins: {
-      legend: { display: false },
-      datalabels: {
-        anchor: "end", align: "end", color: "#9CA3AF", font: { weight: "bold" },
-        formatter: (value: any) => value.toFixed(1).replace(".", ",") + "%"
-      }
+      legend: { position: "top", labels: { color: "#374151", font: { weight: '600' } } },
+      datalabels: { display: false }
     },
     layout: { padding: { right: 50 } },
     scales: {
@@ -174,7 +197,20 @@ export class ModalExecucaoComponent implements OnInit {
     </div>
   `,
   styles: [`
-    .modal-box { padding: 0; background: var(--card-bg); color: var(--text-primary); height: 100%; display: flex; flex-direction: column; }
+    .modal-box { 
+      padding: 0; 
+      background: #ffffff !important; 
+      color: #1e293b !important; 
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+    }
+    @media (prefers-color-scheme: dark) {
+      .modal-box { 
+        background: #1e293b !important; 
+        color: #f8fafc !important; 
+      }
+    }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
     .modal-header mat-icon { color: var(--accent-blue); }
@@ -590,17 +626,17 @@ export class DashboardComponent implements OnInit {
         .filter(x => x.status && x.status.toLowerCase() !== "finalizado" && x.status.toLowerCase() !== "encerrado")
         .map(x => ({ projeto: x.projeto, execucao: x.execucao }));
       
-      // Simulação de delay de 3 segundos enviada pelo usuário
+      // Simulação de delay de 1.5 segundos enviada pelo usuário
       setTimeout(() => {
         this.isLoading = false;
-      }, 3000);
+      }, 1500);
     });
   }
 
   abrirModal(tipo: string): void {
     const dialogOptions = {
       width: "960px",
-      height: "500px",
+      height: "680px",
       maxWidth: "95vw",
       panelClass: "custom-dialog-container",
     };
