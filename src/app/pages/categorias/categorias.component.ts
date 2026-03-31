@@ -4,6 +4,10 @@ import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
 import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
+import { MatSelectModule } from "@angular/material/select";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatButtonModule } from "@angular/material/button";
+import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { DataService } from "../../services/data.service";
 import { CategoriaResumo } from "../../models/lancamento.model";
 import ChartDataLabels from "chartjs-plugin-datalabels";
@@ -13,13 +17,48 @@ Chart.register(...registerables, ChartDataLabels);
 @Component({
   selector: "app-categorias",
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, BaseChartDirective],
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule,
+    MatCardModule, 
+    MatIconModule, 
+    MatSelectModule, 
+    MatFormFieldModule, 
+    MatButtonModule,
+    BaseChartDirective
+  ],
   template: `
     <div class="page-container">
       <h1 class="page-title">
         <mat-icon>category</mat-icon>
         Despesas por Categoria
       </h1>
+
+      <div class="filter-bar">
+        <mat-form-field appearance="outline" class="filter-select">
+          <mat-label>Filtrar por Categorias</mat-label>
+          <mat-select [formControl]="categoryFilter" multiple (selectionChange)="onFilterChange()">
+            <mat-select-trigger>
+              {{ categoryFilter.value?.length ? categoryFilter.value[0] : '' }}
+              @if ((categoryFilter.value?.length || 0) > 1) {
+                <span class="additional-selection">
+                  (+{{ (categoryFilter.value?.length || 0) - 1 }} {{ (categoryFilter.value?.length || 0) === 2 ? 'outra' : 'outras' }})
+                </span>
+              }
+            </mat-select-trigger>
+            @for (cat of allAvailableCategories; track cat) {
+              <mat-option [value]="cat">{{ cat }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        
+        @if (categoryFilter.value && categoryFilter.value.length > 0) {
+          <button mat-button color="warn" (click)="clearFilters()" class="clear-btn">
+            <mat-icon>filter_list_off</mat-icon>
+            Limpar Filtros
+          </button>
+        }
+      </div>
 
       <div class="kpi-grid">
         <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
@@ -102,6 +141,13 @@ Chart.register(...registerables, ChartDataLabels);
   `,
   styles: `
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .filter-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; background: var(--card-bg); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-color); }
+    .filter-select { flex: 1; max-width: 400px; }
+    .filter-select ::ng-deep .mat-mdc-text-field-wrapper { height: 48px; background: transparent !important; }
+    .filter-select ::ng-deep .mat-mdc-form-field-flex { height: 48px; align-items: center; }
+    .filter-select ::ng-deep .mat-mdc-form-field-infix { padding-top: 4px !important; padding-bottom: 4px !important; width: 100% !important; min-height: 40px !important; }
+    .clear-btn { height: 48px; border-radius: 8px; }
+    .additional-selection { opacity: 0.7; font-size: 0.85em; margin-left: 4px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { display: flex; flex-direction: column; gap: 8px; padding: 24px; }
     .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
@@ -133,6 +179,10 @@ export class CategoriasComponent implements OnInit {
   totalDespesas = 0;
   top5Percentual = 0;
   chartReady = false;
+
+  private fullData: CategoriaResumo[] = [];
+  allAvailableCategories: string[] = [];
+  categoryFilter = new FormControl<string[]>([]);
 
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barChartOptions: any = {
@@ -181,40 +231,64 @@ export class CategoriasComponent implements OnInit {
 
   ngOnInit(): void {
     this.dataService.getCategoriaResumos().subscribe((allCats) => {
-      this.totalDespesas = allCats.reduce((s, c) => s + c.total, 0);
+      this.fullData = [...allCats].sort((a, b) => b.total - a.total);
+      this.allAvailableCategories = this.fullData.map(c => c.categoria);
+      this.processData();
+    });
+  }
 
-      const sorted = [...allCats].sort((a, b) => b.total - a.total);
-      
-      // Full list for table
-      this.allCategorias = sorted;
+  onFilterChange(): void {
+    this.processData();
+  }
 
-      // Calcular Top 5
-      const top5Total = sorted.slice(0, 5).reduce((s, c) => s + c.total, 0);
-      this.top5Percentual = this.totalDespesas > 0 ? (top5Total / this.totalDespesas) * 100 : 0;
+  clearFilters(): void {
+    this.categoryFilter.setValue([]);
+    this.processData();
+  }
 
-      // Top 15 for chart
-      const top15 = sorted.slice(0, 15);
-      const others = sorted.slice(15);
-      
+  private processData(): void {
+    const selected = this.categoryFilter.value || [];
+    let filtered = this.fullData;
+
+    if (selected.length > 0) {
+      filtered = this.fullData.filter(c => selected.includes(c.categoria));
+    }
+
+    this.totalDespesas = filtered.reduce((s, c) => s + c.total, 0);
+    this.allCategorias = filtered;
+
+    // Calcular KPIs baseados no conjunto filtrado
+    const top5Total = filtered.slice(0, 5).reduce((s, c) => s + c.total, 0);
+    this.top5Percentual = this.totalDespesas > 0 ? (top5Total / this.totalDespesas) * 100 : 0;
+
+    // Lógica do Gráfico
+    if (selected.length > 0) {
+      // Se filtrado, mostra exatamente as selecionadas sem "Outros"
+      this.chartCategorias = filtered;
+    } else {
+      // Se não filtrado, mantém a lógica de top 15 + Outros
+      const top15 = filtered.slice(0, 15);
+      const others = filtered.slice(15);
       if (others.length > 0) {
         const othersTotal = others.reduce((s, c) => s + c.total, 0);
         this.chartCategorias = [...top15, { categoria: "Outros", total: othersTotal }];
       } else {
         this.chartCategorias = top15;
       }
+    }
 
-      const colors = this.generateColors(this.chartCategorias.length);
+    const colors = this.generateColors(this.chartCategorias.length);
 
-      this.barChartData = {
-        labels: this.chartCategorias.map((c) => c.categoria),
-        datasets: [{
-          data: this.chartCategorias.map((c) => c.total),
-          backgroundColor: colors,
-          borderRadius: 6,
-        }],
-      };
-      this.chartReady = true;
-    });
+    this.barChartData = {
+      labels: this.chartCategorias.map((c) => c.categoria),
+      datasets: [{
+        label: 'Total Despesas',
+        data: this.chartCategorias.map((c) => c.total),
+        backgroundColor: colors,
+        borderRadius: 6,
+      }],
+    };
+    this.chartReady = true;
   }
 
   getPercentual(valor: number): number {
