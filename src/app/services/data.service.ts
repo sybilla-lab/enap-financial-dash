@@ -42,10 +42,15 @@ export class DataService {
       principal: this.http.get(this.SHEET_PRINCIPAL, { responseType: "text" }),
       recebimentos: this.http.get(this.SHEET_RECEBIMENTOS, { responseType: "text" }),
       status: this.http.get(this.SHEET_STATUS_PROJETOS, { responseType: "text" }),
-    }).subscribe(({ principal, recebimentos, status }) => {
-      this.parsePrincipal(principal);
-      this.parseRecebimentos(recebimentos);
-      this.parseStatusProjetos(status);
+    }).subscribe({
+      next: ({ principal, recebimentos, status }) => {
+        this.parsePrincipal(principal);
+        this.parseRecebimentos(recebimentos);
+        this.parseStatusProjetos(status);
+      },
+      error: (err) => {
+        console.error("Erro ao carregar dados do Google Sheets:", err);
+      }
     });
   }
 
