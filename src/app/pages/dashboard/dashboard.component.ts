@@ -626,10 +626,7 @@ export class DashboardComponent implements OnInit {
         .filter(x => x.status && x.status.toLowerCase() !== "finalizado" && x.status.toLowerCase() !== "encerrado")
         .map(x => ({ projeto: x.projeto, execucao: x.execucao }));
       
-      // Simulação de delay de 1.5 segundos enviada pelo usuário
-      setTimeout(() => {
-        this.isLoading = false;
-      }, 1500);
+      this.isLoading = false;
     });
   }
 
