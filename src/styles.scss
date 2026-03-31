@@ -185,3 +185,16 @@ h1, h2, h3, h4 {
   color: var(--text-primary) !important;
   letter-spacing: -0.5px !important;
 }
+
+/* Custom MatDialog Container */
+.custom-dialog-container .mdc-dialog__surface {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.custom-dialog-container .mat-mdc-dialog-container {
+  padding: 0 !important;
+}

@@ -1,12 +1,182 @@
-import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, OnInit, Inject } from "@angular/core";
+import { CommonModule, CurrencyPipe, DecimalPipe } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
 import { MatDividerModule } from "@angular/material/divider";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
+import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { MatButtonModule } from "@angular/material/button";
 import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+
+// --- INÍCIO DOS COMPONENTES DE MODAL ---
+
+@Component({
+  selector: 'app-modal-financiadores',
+  standalone: true,
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule, BaseChartDirective],
+  template: `
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><mat-icon>account_balance_wallet</mat-icon> Recebido por Financiador</h2>
+        <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+      </div>
+      <mat-divider></mat-divider>
+      <div class="modal-content">
+        <div class="chart-container" style="height: 300px; padding: 16px 0;">
+           <canvas baseChart [data]="chartData" [options]="chartOptions" [type]="'doughnut'"></canvas>
+        </div>
+        <div class="resume-list">
+          @for (f of data; track f.financiador) {
+            <div class="list-item">
+              <span class="label">{{ f.financiador }}</span>
+              <span class="value">{{ f.valor | currency: "BRL":"symbol":"1.0-0" }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .modal-box { padding: 0; background: var(--card-bg); color: var(--text-primary); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+    .modal-content { padding: 16px 24px; }
+    .resume-list { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .list-item { display: flex; justify-content: space-between; font-size: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
+    .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  `]
+})
+export class ModalFinanciadoresComponent implements OnInit {
+  chartData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
+  chartOptions: any = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { color: '#9CA3AF' } },
+      datalabels: { display: false } // Desativa datalabels numérico pra rosca
+    }
+  };
+
+  constructor(
+    public dialogRef: MatDialogRef<ModalFinanciadoresComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { financiador: string; valor: number }[]
+  ) {}
+
+  ngOnInit() {
+    this.chartData = {
+      labels: this.data.map(d => d.financiador),
+      datasets: [{
+        data: this.data.map(d => d.valor),
+        backgroundColor: [
+          "#7c4dff", "#00bcd4", "#ff9800", "#4caf50", "#f44336", 
+          "#2196f3", "#9c27b0", "#ff5722", "#8bc34a", "#ffc107"
+        ],
+        borderWidth: 0
+      }]
+    };
+  }
+}
+
+@Component({
+  selector: 'app-modal-execucao',
+  standalone: true,
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule, BaseChartDirective],
+  template: `
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><mat-icon>payments</mat-icon> Execução de Projetos Ativos</h2>
+        <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+      </div>
+      <mat-divider></mat-divider>
+      <div class="modal-content">
+        <div class="chart-container" style="height: 350px; padding: 16px 0;">
+           <canvas baseChart [data]="chartData" [options]="chartOptions" [type]="'bar'"></canvas>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .modal-box { padding: 0; background: var(--card-bg); color: var(--text-primary); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+    .modal-content { padding: 16px 24px; }
+  `]
+})
+export class ModalExecucaoComponent implements OnInit {
+  chartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
+  chartOptions: any = {
+    responsive: true, maintainAspectRatio: false, indexAxis: "y",
+    plugins: { 
+      legend: { display: false },
+      datalabels: {
+        anchor: "end", align: "end", color: "#9CA3AF", font: { weight: "bold" },
+        formatter: (value: any) => value.toFixed(1).replace(".", ",") + "%"
+      }
+    },
+    layout: { padding: { right: 50 } },
+    scales: {
+      x: { ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" }, max: 100 },
+      y: { ticks: { color: "#6B7280" }, grid: { display: false } },
+    }
+  };
+
+  constructor(
+    public dialogRef: MatDialogRef<ModalExecucaoComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { projeto: string; execucao: number }[]
+  ) {}
+
+  ngOnInit() {
+    this.chartData = {
+      labels: this.data.map(d => d.projeto),
+      datasets: [{
+        data: this.data.map(d => Math.min(d.execucao, 100)),
+        backgroundColor: "#F87171",
+        borderRadius: 4
+      }]
+    };
+  }
+}
+
+@Component({
+  selector: 'app-modal-info',
+  standalone: true,
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule],
+  template: `
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><mat-icon>{{ data.icon }}</mat-icon> {{ data.title }}</h2>
+        <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+      </div>
+      <mat-divider></mat-divider>
+      <div class="modal-content">
+        <p class="description">{{ data.description }}</p>
+        @if (data.value) {
+          <div class="highlight-value">{{ data.value }}</div>
+        }
+      </div>
+    </div>
+  `,
+  styles: [`
+    .modal-box { padding: 0; background: var(--card-bg); color: var(--text-primary); max-width: 400px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+    .modal-header mat-icon { color: var(--accent-blue); }
+    .modal-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .description { font-size: 15px; line-height: 1.6; color: var(--text-secondary); margin: 0; }
+    .highlight-value { font-size: 32px; font-weight: 700; color: var(--text-primary); text-align: center; padding: 16px; background: var(--hover-bg); border-radius: 8px; }
+  `]
+})
+export class ModalInfoComponent {
+  constructor(
+    public dialogRef: MatDialogRef<ModalInfoComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { title: string; icon: string; description: string; value?: string }
+  ) {}
+}
+
+// --- FIM DOS COMPONENTES DE MODAL ---
+
 
 @Component({
   selector: "app-dashboard",
@@ -17,8 +187,10 @@ import { DataService } from "../../services/data.service";
     MatIconModule,
     MatDividerModule,
     MatProgressBarModule,
+    MatDialogModule,
     BaseChartDirective,
   ],
+  providers: [CurrencyPipe, DecimalPipe],
   template: `
     <div class="page-container">
       <h1 class="page-title">
@@ -28,20 +200,7 @@ import { DataService } from "../../services/data.service";
 
       <!-- KPI Cards -->
       <div class="kpi-grid">
-        <mat-card class="kpi-card kpi-recebido card-indicator-green custom-tooltip-container" appearance="outlined">
-          <div class="custom-tooltip">
-            <strong>Recebido por Financiador</strong>
-            <mat-divider style="margin: 8px 0; border-color: rgba(255,255,255,0.1);"></mat-divider>
-            @for (f of financiadores; track f.financiador) {
-              <div class="tooltip-row">
-                <span>{{ f.financiador }}</span>
-                <span class="num">{{ f.valor | currency: "BRL":"symbol":"1.0-0" }}</span>
-              </div>
-            }
-            @if (financiadores.length === 0) {
-               <div class="tooltip-row"><span>Nenhum financiamento detalhado</span></div>
-            }
-          </div>
+        <mat-card class="kpi-card clickable kpi-recebido card-indicator-green" appearance="outlined" (click)="abrirModal('finance')">
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>account_balance_wallet</mat-icon>
@@ -53,17 +212,7 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card kpi-executado card-indicator-red custom-tooltip-container" appearance="outlined">
-          <div class="custom-tooltip">
-            <strong>Execução de Projetos Ativos</strong>
-            <mat-divider style="margin: 8px 0; border-color: rgba(255,255,255,0.1);"></mat-divider>
-            @for (p of projetosAtivos; track p.projeto) {
-              <div class="tooltip-row">
-                <span>{{ p.projeto }}</span>
-                <span class="num">{{ p.execucao | number: "1.0-1" }}%</span>
-              </div>
-            }
-          </div>
+        <mat-card class="kpi-card clickable kpi-executado card-indicator-red" appearance="outlined" (click)="abrirModal('execucao')">
           <mat-card-content>
             <div class="kpi-icon">
               <mat-icon>payments</mat-icon>
@@ -100,14 +249,7 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card card-indicator-blue custom-tooltip-container" appearance="outlined">
-          <div class="custom-tooltip">
-            <strong>Sobre os Pagamentos</strong>
-            <div style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
-               Este número representa o total de transações de saída realizadas para a execução dos projetos.
-               Pode ser utilizado para dimensionar o esforço operacional da equipe financeira mensalmente.
-            </div>
-          </div>
+        <mat-card class="kpi-card clickable card-indicator-blue" appearance="outlined" (click)="abrirModal('pagamentos')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
             <div class="kpi-info">
@@ -117,14 +259,7 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card card-indicator-blue custom-tooltip-container" appearance="outlined">
-          <div class="custom-tooltip">
-            <strong>Sobre o Ticket Médio</strong>
-            <div style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
-               Valor médio por pagamento efetuado (Total Executado / N° de Pagamentos).
-               Indica o padrão de gastos transacionais dos projetos, ajudando em projeções de caixa.
-            </div>
-          </div>
+        <mat-card class="kpi-card clickable card-indicator-blue" appearance="outlined" (click)="abrirModal('ticket')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>paid</mat-icon></div>
             <div class="kpi-info">
@@ -157,14 +292,7 @@ import { DataService } from "../../services/data.service";
         </mat-card>
 
         <!-- Gestão Estratégica -->
-        <mat-card class="kpi-card kpi-runway card-indicator-blue custom-tooltip-container" appearance="outlined">
-          <div class="custom-tooltip">
-            <strong>Runway Estimado</strong>
-            <div style="font-size: 11px; margin-top: 4px; line-height: 1.4;">
-               Tempo estimado em meses que os recursos atuais cobrirão as despesas, baseado na média mensal histórica de saídas. 
-               Isso permite à gestão saber quando iniciar novas captações caso seja necessário.
-            </div>
-          </div>
+        <mat-card class="kpi-card clickable kpi-runway card-indicator-blue" appearance="outlined" (click)="abrirModal('runway')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>timer</mat-icon></div>
             <div class="kpi-info">
@@ -175,7 +303,7 @@ import { DataService } from "../../services/data.service";
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="kpi-card kpi-gap card-indicator-blue" appearance="outlined">
+        <mat-card class="kpi-card clickable kpi-gap card-indicator-blue" appearance="outlined" (click)="abrirModal('gap')">
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>not_interested</mat-icon></div>
             <div class="kpi-info">
@@ -228,6 +356,16 @@ import { DataService } from "../../services/data.service";
     </div>
   `,
   styles: `
+    .clickable { cursor: pointer; position: relative; }
+    .clickable::after { 
+        content: 'visibility';
+        font-family: 'Material Icons';
+        position: absolute; top: 12px; right: 12px;
+        color: var(--text-muted); opacity: 0; font-size: 18px;
+        transition: opacity 0.2s;
+    }
+    .clickable:hover::after { opacity: 0.5; }
+
     .kpi-grid {
       display: flex;
       flex-wrap: wrap;
@@ -298,30 +436,6 @@ import { DataService } from "../../services/data.service";
     .positive { color: var(--accent-green) !important; }
     .negative { color: var(--accent-red) !important; }
 
-    /* Tooltips customizados CSS */
-    .custom-tooltip-container { position: relative; overflow: visible !important; cursor: pointer; }
-    .custom-tooltip {
-      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-      background: rgba(15, 42, 38, 0.95);
-      border: 1px solid var(--border-color);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      padding: 16px; border-radius: 12px;
-      backdrop-filter: blur(12px);
-      width: max-content; max-width: 320px;
-      z-index: 1000;
-      opacity: 0; visibility: hidden;
-      transition: all 0.2s ease;
-      color: var(--text-primary);
-      margin-bottom: 8px;
-    }
-    :host-context(body.light-theme) .custom-tooltip {
-      background: rgba(255, 255, 255, 0.95);
-      color: #1f1f1f;
-    }
-    .custom-tooltip-container:hover .custom-tooltip { opacity: 1; visibility: visible; transform: translate(-50%, -4px); }
-    .tooltip-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 6px; font-size: 13px; }
-    .tooltip-row:last-child { margin-bottom: 0; }
-
     /* Estendimento dos cards de gestão */
     .kpi-runway, .kpi-gap {
       flex: 1 1 450px;
@@ -351,7 +465,12 @@ export class DashboardComponent implements OnInit {
   inflacao = 0;
   totalRecebidoNet = 0;
 
-  constructor(public dataService: DataService) {}
+  constructor(
+    public dataService: DataService,
+    private dialog: MatDialog,
+    private currencyPipe: CurrencyPipe,
+    private decimalPipe: DecimalPipe
+  ) {}
 
   ngOnInit(): void {
     this.dataService.getIndicadoresOperacionais().subscribe((ind) => {
@@ -376,5 +495,65 @@ export class DashboardComponent implements OnInit {
          .filter(x => x.status && x.status.toLowerCase() !== "finalizado" && x.status.toLowerCase() !== "encerrado")
          .map(x => ({ projeto: x.projeto, execucao: x.execucao }));
     });
+  }
+
+  abrirModal(tipo: string): void {
+    if (tipo === 'finance') {
+      this.dialog.open(ModalFinanciadoresComponent, {
+        width: '500px',
+        panelClass: 'custom-dialog-container',
+        data: this.financiadores
+      });
+    } else if (tipo === 'execucao') {
+      this.dialog.open(ModalExecucaoComponent, {
+        width: '600px',
+        panelClass: 'custom-dialog-container',
+        data: this.projetosAtivos
+      });
+    } else if (tipo === 'pagamentos') {
+      this.dialog.open(ModalInfoComponent, {
+        width: '400px',
+        panelClass: 'custom-dialog-container',
+        data: {
+          title: 'Sobre os Pagamentos',
+          icon: 'receipt_long',
+          description: 'Este número representa o total de transações de saída realizadas na execução dos projetos. Ele permite dimensionar facilmente o volume de esforço operacional da equipe financeira mensalmente.',
+          value: this.indicadores.numPagamentos.toString()
+        }
+      });
+    } else if (tipo === 'ticket') {
+      this.dialog.open(ModalInfoComponent, {
+        width: '400px',
+        panelClass: 'custom-dialog-container',
+        data: {
+          title: 'Ticket Médio',
+          icon: 'paid',
+          description: 'O Ticket Médio representa o valor base das saídas (Total Executado / N° de Pagamentos). Ter uma visão desse montante estabelece o padrão de custo por transação para futuras projeções de fluxo de caixa.',
+          value: this.currencyPipe.transform(this.indicadores.ticketMedio, 'BRL', 'symbol', '1.0-2')
+        }
+      });
+    } else if (tipo === 'runway') {
+      this.dialog.open(ModalInfoComponent, {
+        width: '400px',
+        panelClass: 'custom-dialog-container',
+        data: {
+          title: 'Runway Estimado',
+          icon: 'timer',
+          description: 'Expressa em meses o tempo de vida do projeto financeiramente falando (com base na média das saídas dos últimos meses vs montante disponível global). Ajuda a Diretoria e o time a saberem quando a captação precisa acelerar.',
+          value: this.decimalPipe.transform(this.runway, '1.1-1') + " meses"
+        }
+      });
+    } else if (tipo === 'gap') {
+      this.dialog.open(ModalInfoComponent, {
+        width: '400px',
+        panelClass: 'custom-dialog-container',
+        data: {
+          title: 'Gap de Captação',
+          icon: 'not_interested',
+          description: 'Indica a falta (déficit) dos recursos correntes captados se comparados com a meta global do acordo ou orçamento central. A meta de captação global almejada precisa ser atingida mitigando o Gap.',
+          value: this.currencyPipe.transform(this.gapCaptacao, 'BRL', 'symbol', '1.0-0')
+        }
+      });
+    }
   }
 }
