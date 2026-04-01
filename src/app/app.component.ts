@@ -112,14 +112,16 @@ interface NavItem {
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      margin: 0 !important;
     }
     .app-sidenav.collapsed { width: 68px; }
 
     :host ::ng-deep .app-sidenav .mat-drawer-inner-container {
       background: var(--sidenav-bg) !important;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      height: 100% !important;
     }
  
      /* ===== Sidebar header: Logos ===== */
@@ -153,7 +155,8 @@ interface NavItem {
     }
     
     :host-context(body.dark-theme) .logo-hub, :host-context(body.dark-theme) .logo-hub-small {
-      filter: brightness(0) invert(1);
+      filter: brightness(0) invert(1) contrast(1.2);
+      opacity: 0.9;
     }
 
 

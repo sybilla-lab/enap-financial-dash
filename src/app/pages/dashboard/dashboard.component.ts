@@ -50,8 +50,8 @@ import { DashboardConfigService } from "../../services/dashboard-config.service"
       flex-direction: column; 
     }
     :host-context(body.dark-theme) .modal-box { 
-      background: #1e293b !important; 
-      color: #f8fafc !important; 
+      background: var(--bg-primary) !important; 
+      color: var(--text-primary) !important; 
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
@@ -67,7 +67,7 @@ export class ModalFinanciadoresComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { position: "right", labels: { color: "#374151", font: { weight: 'bold', size: 12 } } },
+      legend: { position: "right", labels: { color: "#888", font: { weight: 'bold', size: 12 } } },
       datalabels: { display: false },
     }
   };
@@ -126,8 +126,8 @@ export class ModalFinanciadoresComponent implements OnInit {
       flex-direction: column; 
     }
     :host-context(body.dark-theme) .modal-box { 
-      background: #1e293b !important; 
-      color: #f8fafc !important; 
+      background: var(--bg-primary) !important; 
+      color: var(--text-primary) !important; 
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
@@ -140,13 +140,13 @@ export class ModalExecucaoComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false, indexAxis: "y",
     plugins: {
-      legend: { position: "bottom", labels: { color: "#374151", font: { weight: 'bold' } } },
+      legend: { position: "bottom", labels: { color: "#888", font: { weight: 'bold' } } },
       datalabels: { display: false }
     },
     layout: { padding: { right: 50 } },
     scales: {
-      x: { ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" }, max: 100 },
-      y: { ticks: { color: "#6B7280" }, grid: { display: false } },
+      x: { ticks: { color: "#888" }, grid: { color: "rgba(255,255,255,0.03)" }, max: 100 },
+      y: { ticks: { color: "#888" }, grid: { display: false } },
     }
   };
   renderChart = false;
@@ -196,8 +196,8 @@ export class ModalExecucaoComponent implements OnInit {
   styles: [`
     .modal-box { 
       padding: 0; 
-      background: #1e293b !important; /* Slate 800 */
-      color: #f8fafc !important; /* Slate 50 */
+      background: var(--bg-primary) !important; 
+      color: var(--text-primary) !important; 
       height: 100%; 
       display: flex; 
       flex-direction: column; 
