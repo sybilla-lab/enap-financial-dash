@@ -67,7 +67,7 @@ export class ModalFinanciadoresComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { position: "right", labels: { color: "#888", font: { weight: 'bold', size: 12 } } },
+      legend: { position: "right", labels: { color: "#d1d5db", font: { weight: 'bold', size: 12 } } },
       datalabels: { display: false },
     }
   };
@@ -140,13 +140,13 @@ export class ModalExecucaoComponent implements OnInit {
   chartOptions: any = {
     responsive: true, maintainAspectRatio: false, indexAxis: "y",
     plugins: {
-      legend: { position: "bottom", labels: { color: "#888", font: { weight: 'bold' } } },
+      legend: { position: "bottom", labels: { color: "#d1d5db", font: { weight: 'bold' } } },
       datalabels: { display: false }
     },
     layout: { padding: { right: 50 } },
     scales: {
-      x: { ticks: { color: "#888" }, grid: { color: "rgba(255,255,255,0.03)" }, max: 100 },
-      y: { ticks: { color: "#888" }, grid: { display: false } },
+      x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.03)" }, max: 100 },
+      y: { ticks: { color: "#94a3b8" }, grid: { display: false } },
     }
   };
   renderChart = false;

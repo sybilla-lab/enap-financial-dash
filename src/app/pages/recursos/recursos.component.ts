@@ -361,6 +361,11 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
     .classic-meta, .classic-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
     .classic-footer { font-size: 12px; color: var(--text-secondary); text-align: right; }
     
+    /* Fix labels in cards */
+    .mat-card-title { color: var(--text-primary) !important; }
+    .mat-card-subtitle { color: var(--text-secondary) !important; opacity: 0.9; }
+    .subtitle, .desc, .kpi-label, .kpi-sub, .card-subtitle, .label-muted { color: var(--text-secondary) !important; opacity: 0.9 !important; }
+
     .circle-icon {
       width: 36px; height: 36px;
       border-radius: 10px;
@@ -448,7 +453,7 @@ export class RecursosComponent implements OnInit {
     maintainAspectRatio: false,
     cutout: "65%",
     plugins: {
-      legend: { position: "right", labels: { color: "#1f2937", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 15 } },
+      legend: { position: "right", labels: { color: "#d1d5db", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 15 } },
       datalabels: { display: false }
     },
   };
@@ -457,12 +462,12 @@ export class RecursosComponent implements OnInit {
   barOptions: ChartConfiguration<"bar">["options"] = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top", labels: { color: "#1f2937", font: { size: 12, weight: "bold" } } },
+      legend: { position: "top", labels: { color: "#d1d5db", font: { size: 12, weight: "bold" } } },
       datalabels: { display: false }
     },
     scales: {
-      x: { stacked: false, ticks: { color: "#6B7280" }, grid: { display: false } },
-      y: { stacked: false, ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
+      x: { stacked: false, ticks: { color: "#94a3b8" }, grid: { display: false } },
+      y: { stacked: false, ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.03)" } },
     },
   };
 

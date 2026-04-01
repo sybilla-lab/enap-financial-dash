@@ -138,8 +138,9 @@ interface NavItem {
     }
     .logo-hub {
       height: 72px;
-      max-width: 220px;
+      max-width: 200px;
       object-fit: contain;
+      transition: filter 0.3s ease;
     }
     .logo-hub-small {
       height: 40px;
@@ -155,8 +156,8 @@ interface NavItem {
     }
     
     :host-context(body.dark-theme) .logo-hub, :host-context(body.dark-theme) .logo-hub-small {
-      filter: brightness(0) invert(1) contrast(1.2);
-      opacity: 0.9;
+      filter: invert(1) brightness(1.5) contrast(1.1);
+      mix-blend-mode: screen;
     }
 
 
@@ -219,11 +220,11 @@ interface NavItem {
     .app-sidenav .spacer { flex: 1; }
 
     /* ===== Main content ===== */
-    .main-content { background: var(--bg-primary) !important; }
+    .main-content { background: var(--bg-primary) !important; padding: 0; margin: 0; }
     .content-area { 
       overflow-y: auto; 
       height: calc(100vh - 64px); 
-      padding: 24px 96px 24px 24px;
+      padding: 32px 64px 32px 32px;
       box-sizing: border-box;
     }
   `,
