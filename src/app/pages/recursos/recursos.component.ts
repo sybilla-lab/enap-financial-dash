@@ -327,7 +327,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
     :host ::ng-deep .custom-panel .mat-expansion-panel-header { padding: 0 16px; height: 56px; background: var(--hover-bg); border-radius: 8px; border: 1px solid var(--border-color); }
     :host ::ng-deep .custom-panel .mat-expansion-panel-body { padding: 24px 0 0 0 !important; }
     .panel-title-text { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: 1.5px; padding-left: 12px; border-left: 3px solid var(--accent-green); display: flex; align-items: center; gap: 8px;}
-    .panel-title-text mat-icon { color: var(--accent-primary); }
+    .panel-title-text mat-icon { color: var(--accent-green); }
     
     .page-container { animation: fadeIn 0.6s ease-out; }
     
@@ -494,9 +494,9 @@ export class RecursosComponent implements OnInit {
           backgroundColor: [
             "#8B5CF6", // Roxo - Aporte
             "#FBBF24", // Amarelo - Inflação
-            "#22D3EE", // Ciano - Captação Recebida
-            "#FB923C", // Laranja - Captação Prevista
-            "#A78BFA"  // Roxo Claro - Aporte Previsto
+            "#10b981", // Verde Esmeralda - Captação Recebida
+            "#F59E0B", // Âmbar - Captação Prevista
+            "#DDD6FE"  // Lavanda Claro - Aporte Previsto
           ],
           hoverOffset: 12,
           borderWidth: 0,
@@ -516,7 +516,7 @@ export class RecursosComponent implements OnInit {
           {
             label: "Previsto",
             data: [d.aportePrevisto, d.captacaoPrevista],
-            backgroundColor: "rgba(56, 189, 248, 0.4)",
+            backgroundColor: "rgba(16, 185, 129, 0.4)",
             borderRadius: 4,
           },
         ],

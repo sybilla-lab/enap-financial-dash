@@ -57,8 +57,8 @@ body.theme-corporate-slate {
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
-  --accent-primary: #6366f1;
-  --hover-bg: rgba(99, 102, 241, 0.05);
+  --accent-primary: #10b981;
+  --hover-bg: rgba(16, 185, 129, 0.05);
   --card-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
   &.dark-theme {
     --bg-primary: #0f172a;
@@ -178,6 +178,7 @@ html, body {
 }
 
 // ====== Icons & Typography ======
+.panel-title-text mat-icon { color: var(--accent-green) !important; }
 .icon-primary { color: var(--accent-primary) !important; }
 .text-primary { color: var(--text-primary) !important; }
 .text-secondary { color: var(--text-secondary) !important; }
