@@ -282,14 +282,15 @@ export class DataService {
     return combineLatest({
       lancs: this.lancamentos$,
       status: this.status$,
+      saldos: this.saldos$,
     }).pipe(
-      map(({ lancs, status }) => {
-        const porProjeto = new Map<string, { entradas: number; saidas: number }>();
+      map(({ lancs, status, saldos }) => {
+        const porProjeto = new Map<string, { entradas: number; saidas: number; recuperado: number }>();
 
         lancs.forEach((l: Lancamento) => {
           if (!l.projeto) return;
           if (!porProjeto.has(l.projeto)) {
-            porProjeto.set(l.projeto, { entradas: 0, saidas: 0 });
+            porProjeto.set(l.projeto, { entradas: 0, saidas: 0, recuperado: 0 });
           }
           const p = porProjeto.get(l.projeto)!;
           if (l.valor >= 0) {
@@ -297,6 +298,15 @@ export class DataService {
           } else {
             p.saidas += Math.abs(l.valor);
           }
+        });
+
+        // Somar saldos remanescentes recuperados da nova aba
+        saldos.forEach((s) => {
+          if (!s.projeto) return;
+          if (!porProjeto.has(s.projeto)) {
+             porProjeto.set(s.projeto, { entradas: 0, saidas: 0, recuperado: 0 });
+          }
+          porProjeto.get(s.projeto)!.recuperado += s.valorTransferido;
         });
 
         return Array.from(porProjeto.entries())
@@ -308,6 +318,7 @@ export class DataService {
               saidas: data.saidas,
               saldo: data.entradas - data.saidas,
               execucao: data.entradas > 0 ? (data.saidas / data.entradas) * 100 : 0,
+              saldoRecuperado: data.recuperado,
               status: statusInfo ? statusInfo.status : "Ativo",
             };
           })

@@ -71,7 +71,7 @@ Chart.register(...registerables);
             <div class="kpi-icon"><mat-icon>history</mat-icon></div>
             <div class="kpi-info">
               <span class="kpi-label">Saldos Recuperados</span>
-              <span class="kpi-value text-teal">{{ saldosOpBasica | currency: "BRL":"symbol":"1.2-2" }}</span>
+              <span class="kpi-value text-teal">{{ totalSaldosRecuperados | currency: "BRL":"symbol":"1.2-2" }}</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -134,6 +134,7 @@ Chart.register(...registerables);
                   <th class="num">Entradas</th>
                   <th class="num">Saídas</th>
                   <th class="num">Saldo</th>
+                  <th class="num">Recuperado</th>
                   <th class="num">Execução %</th>
                   <th class="status-col">Status</th>
                 </tr>
@@ -143,6 +144,7 @@ Chart.register(...registerables);
                   @for (i of [1,2,3,4,5]; track i) {
                     <tr>
                       <td><div class="skeleton-box" style="width: 150px; height: 16px; border-radius: 4px;"></div></td>
+                      <td><div class="skeleton-box" style="width: 100px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
                       <td><div class="skeleton-box" style="width: 100px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
                       <td><div class="skeleton-box" style="width: 100px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
                       <td><div class="skeleton-box" style="width: 100px; height: 16px; border-radius: 4px; margin-left: auto;"></div></td>
@@ -157,6 +159,7 @@ Chart.register(...registerables);
                     <td class="num positive">{{ p.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
                     <td class="num negative">{{ p.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
                     <td class="num" [class.positive]="p.saldo >= 0" [class.negative]="p.saldo < 0">{{ p.saldo | currency: "BRL":"symbol":"1.2-2" }}</td>
+                    <td class="num text-teal font-bold">{{ (p.saldoRecuperado || 0) | currency: "BRL":"symbol":"1.2-2" }}</td>
                     <td class="num">{{ p.execucao | number: "1.1-1" }}%</td>
                     <td class="status-col">
                       <span class="status-badge" [ngClass]="p.status?.toLowerCase() || ''">
@@ -262,6 +265,7 @@ Chart.register(...registerables);
     .text-blue { color: var(--accent-primary) !important; }
     .term-yellow { color: var(--accent-yellow) !important; }
     .text-teal { color: var(--accent-green-soft) !important; }
+    .font-bold { font-weight: 700; }
 
     .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
     .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
@@ -300,6 +304,7 @@ export class ProjetosComponent implements OnInit {
   lancamentosAlimenta: Lancamento[] = [];
   stats = { ativos: 0, execucaoMedia: 0 };
   saldosOpBasica = 0;
+  totalSaldosRecuperados = 0;
 
   chartReady = false;
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
@@ -348,13 +353,12 @@ export class ProjetosComponent implements OnInit {
       this.projetosFiltrados = p;
       this.projetosLista = p.map((x) => x.projeto);
       this.statusLista = Array.from(new Set(p.map((x) => x.status || "Ativo"))).sort();
+      this.totalSaldosRecuperados = p.reduce((acc, curr) => acc + (curr.saldoRecuperado || 0), 0);
       this.stats = {
         ativos: p.filter(x => x.status && x.status.toLowerCase() !== "finalizado").length,
         execucaoMedia: p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length
       };
-      setTimeout(() => {
-        this.isLoading = false;
-      }, 1500);
+      this.isLoading = false;
       this.buildChart(p);
     });
   }
@@ -380,17 +384,9 @@ export class ProjetosComponent implements OnInit {
   private buildChart(p: ProjetoResumo[]): void {
     this.chartReady = false;
     setTimeout(() => {
-      const entradasNormais = p.map(x => {
-          if (x.projeto === "Operação Básica") {
-              return Math.max(0, x.entradas - this.saldosOpBasica);
-          }
-          return x.entradas;
-      });
-
-      const saldosExtras = p.map(x => {
-          if (x.projeto === "Operação Básica") return this.saldosOpBasica;
-          return 0;
-      });
+      const entradasNormais = p.map(x => x.entradas);
+      const saldosExtras = p.map(x => x.saldoRecuperado || 0);
+      const despesas = p.map(x => x.saidas);
 
       this.barChartData = {
         labels: p.map((x) => x.projeto),
@@ -411,7 +407,7 @@ export class ProjetosComponent implements OnInit {
           },
           {
             label: "Despesas",
-            data: p.map(x => x.saidas),
+            data: despesas,
             backgroundColor: "#6366f1",
             borderRadius: 4,
             stack: "Stack 1",

@@ -33,9 +33,9 @@ import { SaldoRemanescente } from "../../models/lancamento.model";
         <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
           <mat-card-content>
             <div class="kpi-info">
-              <span class="kpi-label">TOTAL EM SALDOS</span>
-              <span class="kpi-value text-blue">{{ totalRemanescente | currency: "BRL":"symbol":"1.2-2" }}</span>
-              <span class="kpi-sub">Total transferido de volta ao fundo</span>
+              <div class="kpi-label">TOTAL EM SALDOS</div>
+              <div class="kpi-value text-blue">{{ totalRemanescente | currency: "BRL":"symbol":"1.2-2" }}</div>
+              <div class="kpi-sub">Total transferido de volta ao fundo</div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -44,9 +44,9 @@ import { SaldoRemanescente } from "../../models/lancamento.model";
         <mat-card class="kpi-card card-indicator-green" appearance="outlined">
           <mat-card-content>
             <div class="kpi-info">
-              <span class="kpi-label">PROJETOS COM SALDO</span>
-              <span class="kpi-value text-green">{{ saldos.length }}</span>
-              <span class="kpi-sub">Projetos que geraram sobras</span>
+              <div class="kpi-label">PROJETOS COM SALDO</div>
+              <div class="kpi-value text-green">{{ saldos.length }}</div>
+              <div class="kpi-sub">Projetos que geraram sobras</div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -55,9 +55,9 @@ import { SaldoRemanescente } from "../../models/lancamento.model";
         <mat-card class="kpi-card card-indicator-purple" appearance="outlined">
           <mat-card-content>
             <div class="kpi-info">
-              <span class="kpi-label">EFICIÊNCIA MÉDIA</span>
-              <span class="kpi-value text-purple">{{ eficienciaMedia | number: "1.1-1" }}%</span>
-              <span class="kpi-sub">Média de utilização do orçamento</span>
+              <div class="kpi-label">EFICIÊNCIA MÉDIA</div>
+              <div class="kpi-value text-purple">{{ eficienciaMedia | number: "1.1-1" }}%</div>
+              <div class="kpi-sub">Média de utilização do orçamento</div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -89,20 +89,20 @@ import { SaldoRemanescente } from "../../models/lancamento.model";
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Data</th>
+                  <th class="center">Data</th>
                   <th>Parceiro</th>
                   <th>Projeto</th>
                   <th class="num">Saldo Transferido</th>
-                  <th class="num">Eficiência</th>
+                  <th class="center">Eficiência</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let s of saldos">
-                  <td>{{ s.data }}</td>
+                  <td class="center">{{ s.data }}</td>
                   <td><span class="badge">{{ s.parceiro }}</span></td>
                   <td>{{ s.projeto }}</td>
                   <td class="num font-bold text-blue">{{ s.valorTransferido | currency: "BRL":"symbol":"1.2-2" }}</td>
-                  <td class="num">
+                  <td class="center">
                     <span class="status-pill" [style.background-color]="getEfficiencyColor(s.percentualSobra)">
                        {{ (100 - s.percentualSobra) | number: "1.1-1" }}%
                     </span>
@@ -116,11 +116,28 @@ import { SaldoRemanescente } from "../../models/lancamento.model";
     </div>
   `,
   styles: [`
-    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+    .main-grid { display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 24px; margin-top: 24px; }
     @media (max-width: 1200px) { .main-grid { grid-template-columns: 1fr; } }
-
-    .chart-wrapper { height: 350px; padding: 16px; }
     
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 900px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+    .chart-wrapper { height: 380px; padding: 24px; display: flex; align-items: center; justify-content: center; }
+    
+    .kpi-card { 
+      min-height: 120px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      text-align: center;
+    }
+    .kpi-info { width: 100%; }
+
     .badge {
       background: var(--hover-bg);
       padding: 4px 8px;
@@ -138,6 +155,49 @@ import { SaldoRemanescente } from "../../models/lancamento.model";
       color: white;
     }
 
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      opacity: 0.8;
+    }
+
+    .table-container { 
+      padding: 0 24px 24px; 
+      overflow-x: auto; 
+    }
+    .data-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+    }
+    .data-table th { 
+      text-align: left; 
+      padding: 12px 16px; 
+      color: var(--text-muted); 
+      font-size: 12px; 
+      text-transform: uppercase; 
+      border-bottom: 2px solid var(--border-color);
+    }
+    .data-table td { 
+      padding: 16px; 
+      border-bottom: 1px solid var(--border-color); 
+      font-size: 13px;
+    }
+    .data-table th.num, .data-table td.num { text-align: right; }
+    .data-table th.center, .data-table td.center { text-align: center; }
+
     .font-bold { font-weight: 600; }
   `]
 })
@@ -151,15 +211,24 @@ export class SaldosGestaoComponent implements OnInit {
     responsive: true, maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
+      datalabels: { display: false },
       tooltip: {
         backgroundColor: "#1e293b",
         titleColor: "#f8fafc",
         bodyColor: "#f8fafc",
+        padding: 12,
+        cornerRadius: 8
       }
     },
     scales: {
-      x: { ticks: { color: "#94a3b8" }, grid: { display: false } },
-      y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.05)" } }
+      x: { 
+        ticks: { color: "#94a3b8", font: { size: 11 } }, 
+        grid: { display: false } 
+      },
+      y: { 
+        ticks: { color: "#94a3b8", font: { size: 11 } }, 
+        grid: { color: "rgba(255,255,255,0.05)" } 
+      }
     }
   };
 
