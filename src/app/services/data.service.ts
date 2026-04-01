@@ -11,6 +11,7 @@ import {
   RecursoResumo,
   RecursoDetalhado,
   StatusProjeto,
+  SaldoRemanescente,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
 
@@ -19,9 +20,12 @@ export class DataService {
   private lancamentosSubject = new BehaviorSubject<Lancamento[]>([]);
   private recebimentosSubject = new BehaviorSubject<Recebimento[]>([]);
   private statusSubject = new BehaviorSubject<StatusProjeto[]>([]);
+  private saldosSubject = new BehaviorSubject<SaldoRemanescente[]>([]);
+  
   lancamentos$ = this.lancamentosSubject.asObservable();
   recebimentos$ = this.recebimentosSubject.asObservable();
   status$ = this.statusSubject.asObservable();
+  saldos$ = this.saldosSubject.asObservable();
 
   // Metas financeiras
   readonly META_APORTE = 3023000;
@@ -32,6 +36,7 @@ export class DataService {
   private readonly SHEET_PRINCIPAL = this.SHEET_BASE + "&gid=0";
   private readonly SHEET_RECEBIMENTOS = this.SHEET_BASE + "&gid=595659211";
   private readonly SHEET_STATUS_PROJETOS = this.SHEET_BASE + "&gid=1699326950";
+  private readonly SHEET_SALDOS = this.SHEET_BASE + "&gid=86178020";
 
   constructor(private http: HttpClient) {
     this.carregarDados();
@@ -42,11 +47,13 @@ export class DataService {
       principal: this.http.get(this.SHEET_PRINCIPAL, { responseType: "text" }),
       recebimentos: this.http.get(this.SHEET_RECEBIMENTOS, { responseType: "text" }),
       status: this.http.get(this.SHEET_STATUS_PROJETOS, { responseType: "text" }),
+      saldos: this.http.get(this.SHEET_SALDOS, { responseType: "text" }),
     }).subscribe({
-      next: ({ principal, recebimentos, status }) => {
+      next: ({ principal, recebimentos, status, saldos }) => {
         this.parsePrincipal(principal);
         this.parseRecebimentos(recebimentos);
         this.parseStatusProjetos(status);
+        this.parseSaldos(saldos);
       },
       error: (err) => {
         console.error("Erro ao carregar dados do Google Sheets:", err);
@@ -127,6 +134,31 @@ export class DataService {
         }
     }
     this.statusSubject.next(statusProjetos);
+  }
+
+  private parseSaldos(csvText: string): void {
+    const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = parsed.data as string[][];
+    const saldos: SaldoRemanescente[] = [];
+
+    // Colunas: data(0), parceiro(1), descrição/projeto(2), valor transferido(3), valor projeto(4)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length < 5) continue;
+
+      const data = (row[0] || "").trim();
+      const parceiro = (row[1] || "").trim();
+      const projeto = (row[2] || "").trim();
+      const valorTransferido = this.parseValor(row[3]);
+      const valorProjeto = this.parseValor(row[4]);
+      const percentualSobra = valorProjeto > 0 ? (valorTransferido / valorProjeto) * 100 : 0;
+
+      if (projeto || parceiro) {
+        saldos.push({ data, parceiro, projeto, valorTransferido, valorProjeto, percentualSobra });
+      }
+    }
+
+    this.saldosSubject.next(saldos);
   }
 
   private parseValor(valorStr: string): number {
@@ -448,6 +480,25 @@ export class DataService {
           }
         });
         return total;
+      })
+    );
+  }
+
+  // ===== SALDOS REMANESCENTES (Aba GID 86178020) =====
+  getSaldos(): Observable<SaldoRemanescente[]> {
+    return this.saldos$;
+  }
+
+  getSaldosPorParceiro(): Observable<{ parceiro: string; valor: number }[]> {
+    return this.saldos$.pipe(
+      map((saldos) => {
+        const mapa = new Map<string, number>();
+        saldos.forEach((s) => {
+          mapa.set(s.parceiro, (mapa.get(s.parceiro) || 0) + s.valorTransferido);
+        });
+        return Array.from(mapa.entries())
+          .map(([parceiro, valor]) => ({ parceiro, valor }))
+          .sort((a, b) => b.valor - a.valor);
       })
     );
   }

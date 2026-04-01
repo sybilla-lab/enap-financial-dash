@@ -48,4 +48,12 @@ export const routes: Routes = [
         (m) => m.GerenciarComponent
       ),
   },
+  {
+    // Novo módulo de Saldos Remanescentes
+    path: "saldos",
+    loadComponent: () =>
+      import("./pages/saldos/saldos-gestao.component").then(
+        (m) => m.SaldosGestaoComponent
+      ),
+  },
 ];

@@ -63,3 +63,12 @@ export interface RecursoDetalhado {
   totalRecebido: number;
   totalComPrevisto: number;
 }
+
+export interface SaldoRemanescente {
+  data: string;
+  parceiro: string;
+  projeto: string;
+  valorTransferido: number;
+  valorProjeto: number;
+  percentualSobra: number;
+}

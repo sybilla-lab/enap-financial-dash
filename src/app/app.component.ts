@@ -238,6 +238,7 @@ export class AppComponent {
     { label: "Projetos", icon: "folder_special", route: "/projetos" },
     { label: "Categorias", icon: "category", route: "/categorias" },
     { label: "Fluxo de Caixa", icon: "timeline", route: "/fluxo-caixa" },
+    { label: "Saldos Remanescentes", icon: "history_edu", route: "/saldos" },
   ];
 
   constructor(public themeService: ThemeService) { }
