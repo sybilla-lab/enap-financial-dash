@@ -55,7 +55,7 @@ import { DashboardConfigService } from "../../services/dashboard-config.service"
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
-    .modal-content { padding: 24px; flex: 1; display: flex; gap: 24px; min-height: 0; }
+    .modal-content { padding: 24px; flex: 1; display: flex; gap: 24px; min-height: 0; align-items: center; }
     .chart-container { flex: 1; position: relative; min-height: 0; }
     .resume-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 8px; }
     .list-item { display: flex; justify-content: space-between; font-size: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
@@ -131,7 +131,7 @@ export class ModalFinanciadoresComponent implements OnInit {
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
     .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
-    .modal-content { padding: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .modal-content { padding: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0; justify-content: center; }
     .chart-container { flex: 1; position: relative; min-height: 0; }
   `]
 })
