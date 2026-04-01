@@ -33,7 +33,7 @@ import { DashboardConfigService } from "../../services/dashboard-config.service"
           @for (f of data; track f.financiador) {
             <div class="list-item">
               <span class="label">{{ f.financiador }}</span>
-              <span class="value">{{ f.valor | currency: "BRL":"symbol":"1.0-0" }}</span>
+              <span class="value">{{ f.valor | currency: "BRL":"symbol":"1.2-2" }}</span>
             </div>
           }
         </div>
@@ -257,7 +257,7 @@ export class ModalInfoComponent {
               @if (isLoading) {
                 <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
               } @else {
-                <span class="kpi-value text-green">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.0-0" }}</span>
+                <span class="kpi-value text-green">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</span>
               }
             </div>
             <mat-icon class="view-more-icon">visibility</mat-icon>
@@ -276,7 +276,7 @@ export class ModalInfoComponent {
               @if (isLoading) {
                 <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
               } @else {
-                <span class="kpi-value text-red">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.0-0" }}</span>
+                <span class="kpi-value text-red">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.2-2" }}</span>
               }
             </div>
             <mat-icon class="view-more-icon">visibility</mat-icon>
@@ -295,7 +295,7 @@ export class ModalInfoComponent {
               @if (isLoading) {
                 <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
               } @else {
-                <span class="kpi-value text-blue">{{ indicadores.saldoDisponivel | currency: "BRL":"symbol":"1.0-0" }}</span>
+                <span class="kpi-value text-blue">{{ indicadores.saldoDisponivel | currency: "BRL":"symbol":"1.2-2" }}</span>
               }
             </div>
           </mat-card-content>
@@ -347,7 +347,7 @@ export class ModalInfoComponent {
               @if (isLoading) {
                 <div class="skeleton-box" style="width: 120px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
               } @else {
-                <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.0-0" }}</span>
+                <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.2-2" }}</span>
               }
             </div>
             <mat-icon class="view-more-icon">visibility</mat-icon>
@@ -364,7 +364,7 @@ export class ModalInfoComponent {
               @if (isLoading) {
                 <div class="skeleton-box" style="width: 130px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
               } @else {
-                <span class="kpi-value text-orange">{{ inflacao | currency: "BRL":"symbol":"1.0-0" }}</span>
+                <span class="kpi-value text-orange">{{ inflacao | currency: "BRL":"symbol":"1.2-2" }}</span>
               }
               <span class="kpi-sub">Reajustes contratuais (extra)</span>
             </div>
@@ -417,7 +417,7 @@ export class ModalInfoComponent {
               @if (isLoading) {
                 <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
               } @else {
-                <span class="kpi-value text-red">{{ gapCaptacao | currency: "BRL":"symbol":"1.0-0" }}</span>
+                <span class="kpi-value text-red">{{ gapCaptacao | currency: "BRL":"symbol":"1.2-2" }}</span>
               }
               <span class="kpi-sub">Déficit vs Meta Total</span>
             </div>
@@ -726,7 +726,7 @@ export class DashboardComponent implements OnInit {
           title: "Gap de Captação",
           icon: "not_interested",
           description: "Indica a falta (déficit) dos recursos correntes captados se comparados com a meta global do acordo ou orçamento central. A meta de captação global almejada precisa ser atingida mitigando o Gap.",
-          value: this.currencyPipe.transform(this.gapCaptacao, "BRL", "symbol", "1.0-0")
+          value: this.currencyPipe.transform(this.gapCaptacao, "BRL", "symbol", "1.2-2")
         }
       });
     }

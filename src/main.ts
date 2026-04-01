@@ -3,6 +3,10 @@ import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 import { Chart, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { registerLocaleData } from '@angular/common';
+import localePt from '@angular/common/locales/pt';
+
+registerLocaleData(localePt);
 
 Chart.register(...registerables);
 Chart.register(ChartDataLabels);
