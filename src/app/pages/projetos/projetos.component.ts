@@ -230,13 +230,24 @@ Chart.register(...registerables);
       flex-shrink: 0;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
+    .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: var(--kpi-blue-icon) !important; }
 
-    /* Estilos luxo preenchidos para Projetos - Gradientes Dinâmicos */
-    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); }
-    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); }
-    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); }
-    .card-indicator-teal .kpi-icon { background: linear-gradient(135deg, var(--accent-green-soft), #0d9488); }
+    /* Estilos luxo preenchidos para Projetos - Gradientes Dinâmicos e Cores de Ícones */
+    .card-indicator-blue .kpi-icon { background: var(--kpi-blue-bg); }
+    .card-indicator-blue .kpi-icon mat-icon { color: var(--kpi-blue-icon) !important; }
+
+    .card-indicator-green .kpi-icon { background: var(--kpi-green-bg); }
+    .card-indicator-green .kpi-icon mat-icon { color: var(--kpi-green-icon) !important; }
+
+    .card-indicator-yellow .kpi-icon { background: var(--kpi-yellow-bg); }
+    .card-indicator-yellow .kpi-icon mat-icon { color: var(--kpi-yellow-icon) !important; }
+
+    .card-indicator-teal .kpi-icon { background: rgba(52, 211, 153, 0.1); }
+    .card-indicator-teal .kpi-icon mat-icon { color: var(--accent-green) !important; }
+
+    .card-indicator-red .kpi-icon { background: var(--kpi-red-bg); }
+    .card-indicator-red .kpi-icon mat-icon { color: var(--kpi-red-icon) !important; }
+
     .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
     .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
     .kpi-card.card-indicator-yellow { border-left: 5px solid var(--accent-yellow) !important; }

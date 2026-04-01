@@ -39,6 +39,15 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
       </h1>
 
       <!-- Accordion Container -->
+      @if (isLoading) {
+        <div class="kpi-grid-classic">
+          @for (i of [1,2,3,4]; track i) {
+            <mat-card class="classic-card skeleton-card" appearance="outlined">
+              <div class="skeleton-box" style="height: 160px; width: 100%;"></div>
+            </mat-card>
+          }
+        </div>
+      } @else {
       <mat-accordion multi="true" class="resource-accordion">
         
         <!-- Aporte ENAP Section -->
@@ -207,9 +216,18 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
           </div>
         </mat-expansion-panel>
       </mat-accordion>
+      }
 
       <!-- Charts & Insights -->
       <div class="charts-row">
+        @if (isLoading) {
+          <mat-card class="chart-card compact" appearance="outlined">
+            <div class="skeleton-box" style="height: 100%; width: 100%;"></div>
+          </mat-card>
+          <mat-card class="chart-card compact" appearance="outlined">
+            <div class="skeleton-box" style="height: 100%; width: 100%;"></div>
+          </mat-card>
+        } @else {
         <mat-card class="chart-card compact" appearance="outlined">
           <mat-card-header><mat-card-title>Distribuição dos Recursos</mat-card-title></mat-card-header>
           <mat-card-content>
@@ -231,6 +249,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
             </div>
           </mat-card-content>
         </mat-card>
+        }
       </div>
 
       <!-- Table -->
@@ -305,9 +324,10 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
   styles: `
     .resource-accordion { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
     :host ::ng-deep .custom-panel { background: transparent !important; box-shadow: none !important; }
-    :host ::ng-deep .custom-panel .mat-expansion-panel-header { padding: 0 16px; height: 56px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+    :host ::ng-deep .custom-panel .mat-expansion-panel-header { padding: 0 16px; height: 56px; background: var(--hover-bg); border-radius: 8px; border: 1px solid var(--border-color); }
     :host ::ng-deep .custom-panel .mat-expansion-panel-body { padding: 24px 0 0 0 !important; }
     .panel-title-text { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: 1.5px; padding-left: 12px; border-left: 3px solid var(--accent-green); display: flex; align-items: center; gap: 8px;}
+    .panel-title-text mat-icon { color: var(--accent-primary); }
     
     .page-container { animation: fadeIn 0.6s ease-out; }
     
@@ -331,7 +351,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
       background: var(--card-bg) !important; 
       border-radius: 16px !important; 
       margin-bottom: 8px; 
-      border: 1px solid var(--glass-border) !important;
+      border: 1px solid var(--border-color) !important;
       opacity: 1 !important;
     }
     .classic-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
@@ -345,25 +365,25 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
       width: 36px; height: 36px;
       border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      color: #ffffff !important;
       flex-shrink: 0;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     .circle-icon mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
-    /* Gradientes luxo para círculos de ícones - NOVA VERSÃO DINÂMICA */
-    .circle-icon.blue { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); }
-    .circle-icon.green { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); }
-    .circle-icon.orange { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); }
-    .circle-icon.purple { background: linear-gradient(135deg, var(--accent-purple), #9333ea); }
-    .circle-icon.red { background: linear-gradient(135deg, var(--accent-red), #b91c1c); }
+    /* Gradientes luxo para círculos de ícones - NOVA VERSÃO DINÂMICA COM VARIÁVEIS GLOBAIS */
+    .circle-icon.blue, .circle-icon.blue-light { background: var(--kpi-blue-bg); color: var(--kpi-blue-icon) !important; }
+    .circle-icon.green, .circle-icon.teal, .circle-icon.teal-light { background: var(--kpi-green-bg); color: var(--kpi-green-icon) !important; }
+    .circle-icon.orange, .circle-icon.orange-light { background: var(--kpi-orange-bg); color: var(--kpi-orange-icon) !important; }
+    .circle-icon.purple, .circle-icon.purple-light, .circle-icon.purple-dark { background: var(--kpi-purple-bg); color: var(--kpi-purple-icon) !important; }
+    .circle-icon.red { background: var(--kpi-red-bg); color: var(--kpi-red-icon) !important; }
+    .circle-icon.gold { background: var(--kpi-yellow-bg); color: var(--kpi-yellow-icon) !important; }
 
     .card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
-    .card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+    .card-indicator-green, .card-indicator-teal { border-left: 5px solid var(--accent-green) !important; }
     .card-indicator-orange { border-left: 5px solid var(--accent-orange) !important; }
     .card-indicator-purple { border-left: 5px solid var(--accent-purple) !important; }
     .card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
-
+    .card-indicator-gold { border-left: 5px solid var(--accent-yellow) !important; }
     .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
     :host ::ng-deep .classic-progress.gray .mdc-linear-progress__bar-inner { border-color: #64748b !important; }
     :host ::ng-deep .classic-progress.purple-bar .mdc-linear-progress__bar-inner { border-color: var(--accent-purple) !important; }

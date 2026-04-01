@@ -217,7 +217,12 @@ interface NavItem {
 
     /* ===== Main content ===== */
     .main-content { background: var(--bg-primary) !important; }
-    .content-area { overflow-y: auto; height: calc(100vh - 64px); }
+    .content-area { 
+      overflow-y: auto; 
+      height: calc(100vh - 64px); 
+      padding: 24px 96px 24px 24px;
+      box-sizing: border-box;
+    }
   `,
 })
 export class AppComponent {

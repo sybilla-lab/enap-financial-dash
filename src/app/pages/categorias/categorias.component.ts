@@ -167,10 +167,15 @@ Chart.register(...registerables, ChartDataLabels);
     }
     .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
 
-    /* Estilos luxo preenchidos para Categorias - Gradientes Dinâmicos */
-    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); }
-    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); }
-    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, var(--accent-orange), #ea580c); }
+    /* Estilos luxo preenchidos para Categorias - Gradientes Dinâmicos E Cores de Ícone */
+    .card-indicator-blue .kpi-icon { background: var(--kpi-blue-bg); }
+    .card-indicator-blue .kpi-icon mat-icon { color: var(--kpi-blue-icon) !important; }
+
+    .card-indicator-green .kpi-icon { background: var(--kpi-green-bg); }
+    .card-indicator-green .kpi-icon mat-icon { color: var(--kpi-green-icon) !important; }
+
+    .card-indicator-orange .kpi-icon { background: var(--kpi-orange-bg); }
+    .card-indicator-orange .kpi-icon mat-icon { color: var(--kpi-orange-icon) !important; }
     .kpi-card.card-indicator-blue { border-left: 5px solid #6366f1 !important; }
     .kpi-card.card-indicator-green { border-left: 5px solid #10b981 !important; }
     .kpi-card.card-indicator-orange { border-left: 5px solid #f97316 !important; }

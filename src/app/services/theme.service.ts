@@ -1,6 +1,6 @@
 import { Injectable, signal, effect } from "@angular/core";
 
-export type ThemePalette = "slate-indigo" | "zinc-emerald" | "midnight-blue" | "neutral-amber";
+export type ThemePalette = "corporate-slate" | "organic-growth" | "cyber-midnight" | "sunset-luxury";
 
 @Injectable({ providedIn: "root" })
 export class ThemeService {
@@ -30,9 +30,8 @@ export class ThemeService {
 
   private getSavedPalette(): ThemePalette {
     const saved = localStorage.getItem(this.PALETTE_KEY) as ThemePalette;
-    return (["slate-indigo", "zinc-emerald", "midnight-blue", "neutral-amber"].includes(saved)) 
-      ? saved 
-      : "slate-indigo";
+    const validPalettes: ThemePalette[] = ["corporate-slate", "organic-growth", "cyber-midnight", "sunset-luxury"];
+    return validPalettes.includes(saved) ? saved : "corporate-slate";
   }
 
   private getSavedDarkMode(): boolean {
@@ -43,16 +42,21 @@ export class ThemeService {
   private applyTheme(palette: ThemePalette, isDark: boolean) {
     const body = document.body;
     
-    // 1. Gerenciar Modo Escuro/Claro (Legado)
+    // 1. Gerenciar Modo Escuro/Claro
     if (isDark) {
       body.classList.add("dark-theme");
     } else {
       body.classList.remove("dark-theme");
     }
     
-    // 2. Gerenciar Paleta (Novo)
-    const paletteClasses = ["theme-slate-indigo", "theme-zinc-emerald", "theme-midnight-blue", "theme-neutral-amber"];
-    body.classList.remove(...paletteClasses);
-    body.classList.add(`theme-${palette}`);
+    // 2. Gerenciar Paleta
+    const palettePrefix = "theme-";
+    const paletteClasses = ["theme-corporate-slate", "theme-organic-growth", "theme-cyber-midnight", "theme-sunset-luxury"];
+    
+    // Remover todas as classes de paleta existentes
+    paletteClasses.forEach(cls => body.classList.remove(cls));
+    
+    // Adicionar a nova paleta
+    body.classList.add(`${palettePrefix}${palette}`);
   }
 }

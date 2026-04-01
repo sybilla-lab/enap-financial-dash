@@ -476,16 +476,6 @@ export class ModalInfoComponent {
     </div>
   `,
   styles: `
-    .skeleton-box {
-      background: linear-gradient(90deg, var(--hover-bg) 25%, rgba(255,255,255,0.08) 50%, var(--hover-bg) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-
     .clickable { cursor: pointer; position: relative; }
 
     .kpi-grid {
@@ -493,12 +483,16 @@ export class ModalInfoComponent {
       flex-wrap: wrap;
       gap: 16px; 
       margin-bottom: 24px;
+      width: 100%;
     }
+
     .kpi-card {
-      flex: 1 1 220px;
+      flex: 1 1 calc(20% - 16px);
+      min-width: 200px;
       background: var(--card-bg) !important;
       border: 1px solid var(--border-color) !important;
       border-radius: 16px !important;
+      min-height: 100px;
       transition: transform 0.2s, box-shadow 0.2s;
     }
     .kpi-card:hover {
@@ -516,17 +510,29 @@ export class ModalInfoComponent {
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       flex-shrink: 0;
     }
-    .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
+    .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: var(--kpi-blue-icon) !important; }
     
-    /* Fundos preenchidos baseados no indicador do card */
-    /* Fundos preenchidos baseados no indicador do card - NOVO: Uso de Variáveis de Tema */
-    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); border: none; }
-    .card-indicator-red .kpi-icon { background: linear-gradient(135deg, var(--accent-red), #b91c1c); border: none; }
-    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); border: none; }
-    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); border: none; }
-    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, var(--accent-orange), #ea580c); border: none; }
-    .card-indicator-gray .kpi-icon { background: linear-gradient(135deg, var(--text-muted), #334155); border: none; }
-    .card-indicator-purple .kpi-icon { background: linear-gradient(135deg, var(--accent-purple), #6d28d9); border: none; }
+    /* Fundos preenchidos baseados no indicador do card - USO DE VARIÁVEIS GLOBAIS DE ICONOGRAFIA */
+    .card-indicator-green .kpi-icon { background: var(--kpi-green-bg); border: none; }
+    .card-indicator-green .kpi-icon mat-icon { color: var(--kpi-green-icon) !important; }
+
+    .card-indicator-red .kpi-icon { background: var(--kpi-red-bg); border: none; }
+    .card-indicator-red .kpi-icon mat-icon { color: var(--kpi-red-icon) !important; }
+
+    .card-indicator-blue .kpi-icon { background: var(--kpi-blue-bg); border: none; }
+    .card-indicator-blue .kpi-icon mat-icon { color: var(--kpi-blue-icon) !important; }
+
+    .card-indicator-yellow .kpi-icon { background: var(--kpi-yellow-bg); border: none; }
+    .card-indicator-yellow .kpi-icon mat-icon { color: var(--kpi-yellow-icon) !important; }
+
+    .card-indicator-orange .kpi-icon { background: var(--kpi-orange-bg); border: none; }
+    .card-indicator-orange .kpi-icon mat-icon { color: var(--kpi-orange-icon) !important; }
+
+    .card-indicator-gray .kpi-icon { background: var(--kpi-gray-bg); border: none; }
+    .card-indicator-gray .kpi-icon mat-icon { color: var(--kpi-gray-icon) !important; }
+
+    .card-indicator-purple .kpi-icon { background: var(--kpi-purple-bg); border: none; }
+    .card-indicator-purple .kpi-icon mat-icon { color: var(--kpi-purple-icon) !important; }
 
     /* Garantia de visibilidade dos indicadores de 5px no Dashboard */
     .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }

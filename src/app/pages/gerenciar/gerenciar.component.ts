@@ -35,7 +35,8 @@ import { ThemeService, ThemePalette } from "../../services/theme.service";
       <p class="subtitle">Personalize a exibição dos indicadores e a identidade visual conforme sua necessidade de análise. As mudanças são salvas automaticamente.</p>
 
       <div class="config-grid">
-        <!-- Identidade Visual -->
+        <!-- Identidade Visual (Oculta por solicitação) -->
+        @if (false) {
         <mat-card class="config-card" appearance="outlined">
           <mat-card-header>
             <mat-icon mat-card-avatar class="icon-primary">palette</mat-icon>
@@ -57,7 +58,7 @@ import { ThemeService, ThemePalette } from "../../services/theme.service";
             </div>
           </mat-card-content>
         </mat-card>
-
+        }
         <!-- Financeiro -->
         <mat-card class="config-card" appearance="outlined">
           <mat-card-header>
@@ -262,10 +263,10 @@ import { ThemeService, ThemePalette } from "../../services/theme.service";
 })
 export class GerenciarComponent {
   themes: { id: ThemePalette; label: string; color: string; bg: string }[] = [
-    { id: "slate-indigo", label: "Slate & Indigo", color: "#6366f1", bg: "#0f172a" },
-    { id: "zinc-emerald", label: "Zinc & Emerald", color: "#10b981", bg: "#18181b" },
-    { id: "midnight-blue", label: "Midnight Blue", color: "#0ea5e9", bg: "#020617" },
-    { id: "neutral-amber", label: "Neutral & Amber", color: "#f59e0b", bg: "#171717" },
+    { id: "corporate-slate", label: "Slate & Indigo", color: "#6366f1", bg: "#0f172a" },
+    { id: "organic-growth", label: "Organic Emerald", color: "#10b981", bg: "#064e3b" },
+    { id: "cyber-midnight", label: "Cyber Sky", color: "#0ea5e9", bg: "#020617" },
+    { id: "sunset-luxury", label: "Sunset Rose", color: "#f43f5e", bg: "#18181b" },
   ];
 
   get config() {
@@ -283,6 +284,6 @@ export class GerenciarComponent {
 
   restaurarPadrao() {
     this.configService.resetConfig();
-    this.themeService.setPalette("slate-indigo");
+    this.themeService.setPalette("corporate-slate");
   }
 }
