@@ -52,7 +52,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
             <!-- 1. Recebido -->
         <mat-card class="classic-card card-indicator-purple" appearance="outlined">
           <mat-card-content>
-            <div class="classic-header">
+            <div class="classic-header" style="margin-bottom: 40px">
               <div class="circle-icon purple"><mat-icon>archive</mat-icon></div>
               <div class="classic-label">APORTE RECEBIDO</div>
             </div>
@@ -117,7 +117,7 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
             <!-- 1. Recebido -->
         <mat-card class="classic-card card-indicator-teal" appearance="outlined">
           <mat-card-content>
-            <div class="classic-header">
+            <div class="classic-header" style="margin-bottom: 40px">
               <div class="circle-icon teal"><mat-icon>archive</mat-icon></div>
               <div class="classic-label">CAPTAÇÃO RECEBIDA</div>
             </div>
@@ -182,12 +182,12 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
           <div class="kpi-grid-classic">
             <mat-card class="classic-card card-indicator-green" appearance="outlined">
           <mat-card-content>
-            <div class="classic-header">
+            <div class="classic-header" style="margin-bottom: 40px;">
               <div class="circle-icon green"><mat-icon>account_balance_wallet</mat-icon></div>
               <div class="classic-label">TOTAL RECEBIDO (NET)</div>
             </div>
             <div class="classic-value">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
-            <mat-progress-bar mode="determinate" [value]="pctTotalRecebido" class="classic-progress blue"></mat-progress-bar>
+            <mat-progress-bar mode="determinate" [value]="pctTotalRecebido" class="classic-progress teal"></mat-progress-bar>
             <div class="classic-footer">{{ pctTotalRecebido | number: "1.1-1" }}% da meta total conquistada</div>
           </mat-card-content>
         </mat-card>
@@ -365,6 +365,9 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
     .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
     :host ::ng-deep .classic-progress.gray .mdc-linear-progress__bar-inner { border-color: #9CA3AF !important; }
     :host ::ng-deep .classic-progress.purple-bar .mdc-linear-progress__bar-inner { border-color: #8B5CF6 !important; }
+    :host ::ng-deep .classic-progress.teal .mdc-linear-progress__bar-inner { border-color: #2dd4bf !important; }
+    :host ::ng-deep .classic-progress.orange .mdc-linear-progress__bar-inner { border-color: #fb923c !important; }
+
     .consolidado-row-header { font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 24px 0 12px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
     .consolidado-row-header.first { margin-top: 0; }
 
