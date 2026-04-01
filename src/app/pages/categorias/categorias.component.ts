@@ -153,10 +153,10 @@ Chart.register(...registerables, ChartDataLabels);
       border: 1px solid var(--border-color) !important;
     }
     
-    /* Garantia de visibilidade dos indicadores nesta guia */
-    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
+    /* Garantia de visibilidade dos indicadores nesta guia - DINÂMICO */
+    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
     .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
-    .kpi-card.card-indicator-orange { border-left: 5px solid #fb923c !important; }
+    .kpi-card.card-indicator-orange { border-left: 5px solid var(--accent-orange) !important; }
 
     .kpi-card mat-card-content { display: flex; align-items: center; gap: 16px; padding: 24px; }
     .kpi-icon {
@@ -167,18 +167,21 @@ Chart.register(...registerables, ChartDataLabels);
     }
     .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
 
-    /* Estilos luxo preenchidos para Categorias */
-    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
-    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, #4ade80, #16a34a); }
-    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, #fb923c, #ea580c); }
+    /* Estilos luxo preenchidos para Categorias - Gradientes Dinâmicos */
+    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); }
+    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); }
+    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, var(--accent-orange), #ea580c); }
+    .kpi-card.card-indicator-blue { border-left: 5px solid #6366f1 !important; }
+    .kpi-card.card-indicator-green { border-left: 5px solid #10b981 !important; }
+    .kpi-card.card-indicator-orange { border-left: 5px solid #f97316 !important; }
 
     .kpi-info { display: flex; flex-direction: column; }
     .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
     .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); }
     
     .text-green { color: var(--accent-green) !important; }
-    .text-blue { color: var(--accent-blue) !important; }
-    .text-orange { color: #fb923c !important; }
+    .text-blue { color: var(--accent-primary) !important; }
+    .text-orange { color: var(--accent-orange) !important; }
 
     .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
     .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
@@ -217,8 +220,8 @@ export class CategoriasComponent implements OnInit {
       datalabels: {
         anchor: "end",
         align: "end",
-        color: "#9CA3AF",
-        font: { weight: "bold" },
+        color: "#94a3b8",
+        font: { weight: "bold", size: 11 },
         formatter: (value: any, ctx: any) => {
           const datasetData = ctx.chart.data.datasets[0].data as number[];
           const total = datasetData.reduce((a, b) => a + b, 0);
@@ -227,6 +230,11 @@ export class CategoriasComponent implements OnInit {
         }
       },
       tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderWidth: 1,
         callbacks: {
           label: (context: any) => {
             let label = context.dataset.label || "";
@@ -242,11 +250,11 @@ export class CategoriasComponent implements OnInit {
       }
     },
     layout: {
-      padding: { right: 50 } // Espaço para as labels não cortarem
+      padding: { right: 50 }
     },
     scales: {
-      x: { ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
-      y: { ticks: { color: "#6B7280" }, grid: { display: false } },
+      x: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.05)" } },
+      y: { ticks: { color: "#94a3b8", font: { size: 11 } }, grid: { display: false } },
     },
   };
 
@@ -335,19 +343,19 @@ export class CategoriasComponent implements OnInit {
 
   private generateColors(count: number): string[] {
     const base = [
-      "rgba(124, 77, 255, 0.75)",
-      "rgba(0, 188, 212, 0.75)",
-      "rgba(255, 152, 0, 0.75)",
-      "rgba(76, 175, 80, 0.75)",
-      "rgba(244, 67, 54, 0.75)",
-      "rgba(33, 150, 243, 0.75)",
-      "rgba(156, 39, 176, 0.75)",
-      "rgba(255, 87, 34, 0.75)",
-      "rgba(139, 195, 74, 0.75)",
-      "rgba(255, 193, 7, 0.75)",
-      "rgba(63, 81, 181, 0.75)",
-      "rgba(0, 150, 136, 0.75)",
-      "rgba(233, 30, 99, 0.75)",
+      "rgba(99, 102, 241, 0.8)",  /* Indigo 500 */
+      "rgba(16, 185, 129, 0.8)",  /* Emerald 500 */
+      "rgba(100, 116, 139, 0.8)", /* Slate 500 */
+      "rgba(245, 158, 11, 0.8)",  /* Amber 500 */
+      "rgba(239, 68, 68, 0.8)",   /* Red 500 */
+      "rgba(139, 92, 246, 0.8)",  /* Violet 500 */
+      "rgba(20, 184, 166, 0.8)",  /* Teal 500 */
+      "rgba(249, 115, 22, 0.8)",  /* Orange 500 */
+      "rgba(59, 130, 246, 0.8)",  /* Blue 500 */
+      "rgba(107, 114, 128, 0.8)", /* Gray 500 */
+      "rgba(168, 85, 247, 0.8)",  /* Purple 500 */
+      "rgba(236, 72, 153, 0.8)",  /* Pink 500 */
+      "rgba(14, 165, 233, 0.8)",  /* Sky 500 */
       "rgba(121, 85, 72, 0.75)",
       "rgba(96, 125, 139, 0.75)",
     ];

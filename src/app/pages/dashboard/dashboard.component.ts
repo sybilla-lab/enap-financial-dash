@@ -196,22 +196,18 @@ export class ModalExecucaoComponent implements OnInit {
   styles: [`
     .modal-box { 
       padding: 0; 
-      background: #ffffff !important; 
-      color: #1e293b !important; 
+      background: #1e293b !important; /* Slate 800 */
+      color: #f8fafc !important; /* Slate 50 */
       height: 100%; 
       display: flex; 
       flex-direction: column; 
     }
-    :host-context(body.dark-theme) .modal-box { 
-      background: #1e293b !important; 
-      color: #f8fafc !important; 
-    }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
-    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
-    .modal-header mat-icon { color: var(--accent-blue); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: #f8fafc; }
+    .modal-header mat-icon { color: var(--accent-primary); }
     .modal-content { padding: 32px 48px; display: flex; flex-direction: column; gap: 24px; flex: 1; justify-content: center; align-items: center; text-align: center; }
     .description { font-size: 18px; line-height: 1.6; color: var(--text-secondary); margin: 0; max-width: 600px; }
-    .highlight-value { font-size: 40px; font-weight: 700; color: var(--text-primary); text-align: center; padding: 24px 48px; background: var(--hover-bg); border-radius: 12px; }
+    .highlight-value { font-size: 40px; font-weight: 700; color: var(--text-primary); text-align: center; padding: 24px 48px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid var(--border-color); }
   `]
 })
 export class ModalInfoComponent {
@@ -523,22 +519,23 @@ export class ModalInfoComponent {
     .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
     
     /* Fundos preenchidos baseados no indicador do card */
-    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, #4ade80, #16a34a); border: none; }
-    .card-indicator-red .kpi-icon { background: linear-gradient(135deg, #f87171, #ef4444); border: none; }
-    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, #38bdf8, #0ea5e9); border: none; }
-    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, #fbbf24, #d97706); border: none; }
-    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, #fb923c, #ea580c); border: none; }
-    .card-indicator-gray .kpi-icon { background: linear-gradient(135deg, #9ca3af, #4b5563); border: none; }
-    .card-indicator-purple .kpi-icon { background: linear-gradient(135deg, #a78bfa, #7c3aed); border: none; }
+    /* Fundos preenchidos baseados no indicador do card - NOVO: Uso de Variáveis de Tema */
+    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); border: none; }
+    .card-indicator-red .kpi-icon { background: linear-gradient(135deg, var(--accent-red), #b91c1c); border: none; }
+    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); border: none; }
+    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); border: none; }
+    .card-indicator-orange .kpi-icon { background: linear-gradient(135deg, var(--accent-orange), #ea580c); border: none; }
+    .card-indicator-gray .kpi-icon { background: linear-gradient(135deg, var(--text-muted), #334155); border: none; }
+    .card-indicator-purple .kpi-icon { background: linear-gradient(135deg, var(--accent-purple), #6d28d9); border: none; }
 
     /* Garantia de visibilidade dos indicadores de 5px no Dashboard */
     .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
     .kpi-card.card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
-    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
+    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
     .kpi-card.card-indicator-yellow { border-left: 5px solid var(--accent-yellow) !important; }
-    .kpi-card.card-indicator-orange { border-left: 5px solid #fb923c !important; }
-    .kpi-card.card-indicator-purple { border-left: 5px solid #7c3aed !important; }
-    .kpi-card.card-indicator-gray { border-left: 5px solid #6b7280 !important; }
+    .kpi-card.card-indicator-orange { border-left: 5px solid var(--accent-orange) !important; }
+    .kpi-card.card-indicator-purple { border-left: 5px solid var(--accent-purple) !important; }
+    .kpi-card.card-indicator-gray { border-left: 5px solid var(--text-muted) !important; }
 
     .view-more-icon {
       position: absolute;
@@ -564,9 +561,9 @@ export class ModalInfoComponent {
     
     .text-green { color: var(--accent-green) !important; }
     .text-red { color: var(--accent-red) !important; }
-    .text-blue { color: var(--accent-blue) !important; }
+    .text-blue { color: var(--accent-primary) !important; }
     .text-yellow { color: var(--accent-yellow) !important; }
-    .text-orange { color: #fb923c !important; }
+    .text-orange { color: var(--accent-orange) !important; }
 
     mat-progress-bar { border-radius: 4px; height: 4px !important; margin-top: 8px; }
     .summary-card {

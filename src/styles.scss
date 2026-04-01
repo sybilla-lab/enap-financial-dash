@@ -4,34 +4,91 @@
 
 // ====== CSS Variables for theming ======
 :root {
-  --bg-primary: #0B1F1C;
-  --card-bg: rgba(15, 42, 38, 0.7);
-  --glass-bg: rgba(15, 42, 38, 0.5);
-  --sidenav-bg: #091a18;
-  --toolbar-bg: rgba(11, 31, 28, 0.85);
-  --border-color: rgba(255, 255, 255, 0.05);
-  --text-primary: #F3F4F6;
-  --text-secondary: #9CA3AF;
-  --text-muted: #6B7280;
-  --accent-green: #34D399;
-  --accent-green-soft: #6EE7B7;
-  --accent-blue: #38BDF8;
-  --accent-red: #F87171;
-  --accent-yellow: #FBBF24;
-  --hover-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-blur: blur(12px);
+  /* Common Token Definitions */
+  --accent-green: #10b981;
+  --accent-green-soft: #34d399;
+  --accent-red: #ef4444;
+  --accent-yellow: #f59e0b;
+  --accent-orange: #f97316;
+  --accent-purple: #8b5cf6;
+  --accent-blue: #6366f1;
+  --glass-blur: blur(16px);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
-body.light-theme {
-  --bg-primary: #f5f5f5;
+/* === THEME: Slate & Indigo (Default Professional) === */
+body.theme-slate-indigo {
+  --bg-primary: #0f172a;
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --glass-bg: rgba(15, 23, 42, 0.5);
+  --sidenav-bg: #0b1120;
+  --toolbar-bg: rgba(15, 23, 42, 0.85);
+  --border-color: rgba(255, 255, 255, 0.06);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-primary: #6366f1;
+  --hover-bg: rgba(255, 255, 255, 0.04);
+}
+
+/* === THEME: Zinc & Emerald (Corporate Growth) === */
+body.theme-zinc-emerald {
+  --bg-primary: #09090b;
+  --card-bg: rgba(24, 24, 27, 0.8);
+  --glass-bg: rgba(9, 9, 11, 0.6);
+  --sidenav-bg: #09090b;
+  --toolbar-bg: rgba(9, 9, 11, 0.9);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --accent-primary: #10b981;
+  --hover-bg: rgba(255, 255, 255, 0.03);
+}
+
+/* === THEME: Midnight Blue (Technical & Clean) === */
+body.theme-midnight-blue {
+  --bg-primary: #020617;
+  --card-bg: rgba(15, 23, 42, 0.8);
+  --glass-bg: rgba(2, 6, 23, 0.7);
+  --sidenav-bg: #020617;
+  --toolbar-bg: rgba(2, 6, 23, 0.9);
+  --border-color: rgba(56, 189, 248, 0.1);
+  --text-primary: #f0f9ff;
+  --text-secondary: #7dd3fc;
+  --text-muted: #38bdf8;
+  --accent-primary: #0ea5e9;
+  --hover-bg: rgba(14, 165, 233, 0.05);
+}
+
+/* === THEME: Neutral & Amber (Premium Excellence) === */
+body.theme-neutral-amber {
+  --bg-primary: #171717;
+  --card-bg: rgba(38, 38, 38, 0.8);
+  --glass-bg: rgba(23, 23, 23, 0.7);
+  --sidenav-bg: #0a0a0a;
+  --toolbar-bg: rgba(23, 23, 23, 0.9);
+  --border-color: rgba(217, 119, 6, 0.15);
+  --text-primary: #fafafa;
+  --text-secondary: #d4d4d4;
+  --text-muted: #a3a3a3;
+  --accent-primary: #f59e0b;
+  --hover-bg: rgba(245, 158, 11, 0.05);
+}
+
+/* Universal Light Theme Override */
+body:not(.dark-theme) {
+  --bg-primary: #f8fafc;
   --card-bg: #ffffff;
   --sidenav-bg: #ffffff;
-  --toolbar-bg: rgba(255, 255, 255, 0.9);
-  --border-color: rgba(0, 0, 0, 0.1);
-  --text-primary: #1f1f1f;
-  --text-secondary: #5f6368;
-  --hover-bg: rgba(0, 0, 0, 0.04);
+  --toolbar-bg: rgba(255, 255, 255, 0.95);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --hover-bg: rgba(0, 0, 0, 0.03);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-bg: #ffffff;
 }
 
 html, body {
@@ -42,6 +99,7 @@ html, body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 // ====== Scrollbar styles ======
@@ -59,7 +117,7 @@ html, body {
   border: 1px solid var(--glass-border) !important;
   color: var(--text-primary) !important;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3) !important;
 }
 
 .mat-mdc-card-header {
@@ -77,7 +135,7 @@ html, body {
 }
 
 .mat-mdc-card-title mat-icon {
-  color: var(--accent-green) !important;
+  color: var(--accent-blue) !important; /* Ícones harmônicos com acento indigo */
   font-size: 20px !important;
   width: 20px !important;
   height: 20px !important;
@@ -132,15 +190,15 @@ html, body {
 }
 
 // ====== Utility Classes for Card Indicators ======
-.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
-.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
-.card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
-.card-indicator-yellow { border-left: 5px solid var(--accent-yellow) !important; }
-.card-indicator-orange { border-left: 5px solid #fb923c !important; }
-.card-indicator-purple { border-left: 5px solid #7c3aed !important; }
-.card-indicator-gray { border-left: 5px solid #6b7280 !important; }
-.card-indicator-gold { border-left: 5px solid #facc15 !important; }
-.card-indicator-teal { border-left: 5px solid #2dd4bf !important; }
+.card-indicator-green { border-left: 5px solid #10b981 !important; }
+.card-indicator-blue { border-left: 5px solid #6366f1 !important; } /* Indigo */
+.card-indicator-red { border-left: 5px solid #ef4444 !important; }
+.card-indicator-yellow { border-left: 5px solid #f59e0b !important; }
+.card-indicator-orange { border-left: 5px solid #f97316 !important; }
+.card-indicator-purple { border-left: 5px solid #8b5cf6 !important; }
+.card-indicator-gray { border-left: 5px solid #64748b !important; }
+.card-indicator-gold { border-left: 5px solid #eab308 !important; }
+.card-indicator-teal { border-left: 5px solid #14b8a6 !important; }
 
 // ====== Animations ======
 @keyframes fadeIn {

@@ -116,12 +116,13 @@ import { FluxoMensal } from "../../models/lancamento.model";
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
-    .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 26px; font-weight: 600; color: var(--text-primary); }
-    
+    .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+    .kpi-card.card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
+    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
+
     .text-green { color: var(--accent-green) !important; }
     .text-red { color: var(--accent-red) !important; }
-    .text-blue { color: var(--accent-blue) !important; }
+    .text-blue { color: var(--accent-primary) !important; }
 
     .chart-card { background: var(--card-bg) !important; border-radius: 12px !important; margin-bottom: 24px; }
     .chart-card mat-card-header { padding: 24px 24px 0; }
@@ -151,16 +152,16 @@ export class FluxoCaixaComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top", labels: { color: "#1f2937", font: { weight: 'bold' } } },
+      legend: { position: "top", labels: { color: "#94a3b8", font: { weight: 'bold' } } },
       datalabels: { display: false },
     },
     scales: {
-      x: { ticks: { color: "#6B7280" }, grid: { display: false } },
-      y: { ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
+      x: { ticks: { color: "#64748b" }, grid: { display: false } },
+      y: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.05)" } },
       y1: {
         type: "linear",
         position: "right",
-        ticks: { color: "#38BDF8" },
+        ticks: { color: "#6366f1" },
         grid: { display: false },
       },
     },
@@ -198,8 +199,8 @@ export class FluxoCaixaComponent implements OnInit {
             type: "bar",
             label: "Entradas",
             data: this.fluxo.map((f: FluxoMensal) => f.entradas),
-            backgroundColor: "rgba(52, 211, 153, 0.4)",
-            borderColor: "#34D399",
+            backgroundColor: "rgba(16, 185, 129, 0.4)",
+            borderColor: "#10b981",
             borderWidth: 1,
             borderRadius: 4,
             yAxisID: "y",
@@ -208,8 +209,8 @@ export class FluxoCaixaComponent implements OnInit {
             type: "bar",
             label: "Saídas",
             data: this.fluxo.map((f: FluxoMensal) => f.saidas),
-            backgroundColor: "rgba(248, 113, 113, 0.4)",
-            borderColor: "#F87171",
+            backgroundColor: "rgba(239, 68, 68, 0.4)",
+            borderColor: "#ef4444",
             borderWidth: 1,
             borderRadius: 4,
             yAxisID: "y",
@@ -218,10 +219,10 @@ export class FluxoCaixaComponent implements OnInit {
             type: "line",
             label: "Saldo Acumulado",
             data: this.fluxo.map((f: FluxoMensal) => f.saldoAcumulado),
-            borderColor: "#38BDF8",
-            backgroundColor: "rgba(56, 189, 248, 0.1)",
+            borderColor: "#6366f1",
+            backgroundColor: "rgba(99, 102, 241, 0.1)",
             borderWidth: 3,
-            pointBackgroundColor: "#38BDF8",
+            pointBackgroundColor: "#6366f1",
             pointRadius: 2,
             fill: true,
             tension: 0.4,

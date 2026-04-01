@@ -351,33 +351,27 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
     }
     .circle-icon mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
-    .circle-icon.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
-    .circle-icon.purple-light { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
-    .circle-icon.purple-dark { background: linear-gradient(135deg, #5b21b6, #4c1d95); }
-    .circle-icon.teal { background: linear-gradient(135deg, #2dd4bf, #0d9488); }
-    .circle-icon.teal-light { background: linear-gradient(135deg, #5eead4, #14b8a6); }
-    .circle-icon.teal-dark { background: linear-gradient(135deg, #0f766e, #115e59); }
-    .circle-icon.orange { background: linear-gradient(135deg, #fb923c, #ea580c); }
-    .circle-icon.orange-light { background: linear-gradient(135deg, #fdba74, #f97316); }
-    .circle-icon.green { background: linear-gradient(135deg, #4ade80, #16a34a); }
-    .circle-icon.gold { background: linear-gradient(135deg, #facc15, #ca8a04); }
+    /* Gradientes luxo para círculos de ícones - NOVA VERSÃO DINÂMICA */
+    .circle-icon.blue { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); }
+    .circle-icon.green { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); }
+    .circle-icon.orange { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); }
+    .circle-icon.purple { background: linear-gradient(135deg, var(--accent-purple), #9333ea); }
+    .circle-icon.red { background: linear-gradient(135deg, var(--accent-red), #b91c1c); }
+
+    .card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
+    .card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+    .card-indicator-orange { border-left: 5px solid var(--accent-orange) !important; }
+    .card-indicator-purple { border-left: 5px solid var(--accent-purple) !important; }
+    .card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
 
     .classic-progress { height: 10px !important; border-radius: 5px; background: rgba(255,255,255,0.05); }
-    :host ::ng-deep .classic-progress.gray .mdc-linear-progress__bar-inner { border-color: #9CA3AF !important; }
-    :host ::ng-deep .classic-progress.purple-bar .mdc-linear-progress__bar-inner { border-color: #8B5CF6 !important; }
-    :host ::ng-deep .classic-progress.teal .mdc-linear-progress__bar-inner { border-color: #2dd4bf !important; }
-    :host ::ng-deep .classic-progress.orange .mdc-linear-progress__bar-inner { border-color: #fb923c !important; }
+    :host ::ng-deep .classic-progress.gray .mdc-linear-progress__bar-inner { border-color: #64748b !important; }
+    :host ::ng-deep .classic-progress.purple-bar .mdc-linear-progress__bar-inner { border-color: var(--accent-purple) !important; }
+    :host ::ng-deep .classic-progress.teal .mdc-linear-progress__bar-inner { border-color: var(--accent-green) !important; }
+    :host ::ng-deep .classic-progress.orange .mdc-linear-progress__bar-inner { border-color: var(--accent-orange) !important; }
 
     .consolidado-row-header { font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 24px 0 12px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
     .consolidado-row-header.first { margin-top: 0; }
-
-    /* Garantia de visibilidade dos indicadores de 5px na página de Recursos */
-    .classic-card.card-indicator-purple { border-left: 5px solid #7c3aed !important; }
-    .classic-card.card-indicator-teal { border-left: 5px solid #2dd4bf !important; }
-    .classic-card.card-indicator-orange { border-left: 5px solid #fb923c !important; }
-    .classic-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
-    .classic-card.card-indicator-gold { border-left: 5px solid #facc15 !important; }
-    .classic-card.card-indicator-blue { border-left: 5px solid var(--accent-blue) !important; }
 
     .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px; margin-bottom: 24px; }
     .chart-card.compact { height: 420px; }
@@ -406,6 +400,13 @@ export class RecursosComponent implements OnInit {
   };
   recebimentos: Recebimento[] = [];
   recebimentosFiltrados: Recebimento[] = [];
+
+  getProgressColor(percent: number): string {
+    if (percent >= 100) return "var(--accent-green)";
+    if (percent >= 75) return "var(--accent-primary)";
+    if (percent >= 40) return "var(--accent-yellow)";
+    return "var(--accent-red)";
+  }
 
   filtroProjeto = "";
   filtroTipo = "";

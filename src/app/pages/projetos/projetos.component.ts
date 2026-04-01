@@ -232,20 +232,25 @@ Chart.register(...registerables);
     }
     .kpi-icon mat-icon { font-size: 24px; width: 24px; height: 24px; color: #ffffff !important; }
 
-    /* Estilos luxo preenchidos para Projetos */
-    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
-    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, #4ade80, #16a34a); }
-    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, #fbbf24, #d97706); }
-    .card-indicator-teal .kpi-icon { background: linear-gradient(135deg, #2dd4bf, #0d9488); }
+    /* Estilos luxo preenchidos para Projetos - Gradientes Dinâmicos */
+    .card-indicator-blue .kpi-icon { background: linear-gradient(135deg, var(--accent-primary), rgba(255,255,255,0.1)); }
+    .card-indicator-green .kpi-icon { background: linear-gradient(135deg, var(--accent-green), var(--accent-green-soft)); }
+    .card-indicator-yellow .kpi-icon { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); }
+    .card-indicator-teal .kpi-icon { background: linear-gradient(135deg, var(--accent-green-soft), #0d9488); }
+    .kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
+    .kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+    .kpi-card.card-indicator-yellow { border-left: 5px solid var(--accent-yellow) !important; }
+    .kpi-card.card-indicator-teal { border-left: 5px solid var(--accent-green-soft) !important; }
+    .kpi-card.card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
 
     .kpi-info { display: flex; flex-direction: column; }
     .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.5px; }
     .kpi-value { font-size: 24px; font-weight: 600; color: var(--text-primary); }
     
     .text-green { color: var(--accent-green) !important; }
-    .text-blue { color: var(--accent-blue) !important; }
+    .text-blue { color: var(--accent-primary) !important; }
     .term-yellow { color: var(--accent-yellow) !important; }
-    .text-teal { color: #2dd4bf !important; }
+    .text-teal { color: var(--accent-green-soft) !important; }
 
     .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
     .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
@@ -295,6 +300,11 @@ export class ProjetosComponent implements OnInit {
       legend: { position: "top", labels: { color: "#1f2937", font: { weight: 'bold' } } },
       datalabels: { display: false },
       tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderWidth: 1,
         callbacks: {
           label: (context: any) => {
             let label = context.dataset.label || "";
@@ -305,17 +315,13 @@ export class ProjetosComponent implements OnInit {
                 label += new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(context.parsed.x);
             }
             return label;
-          },
-          afterBody: (tooltipItems: any[]) => {
-            // Se estivermos em uma tooltip misturada do stack, calculamos o ratio.
-            return ""; 
           }
         }
       }
     },
     scales: {
-      x: { stacked: true, ticks: { color: "#6B7280" }, grid: { display: false } },
-      y: { stacked: true, ticks: { color: "#6B7280" }, grid: { color: "rgba(255,255,255,0.03)" } },
+      x: { stacked: true, ticks: { color: "#64748b" }, grid: { display: false } },
+      y: { stacked: true, ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.05)" } },
     },
   };
 
@@ -381,21 +387,21 @@ export class ProjetosComponent implements OnInit {
           {
             label: "Receitas",
             data: entradasNormais,
-            backgroundColor: "#34D399",
+            backgroundColor: "#10b981",
             borderRadius: 4,
             stack: "Stack 0",
           },
           {
             label: "Saldos Recuperados",
             data: saldosExtras,
-            backgroundColor: "#059669",
+            backgroundColor: "#065f46", /* Emerald 800 */
             borderRadius: 4,
             stack: "Stack 0",
           },
           {
             label: "Despesas",
             data: p.map(x => x.saidas),
-            backgroundColor: "#38BDF8",
+            backgroundColor: "#6366f1",
             borderRadius: 4,
             stack: "Stack 1",
           },

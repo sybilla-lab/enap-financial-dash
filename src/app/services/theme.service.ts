@@ -1,34 +1,58 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, signal, effect } from "@angular/core";
+
+export type ThemePalette = "slate-indigo" | "zinc-emerald" | "midnight-blue" | "neutral-amber";
 
 @Injectable({ providedIn: "root" })
 export class ThemeService {
-  isDark = signal(false);
+  private readonly PALETTE_KEY = "fincontrol-palette";
+  private readonly DARK_MODE_KEY = "fincontrol-dark-mode";
+  
+  // Sinais para estado do tema
+  public activePalette = signal<ThemePalette>(this.getSavedPalette());
+  public isDark = signal<boolean>(this.getSavedDarkMode());
 
   constructor() {
-    const saved = typeof localStorage !== "undefined" ? localStorage.getItem("theme") : null;
-    if (saved === "light") {
-      this.isDark.set(false);
-    }
-    this.applyTheme();
+    // Efeito para aplicar as classes ao body sempre que os sinais mudarem
+    effect(() => {
+      this.applyTheme(this.activePalette(), this.isDark());
+    });
   }
 
-  toggle(): void {
+  toggle() {
     this.isDark.set(!this.isDark());
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("theme", this.isDark() ? "dark" : "light");
-    }
-    this.applyTheme();
+    localStorage.setItem(this.DARK_MODE_KEY, String(this.isDark()));
   }
 
-  private applyTheme(): void {
-    if (typeof document === "undefined") return;
+  setPalette(palette: ThemePalette) {
+    this.activePalette.set(palette);
+    localStorage.setItem(this.PALETTE_KEY, palette);
+  }
+
+  private getSavedPalette(): ThemePalette {
+    const saved = localStorage.getItem(this.PALETTE_KEY) as ThemePalette;
+    return (["slate-indigo", "zinc-emerald", "midnight-blue", "neutral-amber"].includes(saved)) 
+      ? saved 
+      : "slate-indigo";
+  }
+
+  private getSavedDarkMode(): boolean {
+    const saved = localStorage.getItem(this.DARK_MODE_KEY);
+    return saved === null ? true : saved === "true"; // Padrão é dark-theme
+  }
+
+  private applyTheme(palette: ThemePalette, isDark: boolean) {
     const body = document.body;
-    if (this.isDark()) {
+    
+    // 1. Gerenciar Modo Escuro/Claro (Legado)
+    if (isDark) {
       body.classList.add("dark-theme");
-      body.classList.remove("light-theme");
     } else {
       body.classList.remove("dark-theme");
-      body.classList.add("light-theme");
     }
+    
+    // 2. Gerenciar Paleta (Novo)
+    const paletteClasses = ["theme-slate-indigo", "theme-zinc-emerald", "theme-midnight-blue", "theme-neutral-amber"];
+    body.classList.remove(...paletteClasses);
+    body.classList.add(`theme-${palette}`);
   }
 }

@@ -6,6 +6,7 @@ import { MatSlideToggleModule } from "@angular/material/slide-toggle";
 import { MatButtonModule } from "@angular/material/button";
 import { MatDividerModule } from "@angular/material/divider";
 import { DashboardConfigService, DashboardConfig } from "../../services/dashboard-config.service";
+import { ThemeService, ThemePalette } from "../../services/theme.service";
 
 @Component({
   selector: "app-gerenciar",
@@ -31,9 +32,32 @@ import { DashboardConfigService, DashboardConfig } from "../../services/dashboar
         </button>
       </div>
 
-      <p class="subtitle">Personalize a exibição dos indicadores conforme sua necessidade de análise. As mudanças são salvas automaticamente.</p>
+      <p class="subtitle">Personalize a exibição dos indicadores e a identidade visual conforme sua necessidade de análise. As mudanças são salvas automaticamente.</p>
 
       <div class="config-grid">
+        <!-- Identidade Visual -->
+        <mat-card class="config-card" appearance="outlined">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="icon-primary">palette</mat-icon>
+            <mat-card-title>Identidade Visual</mat-card-title>
+            <mat-card-subtitle>Escolha a paleta de cores do sistema</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="theme-grid">
+              @for (theme of themes; track theme.id) {
+                <div class="theme-option" 
+                     [class.active]="themeService.activePalette() === theme.id"
+                     (click)="themeService.setPalette(theme.id)">
+                  <div class="theme-preview" [style.background]="theme.bg">
+                    <div class="accent-dot" [style.background]="theme.color"></div>
+                  </div>
+                  <span class="theme-label">{{ theme.label }}</span>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+
         <!-- Financeiro -->
         <mat-card class="config-card" appearance="outlined">
           <mat-card-header>
@@ -172,6 +196,7 @@ import { DashboardConfigService, DashboardConfig } from "../../services/dashboar
     mat-card-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
     mat-card-subtitle { font-size: 12px; }
 
+    .icon-primary { color: var(--accent-primary); }
     .icon-blue { color: var(--accent-blue); }
     .icon-green { color: var(--accent-green); }
     .icon-purple { color: #a855f7; }
@@ -190,15 +215,67 @@ import { DashboardConfigService, DashboardConfig } from "../../services/dashboar
     .label { font-size: 14px; font-weight: 500; color: var(--text-primary); }
     .desc { font-size: 11px; color: var(--text-muted); }
 
+    /* Theme Grid Styles */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding: 16px 24px 24px;
+    }
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+      background: rgba(255,255,255,0.02);
+    }
+    .theme-option:hover { background: var(--hover-bg); }
+    .theme-option.active {
+      border-color: var(--accent-primary);
+      background: rgba(255,255,255,0.05);
+    }
+    .theme-preview {
+      width: 100%;
+      height: 48px;
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+    .accent-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .theme-label { font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; }
+
     mat-divider { opacity: 0.5; }
   `,
 })
 export class GerenciarComponent {
+  themes: { id: ThemePalette; label: string; color: string; bg: string }[] = [
+    { id: "slate-indigo", label: "Slate & Indigo", color: "#6366f1", bg: "#0f172a" },
+    { id: "zinc-emerald", label: "Zinc & Emerald", color: "#10b981", bg: "#18181b" },
+    { id: "midnight-blue", label: "Midnight Blue", color: "#0ea5e9", bg: "#020617" },
+    { id: "neutral-amber", label: "Neutral & Amber", color: "#f59e0b", bg: "#171717" },
+  ];
+
   get config() {
     return this.configService.config;
   }
 
-  constructor(private configService: DashboardConfigService) {}
+  constructor(
+    private configService: DashboardConfigService,
+    public themeService: ThemeService
+  ) {}
 
   toggle(key: keyof DashboardConfig, visible: boolean) {
     this.configService.updateConfig(key, visible);
@@ -206,5 +283,6 @@ export class GerenciarComponent {
 
   restaurarPadrao() {
     this.configService.resetConfig();
+    this.themeService.setPalette("slate-indigo");
   }
 }
