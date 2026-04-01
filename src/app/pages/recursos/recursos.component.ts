@@ -432,7 +432,7 @@ export class RecursosComponent implements OnInit {
   barData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barOptions: ChartConfiguration<"bar">["options"] = {
     responsive: true, maintainAspectRatio: false,
-    plugins: { 
+    plugins: {
       legend: { position: "top", labels: { color: "#1f2937", font: { size: 12, weight: "bold" } } },
       datalabels: { display: false }
     },
@@ -442,13 +442,13 @@ export class RecursosComponent implements OnInit {
     },
   };
 
-  constructor(public dataService: DataService) {}
+  constructor(public dataService: DataService) { }
 
   ngOnInit(): void {
     this.dataService.getRecursoDetalhado().subscribe((d) => {
       setTimeout(() => {
         this.isLoading = false;
-      }, 1500);
+      }, 2300);
       this.detalhado = d;
 
       this.pctAporte = this.dataService.META_APORTE > 0 ? (d.aporteRecebido / this.dataService.META_APORTE) * 100 : 0;
@@ -461,10 +461,10 @@ export class RecursosComponent implements OnInit {
         labels: ["Aporte Recebido", "Inflação", "Captação Recebida", "Captação Prevista", "Aporte Previsto"],
         datasets: [{
           data: [
-            d.aporteRecebido, 
-            d.aporteInflacao, 
-            d.captacaoRecebida, 
-            d.captacaoPrevista, 
+            d.aporteRecebido,
+            d.aporteInflacao,
+            d.captacaoRecebida,
+            d.captacaoPrevista,
             d.aportePrevisto
           ],
           backgroundColor: [
