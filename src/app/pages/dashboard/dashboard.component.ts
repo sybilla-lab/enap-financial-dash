@@ -668,7 +668,9 @@ export class DashboardComponent implements OnInit {
         .map(x => ({ projeto: x.projeto, execucao: x.execucao }));
 
       // Reintroduzindo o delay de 1.5 segundos solicitado para efeito de skeleton loader
-      this.isLoading = false;
+      setTimeout(() => {
+        this.isLoading = false;
+      }, 1500);
     });
   }
 
