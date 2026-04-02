@@ -10,7 +10,9 @@ import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { combineLatest } from "rxjs";
 import { DataService } from "../../services/data.service";
+import { ThemeService } from "../../services/theme.service";
 import { ProjetoResumo, Lancamento } from "../../models/lancamento.model";
+import { effect } from "@angular/core";
 
 Chart.register(...registerables);
 
@@ -341,7 +343,42 @@ export class ProjetosComponent implements OnInit {
     },
   };
 
-  constructor(private dataService: DataService) { }
+  constructor(private dataService: DataService, private themeService: ThemeService) { 
+    // Efeito para ajustar cores do gráfico dinamicamente quando o tema muda
+    effect(() => {
+      const isDark = this.themeService.isDark();
+      const textColor = isDark ? "#f8fafc" : "#1e293b";
+      const subColor = isDark ? "#94a3b8" : "#64748b";
+
+      this.barChartOptions = {
+        ...this.barChartOptions,
+        plugins: {
+          ...this.barChartOptions.plugins,
+          legend: {
+            ...this.barChartOptions.plugins?.legend,
+            labels: {
+              ...this.barChartOptions.plugins?.legend?.labels,
+              color: textColor
+            }
+          }
+        },
+        scales: {
+          x: { 
+            ...this.barChartOptions.scales?.x,
+            ticks: { color: subColor }
+          },
+          y: { 
+            ...this.barChartOptions.scales?.y,
+            ticks: { color: subColor }
+          }
+        }
+      };
+
+      if (!this.isLoading && this.projetos.length > 0) {
+        this.buildChart(this.projetosFiltrados);
+      }
+    });
+  }
 
   ngOnInit(): void {
     combineLatest({

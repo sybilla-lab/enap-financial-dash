@@ -234,9 +234,38 @@ mat-sidenav-content {
 
 // ====== Material Overrides (Dark Mode) ======
 body.dark-theme {
-  .mat-mdc-form-field-label-wrapper .mdc-floating-label { color: var(--text-secondary) !important; }
-  .mat-mdc-form-field-focus-indicator { border-color: var(--accent-primary) !important; }
-  .mat-mdc-select-value-text { color: var(--text-primary) !important; }
+  /* MDC Form Field Contrast Fixes */
+  --mdc-outlined-field-label-text-color: var(--text-secondary);
+  --mdc-outlined-field-focus-label-text-color: var(--accent-primary);
+  --mdc-outlined-field-hover-label-text-color: var(--text-primary);
+  --mdc-outlined-field-outline-color: rgba(255, 255, 255, 0.2);
+  --mdc-outlined-field-focus-outline-color: var(--accent-primary);
+  --mdc-outlined-field-hover-outline-color: rgba(255, 255, 255, 0.4);
+  
+  /* Select and Label Overrides */
+  .mat-mdc-form-field-label-wrapper .mdc-floating-label { 
+    color: var(--text-secondary) !important; 
+    opacity: 1 !important;
+  }
+  
+  .mat-mdc-form-field.mat-focused .mdc-floating-label {
+    color: var(--accent-primary) !important;
+  }
+
+  /* Specific fix for the notch label color */
+  .mdc-notched-outline__notch .mdc-floating-label {
+    color: var(--text-secondary) !important;
+  }
+
+  .mat-mdc-select-value-text { 
+    color: var(--text-primary) !important; 
+    font-weight: 500 !important;
+  }
+
+  .mat-mdc-select-arrow {
+    color: var(--text-secondary) !important;
+  }
+
   .mat-mdc-tab-label-container { border-bottom: 1px solid var(--border-color) !important; }
   .mat-mdc-tab .mdc-tab__text-label { color: var(--text-secondary) !important; }
   .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label { color: var(--accent-primary) !important; }
@@ -245,7 +274,7 @@ body.dark-theme {
   .mat-card-title { color: var(--text-primary) !important; }
   .mat-card-subtitle, .subtitle, .desc, .kpi-label, .kpi-sub, .card-subtitle, .label-muted { 
     color: var(--text-secondary) !important; 
-    opacity: 0.9 !important; 
+    opacity: 1 !important; 
   }
 }
 
