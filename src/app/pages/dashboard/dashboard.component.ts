@@ -237,7 +237,7 @@ export class ModalInfoComponent {
     <div class="page-container">
       <h1 class="page-title">
         <mat-icon>dashboard</mat-icon>
-        Dashboard Geral
+        Dashboard
       </h1>
 
       <!-- KPI Cards -->

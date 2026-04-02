@@ -233,7 +233,7 @@ export class AppComponent {
   sidenavCollapsed = false;
 
   navItems: NavItem[] = [
-    { label: "Dashboard Geral", icon: "dashboard", route: "/dashboard" },
+    { label: "Dashboard", icon: "dashboard", route: "/dashboard" },
     { label: "Recursos", icon: "account_balance", route: "/recursos" },
     { label: "Projetos", icon: "folder_special", route: "/projetos" },
     { label: "Categorias", icon: "category", route: "/categorias" },
