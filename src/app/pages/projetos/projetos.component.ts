@@ -339,7 +339,7 @@ export class ProjetosComponent implements OnInit {
     },
     scales: {
       x: { stacked: true, ticks: { color: "#64748b" }, grid: { display: false } },
-      y: { stacked: true, ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.05)" } },
+      y: { stacked: true, ticks: { color: "#64748b", autoSkip: false }, grid: { color: "rgba(255,255,255,0.05)" } },
     },
   };
 
@@ -365,11 +365,15 @@ export class ProjetosComponent implements OnInit {
         scales: {
           x: { 
             ...this.barChartOptions.scales?.x,
-            ticks: { color: subColor }
+            ticks: { ...this.barChartOptions.scales?.x?.ticks, color: subColor }
           },
           y: { 
             ...this.barChartOptions.scales?.y,
-            ticks: { color: subColor }
+            ticks: { 
+              ...this.barChartOptions.scales?.y?.ticks, 
+              color: subColor,
+              autoSkip: false // Garantir que todos os labels de projetos apareçam
+            }
           }
         }
       };
