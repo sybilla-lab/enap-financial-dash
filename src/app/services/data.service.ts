@@ -285,12 +285,12 @@ export class DataService {
       saldos: this.saldos$,
     }).pipe(
       map(({ lancs, status, saldos }) => {
-        const porProjeto = new Map<string, { entradas: number; saidas: number; recuperado: number }>();
+        const porProjeto = new Map<string, { entradas: number; saidas: number; remanescente: number }>();
 
         lancs.forEach((l: Lancamento) => {
           if (!l.projeto) return;
           if (!porProjeto.has(l.projeto)) {
-            porProjeto.set(l.projeto, { entradas: 0, saidas: 0, recuperado: 0 });
+            porProjeto.set(l.projeto, { entradas: 0, saidas: 0, remanescente: 0 });
           }
           const p = porProjeto.get(l.projeto)!;
           if (l.valor >= 0) {
@@ -304,9 +304,9 @@ export class DataService {
         saldos.forEach((s) => {
           if (!s.projeto) return;
           if (!porProjeto.has(s.projeto)) {
-             porProjeto.set(s.projeto, { entradas: 0, saidas: 0, recuperado: 0 });
+             porProjeto.set(s.projeto, { entradas: 0, saidas: 0, remanescente: 0 });
           }
-          porProjeto.get(s.projeto)!.recuperado += s.valorTransferido;
+          porProjeto.get(s.projeto)!.remanescente += s.valorTransferido;
         });
 
         return Array.from(porProjeto.entries())
@@ -318,7 +318,7 @@ export class DataService {
               saidas: data.saidas,
               saldo: data.entradas - data.saidas,
               execucao: data.entradas > 0 ? (data.saidas / data.entradas) * 100 : 0,
-              saldoRecuperado: data.recuperado,
+              saldoRemanescente: data.remanescente,
               status: statusInfo ? statusInfo.status : "Ativo",
             };
           })

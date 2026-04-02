@@ -25,7 +25,7 @@ export interface ProjetoResumo {
   saidas: number;
   saldo: number;
   execucao: number;
-  saldoRecuperado?: number;
+  saldoRemanescente?: number;
   status?: string; // Ativo, Em encerramento, Finalizado
 }
 

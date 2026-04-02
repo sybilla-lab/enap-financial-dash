@@ -72,8 +72,8 @@ Chart.register(...registerables);
           <mat-card-content>
             <div class="kpi-icon"><mat-icon>history</mat-icon></div>
             <div class="kpi-info">
-              <span class="kpi-label">Saldos Recuperados</span>
-              <span class="kpi-value text-teal">{{ totalSaldosRecuperados | currency: "BRL":"symbol":"1.2-2" }}</span>
+              <span class="kpi-label">Saldos Remanescentes</span>
+              <span class="kpi-value text-teal">{{ totalSaldosRemanescentes | currency: "BRL":"symbol":"1.2-2" }}</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -136,7 +136,7 @@ Chart.register(...registerables);
                   <th class="num">Entradas</th>
                   <th class="num">Saídas</th>
                   <th class="num">Saldo</th>
-                  <th class="num">Recuperado</th>
+                  <th class="num">Remanescente</th>
                   <th class="num">Execução %</th>
                   <th class="status-col">Status</th>
                 </tr>
@@ -161,7 +161,7 @@ Chart.register(...registerables);
                     <td class="num positive">{{ p.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
                     <td class="num negative">{{ p.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
                     <td class="num" [class.positive]="p.saldo >= 0" [class.negative]="p.saldo < 0">{{ p.saldo | currency: "BRL":"symbol":"1.2-2" }}</td>
-                    <td class="num text-teal font-bold">{{ (p.saldoRecuperado || 0) | currency: "BRL":"symbol":"1.2-2" }}</td>
+                    <td class="num text-teal font-bold">{{ (p.saldoRemanescente || 0) | currency: "BRL":"symbol":"1.2-2" }}</td>
                     <td class="num">{{ p.execucao | number: "1.1-1" }}%</td>
                     <td class="status-col">
                       <span class="status-badge" [ngClass]="p.status?.toLowerCase() || ''">
@@ -306,7 +306,7 @@ export class ProjetosComponent implements OnInit {
   lancamentosAlimenta: Lancamento[] = [];
   stats = { ativos: 0, execucaoMedia: 0 };
   saldosOpBasica = 0;
-  totalSaldosRecuperados = 0;
+  totalSaldosRemanescentes = 0;
 
   chartReady = false;
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
@@ -394,7 +394,7 @@ export class ProjetosComponent implements OnInit {
       this.projetosFiltrados = p;
       this.projetosLista = p.map((x) => x.projeto);
       this.statusLista = Array.from(new Set(p.map((x) => x.status || "Ativo"))).sort();
-      this.totalSaldosRecuperados = p.reduce((acc, curr) => acc + (curr.saldoRecuperado || 0), 0);
+      this.totalSaldosRemanescentes = p.reduce((acc, curr) => acc + (curr.saldoRemanescente || 0), 0);
       this.stats = {
         ativos: p.filter(x => x.status && x.status.toLowerCase() !== "finalizado").length,
         execucaoMedia: p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length
@@ -428,7 +428,7 @@ export class ProjetosComponent implements OnInit {
     this.chartReady = false;
     setTimeout(() => {
       const entradasNormais = p.map(x => x.entradas);
-      const saldosExtras = p.map(x => x.saldoRecuperado || 0);
+      const saldosExtras = p.map(x => x.saldoRemanescente || 0);
       const despesas = p.map(x => x.saidas);
 
       this.barChartData = {
@@ -442,7 +442,7 @@ export class ProjetosComponent implements OnInit {
             stack: "Stack 0",
           },
           {
-            label: "Saldos Recuperados",
+            label: "Saldos Remanescentes",
             data: saldosExtras,
             backgroundColor: "#065f46", /* Emerald 800 */
             borderRadius: 4,
