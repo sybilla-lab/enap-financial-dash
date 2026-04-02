@@ -273,7 +273,7 @@ Chart.register(...registerables);
     .chart-card, .table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .chart-card mat-card-header, .table-card mat-card-header { padding: 24px 24px 0; }
     .chart-card mat-card-title, .table-card mat-card-title { font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
-    .chart-wrapper { height: 350px; padding: 24px; }
+    .chart-wrapper { height: 550px; padding: 24px; }
 
     .table-container { overflow-x: auto; padding: 24px; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
