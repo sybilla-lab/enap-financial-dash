@@ -1,5 +1,6 @@
-import { Component, OnInit, Inject, ChangeDetectorRef } from "@angular/core";
+import { Component, OnInit, Inject, ChangeDetectorRef, ViewChild, ElementRef, AfterViewInit } from "@angular/core";
 import { CommonModule, CurrencyPipe, DecimalPipe } from "@angular/common";
+import { DragDropModule } from "@angular/cdk/drag-drop";
 import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
 import { MatDividerModule } from "@angular/material/divider";
@@ -17,10 +18,10 @@ import { DashboardConfigService } from "../../services/dashboard-config.service"
 @Component({
   selector: "app-modal-financiadores",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule, BaseChartDirective],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule, BaseChartDirective, DragDropModule],
   template: `
-    <div class="modal-box">
-      <div class="modal-header">
+    <div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+      <div class="modal-header" cdkDragHandle>
         <h2><mat-icon>account_balance_wallet</mat-icon> Recebido por Financiador</h2>
         <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
       </div>
@@ -48,13 +49,20 @@ import { DashboardConfigService } from "../../services/dashboard-config.service"
       height: 100%; 
       display: flex; 
       flex-direction: column; 
+      resize: both; 
+      overflow: hidden; 
+      min-width: 400px; 
+      min-height: 300px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border-radius: 12px;
     }
     :host-context(body.dark-theme) .modal-box { 
       background: var(--bg-primary) !important; 
       color: var(--text-primary) !important; 
     }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
-    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; cursor: move; }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); pointer-events: none; }
     .modal-content { padding: 24px; flex: 1; display: flex; gap: 24px; min-height: 0; align-items: center; }
     .chart-container { flex: 1; position: relative; min-height: 0; }
     .resume-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 8px; }
@@ -101,10 +109,10 @@ export class ModalFinanciadoresComponent implements OnInit {
 @Component({
   selector: "app-modal-execucao",
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule, BaseChartDirective],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule, BaseChartDirective, DragDropModule],
   template: `
-    <div class="modal-box">
-      <div class="modal-header">
+    <div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+      <div class="modal-header" cdkDragHandle>
         <h2><mat-icon>payments</mat-icon> Execução de Projetos Ativos</h2>
         <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
       </div>
@@ -124,13 +132,20 @@ export class ModalFinanciadoresComponent implements OnInit {
       height: 100%; 
       display: flex; 
       flex-direction: column; 
+      resize: both; 
+      overflow: hidden; 
+      min-width: 400px; 
+      min-height: 300px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border-radius: 12px;
     }
     :host-context(body.dark-theme) .modal-box { 
       background: var(--bg-primary) !important; 
       color: var(--text-primary) !important; 
     }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
-    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; cursor: move; }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); pointer-events: none; }
     .modal-content { padding: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0; justify-content: center; }
     .chart-container { flex: 1; position: relative; min-height: 0; }
   `]
@@ -177,10 +192,10 @@ export class ModalExecucaoComponent implements OnInit {
 @Component({
   selector: 'app-modal-info',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatDividerModule, DragDropModule],
   template: `
-    <div class="modal-box">
-      <div class="modal-header">
+    <div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+      <div class="modal-header" cdkDragHandle>
         <h2><mat-icon>{{ data.icon }}</mat-icon> {{ data.title }}</h2>
         <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
       </div>
@@ -201,9 +216,16 @@ export class ModalExecucaoComponent implements OnInit {
       height: 100%; 
       display: flex; 
       flex-direction: column; 
+      resize: both; 
+      overflow: hidden; 
+      min-width: 400px; 
+      min-height: 300px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border-radius: 12px;
     }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: #f8fafc; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: move; }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: #f8fafc; pointer-events: none; }
     .modal-header mat-icon { color: var(--accent-primary); }
     .modal-content { padding: 32px 48px; display: flex; flex-direction: column; gap: 24px; flex: 1; justify-content: center; align-items: center; text-align: center; }
     .description { font-size: 18px; line-height: 1.6; color: var(--text-secondary); margin: 0; max-width: 600px; }
@@ -631,6 +653,7 @@ export class DashboardComponent implements OnInit {
   gapCaptacao = 0;
   inflacao = 0;
   totalRecebidoNet = 0;
+  modalCount = 0;
 
   get config() {
     return this.configService.config;
@@ -675,11 +698,17 @@ export class DashboardComponent implements OnInit {
   }
 
   abrirModal(tipo: string): void {
+    this.modalCount++;
+    const offsetTop = 40 + (this.modalCount % 5) * 40;
+    const offsetLeft = 40 + (this.modalCount % 5) * 40;
+
     const dialogOptions = {
       width: "960px",
       height: "680px",
       maxWidth: "95vw",
-      panelClass: "custom-dialog-container",
+      panelClass: "draggable-modal-panel",
+      hasBackdrop: false,
+      position: { top: `${offsetTop}px`, left: `${offsetLeft}px` }
     };
 
     if (tipo === "finance") {

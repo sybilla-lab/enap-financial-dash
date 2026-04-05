@@ -23,16 +23,28 @@ import { FluxoMensal } from "../../models/lancamento.model";
           Fluxo de Caixa
         </h1>
         
-        <mat-form-field appearance="outline" class="year-filter">
-          <mat-label>Filtrar por Ano</mat-label>
-          <mat-select [(ngModel)]="filtroAno" (selectionChange)="aplicarFiltroAno()">
-            <mat-option value="">Todos os anos</mat-option>
-            <mat-option value="2023">2023</mat-option>
-            <mat-option value="2024">2024</mat-option>
-            <mat-option value="2025">2025</mat-option>
-            <mat-option value="2026">2026</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <div class="filters-row">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Filtrar por Projeto</mat-label>
+            <mat-select [(ngModel)]="filtroProjeto" (selectionChange)="aplicarFiltros()">
+              <mat-option value="">Todos os projetos</mat-option>
+              @for (p of projetos; track p) {
+                <mat-option [value]="p">{{ p }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Filtrar por Ano</mat-label>
+            <mat-select [(ngModel)]="filtroAno" (selectionChange)="aplicarFiltros()">
+              <mat-option value="">Todos os anos</mat-option>
+              <mat-option value="2023">2023</mat-option>
+              <mat-option value="2024">2024</mat-option>
+              <mat-option value="2025">2025</mat-option>
+              <mat-option value="2026">2026</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
       </div>
 
       <div class="kpi-grid">
@@ -111,8 +123,9 @@ import { FluxoMensal } from "../../models/lancamento.model";
     </div>
   `,
   styles: `
-    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; flex-wrap: wrap; gap: 16px; }
-    .year-filter { width: 100%; max-width: 250px; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .filters-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .filter-field { width: 250px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
     .kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
@@ -141,11 +154,13 @@ import { FluxoMensal } from "../../models/lancamento.model";
   `,
 })
 export class FluxoCaixaComponent implements OnInit {
-  fluxoOriginal: FluxoMensal[] = [];
+  lancamentosOriginais: any[] = [];
   fluxo: FluxoMensal[] = [];
+  projetos: string[] = [];
   chartReady = false;
   totais = { entradas: 0, saidas: 0, saldoAtual: 0 };
   filtroAno = "";
+  filtroProjeto = "";
 
   mixedChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   mixedChartOptions: ChartConfiguration<"bar">["options"] = {
@@ -170,26 +185,73 @@ export class FluxoCaixaComponent implements OnInit {
   constructor(private dataService: DataService) {}
 
   ngOnInit(): void {
-    this.dataService.getFluxoMensal().subscribe((fluxo: FluxoMensal[]) => {
-      this.fluxoOriginal = fluxo;
-      this.aplicarFiltroAno();
+    this.dataService.lancamentos$.subscribe((lancs) => {
+      this.lancamentosOriginais = lancs;
+      this.aplicarFiltros();
+    });
+
+    this.dataService.getProjetosUnicos().subscribe((projs) => {
+      this.projetos = projs.sort();
     });
   }
 
-  aplicarFiltroAno(): void {
-    let filtrado = this.fluxoOriginal;
+  aplicarFiltros(): void {
+    let filtrados = this.lancamentosOriginais;
+
     if (this.filtroAno) {
-      filtrado = this.fluxoOriginal.filter(f => f.mesAno.endsWith(this.filtroAno));
+      filtrados = filtrados.filter(l => l.mesAno.endsWith(this.filtroAno));
     }
-    this.fluxo = filtrado;
-    
-    // Calculando totais com tipagem explícita
+
+    if (this.filtroProjeto) {
+      filtrados = filtrados.filter(l => l.projeto === this.filtroProjeto);
+    }
+
+    // Agrupar por mesAno
+    const porMes = new Map<string, { entradas: number; saidas: number }>();
+    filtrados.forEach((l) => {
+      if (!l.mesAno) return;
+      if (!porMes.has(l.mesAno)) {
+        porMes.set(l.mesAno, { entradas: 0, saidas: 0 });
+      }
+      const m = porMes.get(l.mesAno)!;
+      if (l.valor >= 0) {
+        m.entradas += l.valor;
+      } else {
+        m.saidas += Math.abs(l.valor);
+      }
+    });
+
+    // Ordenar e calcular acumulado
+    const sorted = Array.from(porMes.entries()).sort((a, b) => {
+      const [ma, ya] = a[0].split("/");
+      const [mb, yb] = b[0].split("/");
+      const dateA = parseInt(ya) * 100 + parseInt(ma);
+      const dateB = parseInt(yb) * 100 + parseInt(mb);
+      return dateA - dateB;
+    });
+
+    let acumulado = 0;
+    this.fluxo = sorted.map(([mesAno, data]) => {
+      acumulado += data.entradas - data.saidas;
+      return {
+        mesAno,
+        entradas: data.entradas,
+        saidas: data.saidas,
+        saldoAcumulado: acumulado,
+      };
+    });
+
+    // Calculando totais
     this.totais = {
-      entradas: this.fluxo.reduce((acc: number, curr: FluxoMensal) => acc + curr.entradas, 0),
-      saidas: this.fluxo.reduce((acc: number, curr: FluxoMensal) => acc + curr.saidas, 0),
+      entradas: this.fluxo.reduce((acc, curr) => acc + curr.entradas, 0),
+      saidas: this.fluxo.reduce((acc, curr) => acc + curr.saidas, 0),
       saldoAtual: this.fluxo[this.fluxo.length - 1]?.saldoAcumulado || 0
     };
 
+    this.renderizarGrafico();
+  }
+
+  private renderizarGrafico(): void {
     this.chartReady = false;
     setTimeout(() => {
       this.mixedChartData = {
