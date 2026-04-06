@@ -1,4 +1,5 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, signal, PLATFORM_ID, Inject } from "@angular/core";
+import { isPlatformBrowser } from "@angular/common";
 
 export interface DashboardConfig {
   recebido: boolean;
@@ -19,56 +20,54 @@ export interface DashboardConfig {
 export class DashboardConfigService {
   private readonly STORAGE_KEY = "dashboard_config";
   
-  // Usando Signal para melhor performance no Angular 17+
-  config = signal<DashboardConfig>(this.loadConfig());
+  private readonly defaultConfig: DashboardConfig = {
+    recebido: true,
+    executado: true,
+    saldo: true,
+    percentual: true,
+    pagamentos: true,
+    ticket: true,
+    inflacao: true,
+    meta: true,
+    runway: true,
+    gap: true,
+  };
 
-  constructor() {}
+  // Inicializa com configuração padrão
+  config = signal<DashboardConfig>(this.defaultConfig);
+
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+    if (isPlatformBrowser(this.platformId)) {
+      this.config.set(this.loadConfig());
+    }
+  }
 
   private loadConfig(): DashboardConfig {
-    const saved = localStorage.getItem(this.STORAGE_KEY);
-    const defaultConfig: DashboardConfig = {
-      recebido: true,
-      executado: true,
-      saldo: true,
-      percentual: true,
-      pagamentos: true,
-      ticket: true,
-      inflacao: true,
-      meta: true,
-      runway: true,
-      gap: true,
-    };
-
-    if (saved) {
-      try {
-        return { ...defaultConfig, ...JSON.parse(saved) };
-      } catch (e) {
-        return defaultConfig;
+    if (isPlatformBrowser(this.platformId)) {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (saved) {
+        try {
+          return { ...this.defaultConfig, ...JSON.parse(saved) };
+        } catch (e) {
+          return this.defaultConfig;
+        }
       }
     }
-    return defaultConfig;
+    return this.defaultConfig;
   }
 
   updateConfig(key: keyof DashboardConfig, visible: boolean) {
     const newConfig = { ...this.config(), [key]: visible };
     this.config.set(newConfig);
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(newConfig));
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(newConfig));
+    }
   }
 
   resetConfig() {
-    const defaultConfig: DashboardConfig = {
-      recebido: true,
-      executado: true,
-      saldo: true,
-      percentual: true,
-      pagamentos: true,
-      ticket: true,
-      inflacao: true,
-      meta: true,
-      runway: true,
-      gap: true,
-    };
-    this.config.set(defaultConfig);
-    localStorage.removeItem(this.STORAGE_KEY);
+    this.config.set(this.defaultConfig);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
   }
 }
