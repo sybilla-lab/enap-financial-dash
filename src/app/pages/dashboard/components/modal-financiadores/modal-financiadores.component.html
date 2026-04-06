@@ -1,0 +1,20 @@
+<div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+  <div class="modal-header" cdkDragHandle>
+    <h2><mat-icon>account_balance_wallet</mat-icon> Recebido por Financiador</h2>
+    <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-divider></mat-divider>
+  <div class="modal-content">
+    <div class="chart-container">
+       <canvas *ngIf="renderChart" baseChart [data]="chartData" [options]="chartOptions" [type]="'doughnut'"></canvas>
+    </div>
+    <div class="resume-list">
+      @for (f of data; track f.financiador) {
+        <div class="list-item">
+          <span class="label">{{ f.financiador }}</span>
+          <span class="value">{{ f.valor | currency: "BRL":"symbol":"1.2-2" }}</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>

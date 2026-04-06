@@ -1,0 +1,13 @@
+<div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+  <div class="modal-header" cdkDragHandle>
+    <h2><mat-icon>{{ data.icon }}</mat-icon> {{ data.title }}</h2>
+    <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-divider></mat-divider>
+  <div class="modal-content">
+    <p class="description">{{ data.description }}</p>
+    @if (data.value) {
+      <div class="highlight-value">{{ data.value }}</div>
+    }
+  </div>
+</div>

@@ -1,0 +1,26 @@
+.modal-box { 
+  padding: 0; 
+  background: #ffffff !important; 
+  color: #1e293b !important; 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  resize: both; 
+  overflow: hidden; 
+  min-width: 400px; 
+  min-height: 300px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border-radius: 12px;
+}
+:host-context(body.dark-theme) .modal-box { 
+  background: var(--bg-primary) !important; 
+  color: var(--text-primary) !important; 
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; cursor: move; }
+.modal-header h2 { margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); pointer-events: none; }
+.modal-content { padding: 24px; flex: 1; display: flex; gap: 24px; min-height: 0; align-items: center; }
+.chart-container { flex: 1; position: relative; min-height: 0; }
+.resume-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 8px; }
+.list-item { display: flex; justify-content: space-between; font-size: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+.value { font-weight: 600; font-variant-numeric: tabular-nums; }

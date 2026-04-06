@@ -1,0 +1,156 @@
+<div class="page-container">
+  <div class="header-row">
+    <h1 class="page-title">
+      <mat-icon>settings_suggest</mat-icon>
+      Gerenciamento do Dashboard
+    </h1>
+    <button mat-stroked-button color="warn" (click)="restaurarPadrao()">
+      <mat-icon>restart_alt</mat-icon>
+      Restaurar Padrão
+    </button>
+  </div>
+
+  <p class="subtitle">Personalize a exibição dos indicadores e a identidade visual conforme sua necessidade de análise. As mudanças são salvas automaticamente.</p>
+
+  <div class="config-grid">
+    <!-- Identidade Visual (Oculta por solicitação) -->
+    @if (false) {
+    <mat-card class="config-card" appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="icon-primary">palette</mat-icon>
+        <mat-card-title>Identidade Visual</mat-card-title>
+        <mat-card-subtitle>Escolha a paleta de cores do sistema</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="theme-grid">
+          @for (theme of themes; track theme.id) {
+            <div class="theme-option" 
+                 [class.active]="themeService.activePalette() === theme.id"
+                 (click)="themeService.setPalette(theme.id)">
+              <div class="theme-preview" [style.background]="theme.bg">
+                <div class="accent-dot" [style.background]="theme.color"></div>
+              </div>
+              <span class="theme-label">{{ theme.label }}</span>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+    }
+    <!-- Financeiro -->
+    <mat-card class="config-card" appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="icon-blue">payments</mat-icon>
+        <mat-card-title>Financeiro</mat-card-title>
+        <mat-card-subtitle>Indicadores de entrada e saída global</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="toggle-list">
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">Total Recebido</span>
+              <span class="desc">Soma de todos os aportes confirmados</span>
+            </div>
+            <mat-slide-toggle [checked]="config().recebido" (change)="toggle('recebido', $event.checked)"></mat-slide-toggle>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">Total Executado</span>
+              <span class="desc">Total de pagamentos realizados</span>
+            </div>
+            <mat-slide-toggle [checked]="config().executado" (change)="toggle('executado', $event.checked)"></mat-slide-toggle>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">Saldo Disponível</span>
+              <span class="desc">Recurso em conta (Recebido - Executado)</span>
+            </div>
+            <mat-slide-toggle [checked]="config().saldo" (change)="toggle('saldo', $event.checked)"></mat-slide-toggle>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">Inflação Recebida</span>
+              <span class="desc">Aportes extras de reajustes contratuais</span>
+            </div>
+            <mat-slide-toggle [checked]="config().inflacao" (change)="toggle('inflacao', $event.checked)"></mat-slide-toggle>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Operacional -->
+    <mat-card class="config-card" appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="icon-green">analytics</mat-icon>
+        <mat-card-title>Operacional</mat-card-title>
+        <mat-card-subtitle>Métricas de eficiência e volume</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="toggle-list">
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">% Execução</span>
+              <span class="desc">Percentual do plano de trabalho executado</span>
+            </div>
+            <mat-slide-toggle [checked]="config().percentual" (change)="toggle('percentual', $event.checked)"></mat-slide-toggle>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">N° de Pagamentos</span>
+              <span class="desc">Volume total de transações de saída</span>
+            </div>
+            <mat-slide-toggle [checked]="config().pagamentos" (change)="toggle('pagamentos', $event.checked)"></mat-slide-toggle>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">Ticket Médio</span>
+              <span class="desc">Valor médio por pagamento realizado</span>
+            </div>
+            <mat-slide-toggle [checked]="config().ticket" (change)="toggle('ticket', $event.checked)"></mat-slide-toggle>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">% Atingido (Meta Total)</span>
+              <span class="desc">Status vs Orçamento global aprovado</span>
+            </div>
+            <mat-slide-toggle [checked]="config().meta" (change)="toggle('meta', $event.checked)"></mat-slide-toggle>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Estratégico -->
+    <mat-card class="config-card" appearance="outlined">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="icon-purple">timer</mat-icon>
+        <mat-card-title>Estratégico</mat-card-title>
+        <mat-card-subtitle>Indicadores de sobrevivência e gap</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="toggle-list">
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">Runway (Meses)</span>
+              <span class="desc">Tempo estimado de sobrevivência financeira</span>
+            </div>
+            <mat-slide-toggle [checked]="config().runway" (change)="toggle('runway', $event.checked)"></mat-slide-toggle>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="toggle-item">
+            <div class="info">
+              <span class="label">Gap de Captação</span>
+              <span class="desc">Déficit atual em relação à meta total</span>
+            </div>
+            <mat-slide-toggle [checked]="config().gap" (change)="toggle('gap', $event.checked)"></mat-slide-toggle>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

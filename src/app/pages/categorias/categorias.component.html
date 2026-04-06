@@ -1,0 +1,112 @@
+<div class="page-container">
+  <h1 class="page-title">
+    <mat-icon>category</mat-icon>
+    Despesas por Categoria
+  </h1>
+
+  <div class="filter-bar">
+    <mat-form-field appearance="outline" class="filter-select">
+      <mat-label>Filtrar por Projetos</mat-label>
+      <mat-select [formControl]="projectFilter" multiple (selectionChange)="onFilterChange()">
+        <mat-select-trigger>
+          {{ (projectFilter.value && projectFilter.value.length > 0) ? projectFilter.value[0] : "" }}
+          @if ((projectFilter.value?.length || 0) > 1) {
+            <span class="additional-selection">
+              (+{{ (projectFilter.value?.length || 0) - 1 }} {{ (projectFilter.value?.length || 0) === 2 ? "outro" : "outros" }})
+            </span>
+          }
+        </mat-select-trigger>
+        @for (proj of allAvailableProjects; track proj) {
+          <mat-option [value]="proj">{{ proj }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    
+    @if (projectFilter.value && projectFilter.value.length > 0) {
+      <button mat-button color="warn" (click)="clearFilters()" class="clear-btn">
+        <mat-icon>filter_list_off</mat-icon>
+        Limpar Filtros
+      </button>
+    }
+  </div>
+
+  <div class="kpi-grid">
+    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>category</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">Total de Categorias </span>
+          <span class="kpi-value text-blue">{{ allCategorias.length }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>payments</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">Total Executado </span>
+          <span class="kpi-value text-green">{{ totalDespesas | currency: "BRL":"symbol":"1.2-2" }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>pie_chart</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">% Concentração Top5 </span>
+          <span class="kpi-value text-orange">{{ top5Percentual | number: "1.1-1" }}%</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Chart -->
+  <mat-card class="chart-card" appearance="outlined">
+    <mat-card-header><mat-card-title>Distribuição de Despesas</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="chart-wrapper">
+        @if (chartReady) {
+        <canvas baseChart
+          [data]="barChartData"
+          [options]="barChartOptions"
+          [type]="'bar'">
+        </canvas>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Table -->
+  <mat-card class="table-card" appearance="outlined">
+    <mat-card-header><mat-card-title><mat-icon>table_chart</mat-icon> Detalhamento</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th class="num">Total</th>
+              <th class="num">% do Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of allCategorias; track c.categoria) {
+            <tr>
+              <td>{{ c.categoria }}</td>
+              <td class="num negative">{{ c.total | currency: "BRL":"symbol":"1.2-2" }}</td>
+              <td class="num">{{ getPercentual(c.total) | number: "1.1-1" }}%</td>
+            </tr>
+            }
+            <tr class="total-row">
+              <td><strong>TOTAL</strong></td>
+              <td class="num"><strong>{{ totalDespesas | currency: "BRL":"symbol":"1.2-2" }}</strong></td>
+              <td class="num"><strong>100%</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,28 @@
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+.filters-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.filter-field { width: 250px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi-card { background: var(--card-bg) !important; border-radius: 12px !important; }
+.kpi-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+.kpi-card.card-indicator-green { border-left: 5px solid var(--accent-green) !important; }
+.kpi-card.card-indicator-red { border-left: 5px solid var(--accent-red) !important; }
+.kpi-card.card-indicator-blue { border-left: 5px solid var(--accent-primary) !important; }
+
+.text-green { color: var(--accent-green) !important; }
+.text-red { color: var(--accent-red) !important; }
+.text-blue { color: var(--accent-primary) !important; }
+
+.chart-card { background: var(--card-bg) !important; border-radius: 12px !important; margin-bottom: 24px; }
+.chart-card mat-card-header { padding: 24px 24px 0; }
+.chart-card mat-card-title { font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.chart-wrapper { height: 500px; padding: 24px; }
+
+.table-card { background: var(--card-bg) !important; border-radius: 12px !important; }
+.table-container { overflow-x: auto; padding: 16px; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.data-table th { padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+.data-table td { padding: 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+.data-table tr:hover td { background: var(--hover-bg); }
+.num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.positive { color: var(--accent-green) !important; }
+.negative { color: var(--accent-red) !important; }

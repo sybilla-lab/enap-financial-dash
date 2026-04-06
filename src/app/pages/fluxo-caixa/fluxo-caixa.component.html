@@ -1,0 +1,105 @@
+<div class="page-container">
+  <div class="header-row">
+    <h1 class="page-title">
+      <mat-icon>timeline</mat-icon>
+      Fluxo de Caixa
+    </h1>
+    
+    <div class="filters-row">
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Filtrar por Projeto</mat-label>
+        <mat-select [(ngModel)]="filtroProjeto" (selectionChange)="aplicarFiltros()">
+          <mat-option value="">Todos os projetos</mat-option>
+          @for (p of projetos; track p) {
+            <mat-option [value]="p">{{ p }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Filtrar por Ano</mat-label>
+        <mat-select [(ngModel)]="filtroAno" (selectionChange)="aplicarFiltros()">
+          <mat-option value="">Todos os anos</mat-option>
+          <mat-option value="2023">2023</mat-option>
+          <mat-option value="2024">2024</mat-option>
+          <mat-option value="2025">2025</mat-option>
+          <mat-option value="2026">2026</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-label">Total Entradas</div>
+        <div class="kpi-value text-green">{{ totais.entradas | currency: "BRL":"symbol":"1.2-2" }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-red" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-label">Total Saídas</div>
+        <div class="kpi-value text-red">{{ totais.saidas | currency: "BRL":"symbol":"1.2-2" }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-label">Saldo Atual</div>
+        <div class="kpi-value text-blue">{{ totais.saldoAtual | currency: "BRL":"symbol":"1.2-2" }}</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Mixed Chart -->
+  <mat-card class="chart-card" appearance="outlined">
+    <mat-card-header><mat-card-title>Entradas, Saídas e Saldo Acumulado</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="chart-wrapper">
+        @if (chartReady) {
+        <canvas baseChart
+          [data]="mixedChartData"
+          [options]="mixedChartOptions"
+          [type]="'bar'">
+        </canvas>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Table -->
+  <mat-card class="table-card" appearance="outlined">
+    <mat-card-header><mat-card-title><mat-icon>table_chart</mat-icon> Detalhamento Mensal</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mês/Ano</th>
+              <th class="num">Entradas</th>
+              <th class="num">Saídas</th>
+              <th class="num">Resultado</th>
+              <th class="num">Saldo Acumulado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of fluxo; track f.mesAno) {
+            <tr>
+              <td>{{ f.mesAno }}</td>
+              <td class="num positive">{{ f.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
+              <td class="num negative">{{ f.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
+              <td class="num" [class.positive]="f.entradas - f.saidas >= 0" [class.negative]="f.entradas - f.saidas < 0">
+                {{ f.entradas - f.saidas | currency: "BRL":"symbol":"1.2-2" }}
+              </td>
+              <td class="num" [class.positive]="f.saldoAcumulado >= 0" [class.negative]="f.saldoAcumulado < 0">
+                {{ f.saldoAcumulado | currency: "BRL":"symbol":"1.2-2" }}
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

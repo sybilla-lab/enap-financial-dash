@@ -1,0 +1,92 @@
+<div class="page-container">
+  <h1 class="page-title">
+    <mat-icon>history_edu</mat-icon>
+    Saldos Remanescentes
+  </h1>
+
+  <div class="kpi-grid">
+    <!-- KPI: Total Remanescente -->
+    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-info">
+          <div class="kpi-label">TOTAL EM SALDOS</div>
+          <div class="kpi-value text-blue">{{ totalRemanescente | currency: "BRL":"symbol":"1.2-2" }}</div>
+          <div class="kpi-sub">Total transferido de volta ao fundo</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- KPI: Projetos Finalizados -->
+    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-info">
+          <div class="kpi-label">PROJETOS COM SALDO</div>
+          <div class="kpi-value text-green">{{ saldos.length }}</div>
+          <div class="kpi-sub">Projetos que geraram sobras</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- KPI: Eficiência Média -->
+    <mat-card class="kpi-card card-indicator-purple" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-info">
+          <div class="kpi-label">EFICIÊNCIA MÉDIA</div>
+          <div class="kpi-value text-purple">{{ eficienciaMedia | number: "1.1-1" }}%</div>
+          <div class="kpi-sub">Média de utilização do orçamento</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="main-grid">
+    <!-- Chart: Saldos por Parceiro -->
+    <mat-card class="summary-card" appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>analytics</mat-icon> Distribuição por Parceiro
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="chart-wrapper">
+           <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Table: Detalhamento -->
+    <mat-card class="summary-card" appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>list_alt</mat-icon> Detalhamento de Projetos
+        </mat-card-title>
+      </mat-card-header>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="center">Data</th>
+              <th>Parceiro</th>
+              <th>Projeto</th>
+              <th class="num">Saldo Transferido</th>
+              <th class="center">Eficiência</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of saldos">
+              <td class="center">{{ s.data }}</td>
+              <td><span class="badge">{{ s.parceiro }}</span></td>
+              <td>{{ s.projeto }}</td>
+              <td class="num font-bold text-blue">{{ s.valorTransferido | currency: "BRL":"symbol":"1.2-2" }}</td>
+              <td class="center">
+                <span class="status-pill" [style.background-color]="getEfficiencyColor(s.percentualSobra)">
+                   {{ (100 - s.percentualSobra) | number: "1.1-1" }}%
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </mat-card>
+  </div>
+</div>

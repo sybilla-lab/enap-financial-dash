@@ -1,0 +1,12 @@
+<div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+  <div class="modal-header" cdkDragHandle>
+    <h2><mat-icon>payments</mat-icon> Execução de Projetos Ativos</h2>
+    <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-divider></mat-divider>
+  <div class="modal-content">
+    <div class="chart-container">
+       <canvas *ngIf="renderChart" baseChart [data]="chartData" [options]="chartOptions" [type]="'bar'"></canvas>
+    </div>
+  </div>
+</div>
