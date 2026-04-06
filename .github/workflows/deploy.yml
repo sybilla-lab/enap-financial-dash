@@ -31,7 +31,8 @@ jobs:
       - name: Build de produção
         run: |
           npx ng build --base-href /enap-financial-dash/
-          cp dist/fincontrol/browser/index.html dist/fincontrol/browser/404.html
+          cp dist/fincontrol/browser/index.csr.html dist/fincontrol/browser/index.html
+          cp dist/fincontrol/browser/index.csr.html dist/fincontrol/browser/404.html
 
       - name: Deploy para GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
