@@ -29,7 +29,9 @@ jobs:
           sed -i "s|__SHEETS_BASE_URL__|${{ secrets.SHEETS_BASE_URL }}|g" src/environments/environment.ts
 
       - name: Build de produção
-        run: npx ng build --base-href /enap-financial-dash/
+        run: |
+          npx ng build --base-href /enap-financial-dash/
+          cp dist/fincontrol/browser/index.html dist/fincontrol/browser/404.html
 
       - name: Deploy para GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
