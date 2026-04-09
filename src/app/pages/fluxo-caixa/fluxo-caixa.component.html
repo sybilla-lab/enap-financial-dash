@@ -1,34 +1,14 @@
 <div class="page-container">
+
+  <!-- Header -->
   <div class="header-row">
     <h1 class="page-title">
       <mat-icon>timeline</mat-icon>
       Fluxo de Caixa
     </h1>
-    
-    <div class="filters-row">
-      <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>Filtrar por Projeto</mat-label>
-        <mat-select [(ngModel)]="filtroProjeto" (selectionChange)="aplicarFiltros()">
-          <mat-option value="">Todos os projetos</mat-option>
-          @for (p of projetos; track p) {
-            <mat-option [value]="p">{{ p }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>Filtrar por Ano</mat-label>
-        <mat-select [(ngModel)]="filtroAno" (selectionChange)="aplicarFiltros()">
-          <mat-option value="">Todos os anos</mat-option>
-          <mat-option value="2023">2023</mat-option>
-          <mat-option value="2024">2024</mat-option>
-          <mat-option value="2025">2025</mat-option>
-          <mat-option value="2026">2026</mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
   </div>
 
+  <!-- KPIs primeiro -->
   <div class="kpi-grid">
     <mat-card class="kpi-card card-indicator-green" appearance="outlined">
       <mat-card-content>
@@ -52,23 +32,97 @@
     </mat-card>
   </div>
 
-  <!-- Mixed Chart -->
+  <!-- Gráfico com accordion de filtros acima -->
   <mat-card class="chart-card" appearance="outlined">
+
+    <!-- Accordion de filtros -->
+    <div class="accordion" [class.open]="filtrosAbertos">
+      <button class="accordion-header" (click)="filtrosAbertos = !filtrosAbertos">
+        <div class="accordion-title">
+          <mat-icon>tune</mat-icon>
+          <span>Filtros</span>
+          @if (totalFiltrosAtivos > 0) {
+            <span class="filter-badge">{{ totalFiltrosAtivos }}</span>
+          }
+        </div>
+        <div class="accordion-meta">
+          @if (totalFiltrosAtivos > 0) {
+            <button class="clear-btn" (click)="$event.stopPropagation(); limparFiltros()">
+              <mat-icon>close</mat-icon> Limpar
+            </button>
+          }
+          <mat-icon class="chevron">expand_more</mat-icon>
+        </div>
+      </button>
+
+      <div class="accordion-body">
+        <div class="filters-inner">
+
+          <!-- Ano -->
+          <div class="filter-group">
+            <span class="filter-label">Ano</span>
+            <div class="year-segment">
+              @for (a of anos; track a) {
+                <button class="year-btn" [class.active]="filtroAnos.includes(a)" (click)="toggleAno(a)">
+                  {{ a }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Mês -->
+          <div class="filter-group">
+            <span class="filter-label">Mês</span>
+            <div class="month-grid">
+              @for (m of meses; track m.valor) {
+                <button class="month-btn" [class.active]="filtroMeses.includes(m.valor)" (click)="toggleMes(m.valor)">
+                  {{ m.abrev }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <!-- Projeto -->
+          @if (projetos.length > 0) {
+            <div class="filter-group filter-group--wide">
+              <span class="filter-label">Projeto</span>
+              <div class="project-chips">
+                @for (p of projetos; track p) {
+                  <button
+                    class="project-chip"
+                    [class.active]="filtroProjetos.includes(p)"
+                    [style.--chip-bg]="getProjetoColor(p).bg"
+                    [style.--chip-border]="getProjetoColor(p).border"
+                    [style.--chip-text]="getProjetoColor(p).text"
+                    (click)="toggleProjeto(p)">
+                    <span class="chip-dot"></span>
+                    {{ p }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico -->
     <mat-card-header><mat-card-title>Entradas, Saídas e Saldo Acumulado</mat-card-title></mat-card-header>
     <mat-card-content>
       <div class="chart-wrapper">
         @if (chartReady) {
-        <canvas baseChart
-          [data]="mixedChartData"
-          [options]="mixedChartOptions"
-          [type]="'bar'">
-        </canvas>
+          <canvas baseChart [data]="mixedChartData" [options]="mixedChartOptions" [type]="'bar'"></canvas>
         }
       </div>
     </mat-card-content>
   </mat-card>
 
-  <!-- Table -->
+  <!-- Tabela -->
   <mat-card class="table-card" appearance="outlined">
     <mat-card-header><mat-card-title><mat-icon>table_chart</mat-icon> Detalhamento Mensal</mat-card-title></mat-card-header>
     <mat-card-content>
@@ -85,21 +139,22 @@
           </thead>
           <tbody>
             @for (f of fluxo; track f.mesAno) {
-            <tr>
-              <td>{{ f.mesAno }}</td>
-              <td class="num positive">{{ f.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
-              <td class="num negative">{{ f.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
-              <td class="num" [class.positive]="f.entradas - f.saidas >= 0" [class.negative]="f.entradas - f.saidas < 0">
-                {{ f.entradas - f.saidas | currency: "BRL":"symbol":"1.2-2" }}
-              </td>
-              <td class="num" [class.positive]="f.saldoAcumulado >= 0" [class.negative]="f.saldoAcumulado < 0">
-                {{ f.saldoAcumulado | currency: "BRL":"symbol":"1.2-2" }}
-              </td>
-            </tr>
+              <tr>
+                <td>{{ f.mesAno }}</td>
+                <td class="num positive">{{ f.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                <td class="num negative">{{ f.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                <td class="num" [class.positive]="f.entradas - f.saidas >= 0" [class.negative]="f.entradas - f.saidas < 0">
+                  {{ f.entradas - f.saidas | currency: "BRL":"symbol":"1.2-2" }}
+                </td>
+                <td class="num" [class.positive]="f.saldoAcumulado >= 0" [class.negative]="f.saldoAcumulado < 0">
+                  {{ f.saldoAcumulado | currency: "BRL":"symbol":"1.2-2" }}
+                </td>
+              </tr>
             }
           </tbody>
         </table>
       </div>
     </mat-card-content>
   </mat-card>
+
 </div>
