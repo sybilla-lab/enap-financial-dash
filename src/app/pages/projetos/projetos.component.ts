@@ -164,31 +164,41 @@ export class ProjetosComponent implements OnInit {
   private buildChart(p: ProjetoResumo[]): void {
     this.chartReady = false;
     setTimeout(() => {
-      const entradasNormais = p.map(x => x.entradas);
-      const saldosExtras = p.map(x => x.saldoRemanescente || 0);
-      const despesas = p.map(x => x.saidas);
+      // Total de saldos que saíram dos projetos e foram para Operação Básica
+      const totalSaldosParaOpBasica = p
+        .filter(x => x.projeto !== "Operação Básica")
+        .reduce((acc, x) => acc + (x.saldoRemanescente || 0), 0);
 
       this.barChartData = {
         labels: p.map((x) => x.projeto),
         datasets: [
           {
             label: "Receitas",
-            data: entradasNormais,
+            data: p.map(x => x.entradas),
             backgroundColor: "#10b981",
             borderRadius: 4,
             stack: "Stack 0",
           },
           {
-            label: "Saldos Remanescentes",
-            data: saldosExtras,
-            backgroundColor: "#065f46", /* Emerald 800 */
+            // Só aparece na linha de Operação Básica: soma de todos os saldos recebidos
+            label: "Saldos Recebidos (Op. Básica)",
+            data: p.map(x => x.projeto === "Operação Básica" ? totalSaldosParaOpBasica : 0),
+            backgroundColor: "#065f46",
             borderRadius: 4,
             stack: "Stack 0",
           },
           {
             label: "Despesas",
-            data: despesas,
+            data: p.map(x => x.saidas),
             backgroundColor: "#6366f1",
+            borderRadius: 4,
+            stack: "Stack 1",
+          },
+          {
+            // Saldo que saiu de cada projeto (exceto Op. Básica): aparece como despesa
+            label: "Saldo Transferido p/ Op. Básica",
+            data: p.map(x => x.projeto === "Operação Básica" ? 0 : (x.saldoRemanescente || 0)),
+            backgroundColor: "#f59e0b",
             borderRadius: 4,
             stack: "Stack 1",
           },
