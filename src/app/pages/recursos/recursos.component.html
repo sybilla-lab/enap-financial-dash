@@ -6,16 +6,16 @@
 
   <!-- Accordion Container -->
   @if (isLoading) {
-    <div class="kpi-grid-classic">
-      @for (i of [1,2,3,4]; track i) {
-        <mat-card class="classic-card skeleton-card" appearance="outlined">
-          <div class="skeleton-box" style="height: 160px; width: 100%;"></div>
-        </mat-card>
-      }
-    </div>
+  <div class="kpi-grid-classic">
+    @for (i of [1,2,3,4]; track i) {
+    <mat-card class="classic-card skeleton-card" appearance="outlined">
+      <div class="skeleton-box" style="height: 160px; width: 100%;"></div>
+    </mat-card>
+    }
+  </div>
   } @else {
   <mat-accordion multi="true" class="resource-accordion">
-    
+
     <!-- Aporte ENAP Section -->
     <mat-expansion-panel [expanded]="false" class="custom-panel">
       <mat-expansion-panel-header>
@@ -25,59 +25,61 @@
       </mat-expansion-panel-header>
       <div class="kpi-grid-classic">
         <!-- 1. Recebido -->
-    <mat-card class="classic-card card-indicator-purple" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header" style="margin-bottom: 40px">
-          <div class="circle-icon purple"><mat-icon>archive</mat-icon></div>
-          <div class="classic-label">APORTE RECEBIDO</div>
-        </div>
-        <div class="classic-value">{{ detalhado.aporteRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <mat-progress-bar mode="determinate" [value]="pctAporte" class="classic-progress blue"></mat-progress-bar>
-        <div class="classic-footer">{{ pctAporte | number: "1.1-1" }}% da meta atingida</div>
-      </mat-card-content>
-    </mat-card>
+        <mat-card class="classic-card card-indicator-purple" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header" style="margin-bottom: 40px">
+              <div class="circle-icon purple"><mat-icon>archive</mat-icon></div>
+              <div class="classic-label">APORTE RECEBIDO</div>
+            </div>
+            <div class="classic-value">{{ detalhado.aporteRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctAporte" class="classic-progress blue"></mat-progress-bar>
+            <div class="classic-footer">{{ pctAporte | number: "1.1-1" }}% da meta atingida</div>
+          </mat-card-content>
+        </mat-card>
 
-    <!-- 2. Previsto -->
-    <mat-card class="classic-card card-indicator-purple" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header">
-          <div class="circle-icon purple-light"><mat-icon>schedule</mat-icon></div>
-          <div class="classic-label">APORTE PREVISTO</div>
-        </div>
-        <div class="classic-value">{{ detalhado.aportePrevisto | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <div class="classic-sub">Parcelas futuras acordadas</div>
-        <mat-progress-bar mode="determinate" [value]="(detalhado.aportePrevisto / dataService.META_APORTE * 100)" class="classic-progress purple-bar"></mat-progress-bar>
-        <div class="classic-footer">{{ (detalhado.aportePrevisto / dataService.META_APORTE * 100) | number: "1.1-1" }}% do total</div>
-      </mat-card-content>
-    </mat-card>
+        <!-- 2. Previsto -->
+        <mat-card class="classic-card card-indicator-purple" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon purple-light"><mat-icon>schedule</mat-icon></div>
+              <div class="classic-label">APORTE PREVISTO</div>
+            </div>
+            <div class="classic-value">{{ detalhado.aportePrevisto | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Parcelas futuras acordadas</div>
+            <mat-progress-bar mode="determinate" [value]="(detalhado.aportePrevisto / dataService.META_APORTE * 100)"
+              class="classic-progress purple-bar"></mat-progress-bar>
+            <div class="classic-footer">{{ (detalhado.aportePrevisto / dataService.META_APORTE * 100) | number: "1.1-1"
+              }}% do total</div>
+          </mat-card-content>
+        </mat-card>
 
-    <!-- 3. Meta Total -->
-    <mat-card class="classic-card card-indicator-purple" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header">
-          <div class="circle-icon purple-dark"><mat-icon>flag</mat-icon></div>
-          <div class="classic-label">META TOTAL APORTE</div>
-        </div>
-        <div class="classic-value">{{ dataService.META_APORTE | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <div class="classic-sub">Recebido + Previsto acordado</div>
-        <mat-progress-bar mode="determinate" [value]="100" class="classic-progress blue"></mat-progress-bar>
-        <div class="classic-footer">Valor final do projeto</div>
-      </mat-card-content>
-    </mat-card>
+        <!-- 3. Meta Total -->
+        <mat-card class="classic-card card-indicator-purple" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon purple-dark"><mat-icon>flag</mat-icon></div>
+              <div class="classic-label">META TOTAL APORTE</div>
+            </div>
+            <div class="classic-value">{{ dataService.META_APORTE | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Recebido + Previsto acordado</div>
+            <mat-progress-bar mode="determinate" [value]="100" class="classic-progress blue"></mat-progress-bar>
+            <div class="classic-footer">Valor final do projeto</div>
+          </mat-card-content>
+        </mat-card>
 
-    <!-- 4. Inflação (Separado) -->
-    <mat-card class="classic-card card-indicator-orange" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header">
-          <div class="circle-icon orange-light"><mat-icon>trending_up</mat-icon></div>
-          <div class="classic-label">INFLAÇÃO RECEBIDA</div>
-        </div>
-        <div class="classic-value">{{ detalhado.aporteInflacao | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <div class="classic-sub">Saldo extra (não conta para a meta)</div>
-        <mat-progress-bar mode="determinate" [value]="0" class="classic-progress gray"></mat-progress-bar>
-        <div class="classic-footer">Reajustes contratuais</div>
-      </mat-card-content>
-    </mat-card>
+        <!-- 4. Inflação (Separado) -->
+        <mat-card class="classic-card card-indicator-orange" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon orange-light"><mat-icon>trending_up</mat-icon></div>
+              <div class="classic-label">INFLAÇÃO RECEBIDA</div>
+            </div>
+            <div class="classic-value">{{ detalhado.aporteInflacao | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Saldo extra (não conta para a meta)</div>
+            <mat-progress-bar mode="determinate" [value]="0" class="classic-progress gray"></mat-progress-bar>
+            <div class="classic-footer">Reajustes contratuais</div>
+          </mat-card-content>
+        </mat-card>
       </div>
     </mat-expansion-panel>
 
@@ -90,59 +92,64 @@
       </mat-expansion-panel-header>
       <div class="kpi-grid-classic">
         <!-- 1. Recebido -->
-    <mat-card class="classic-card card-indicator-teal" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header" style="margin-bottom: 40px">
-          <div class="circle-icon teal"><mat-icon>archive</mat-icon></div>
-          <div class="classic-label">CAPTAÇÃO RECEBIDA</div>
-        </div>
-        <div class="classic-value">{{ detalhado.captacaoRecebida | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <mat-progress-bar mode="determinate" [value]="pctCaptacaoRecebida" class="classic-progress teal"></mat-progress-bar>
-        <div class="classic-footer">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta atingida</div>
-      </mat-card-content>
-    </mat-card>
+        <mat-card class="classic-card card-indicator-teal" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header" style="margin-bottom: 40px">
+              <div class="circle-icon teal"><mat-icon>archive</mat-icon></div>
+              <div class="classic-label">CAPTAÇÃO RECEBIDA</div>
+            </div>
+            <div class="classic-value">{{ detalhado.captacaoRecebida | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctCaptacaoRecebida"
+              class="classic-progress teal"></mat-progress-bar>
+            <div class="classic-footer">{{ pctCaptacaoRecebida | number: "1.1-1" }}% da meta atingida</div>
+          </mat-card-content>
+        </mat-card>
 
-    <!-- 2. Previsto -->
-    <mat-card class="classic-card card-indicator-teal" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header">
-          <div class="circle-icon teal-light"><mat-icon>schedule</mat-icon></div>
-          <div class="classic-label">CAPTAÇÃO PREVISTA</div>
-        </div>
-        <div class="classic-value">{{ detalhado.captacaoPrevista | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <div class="classic-sub">Contratos assinados</div>
-        <mat-progress-bar mode="determinate" [value]="(detalhado.captacaoPrevista / dataService.META_CAPTACAO * 100)" class="classic-progress teal-bar"></mat-progress-bar>
-        <div class="classic-footer">{{ (detalhado.captacaoPrevista / dataService.META_CAPTACAO * 100) | number: "1.1-1" }}% do total</div>
-      </mat-card-content>
-    </mat-card>
+        <!-- 2. Previsto -->
+        <mat-card class="classic-card card-indicator-teal" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon teal-light"><mat-icon>schedule</mat-icon></div>
+              <div class="classic-label">CAPTAÇÃO PREVISTA</div>
+            </div>
+            <div class="classic-value">{{ detalhado.captacaoPrevista | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Contratos assinados</div>
+            <mat-progress-bar mode="determinate"
+              [value]="(detalhado.captacaoPrevista / dataService.META_CAPTACAO * 100)"
+              class="classic-progress teal-bar"></mat-progress-bar>
+            <div class="classic-footer">{{ (detalhado.captacaoPrevista / dataService.META_CAPTACAO * 100) | number:
+              "1.1-1" }}% do total</div>
+          </mat-card-content>
+        </mat-card>
 
-    <!-- 3. A Formalizar -->
-    <mat-card class="classic-card card-indicator-orange" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header">
-          <div class="circle-icon orange-light"><mat-icon>assignment_late</mat-icon></div>
-          <div class="classic-label">A FORMALIZAR</div>
-        </div>
-        <div class="classic-value">{{ detalhado.saldoACaptar | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <div class="classic-sub">Saldo p/ atingir meta</div>
-        <mat-progress-bar mode="determinate" [value]="(detalhado.saldoACaptar / dataService.META_CAPTACAO * 100)" class="classic-progress orange-bar"></mat-progress-bar>
-        <div class="classic-footer">Remanescente contratual</div>
-      </mat-card-content>
-    </mat-card>
+        <!-- 3. A Formalizar -->
+        <mat-card class="classic-card card-indicator-orange" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon orange-light"><mat-icon>assignment_late</mat-icon></div>
+              <div class="classic-label">A FORMALIZAR</div>
+            </div>
+            <div class="classic-value">{{ detalhado.saldoACaptar | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Saldo p/ atingir meta</div>
+            <mat-progress-bar mode="determinate" [value]="(detalhado.saldoACaptar / dataService.META_CAPTACAO * 100)"
+              class="classic-progress orange-bar"></mat-progress-bar>
+            <div class="classic-footer">Remanescente contratual</div>
+          </mat-card-content>
+        </mat-card>
 
-    <!-- 4. Meta Total -->
-    <mat-card class="classic-card card-indicator-teal" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header">
-          <div class="circle-icon teal-dark"><mat-icon>flag</mat-icon></div>
-          <div class="classic-label">META TOTAL CAPTAÇÃO</div>
-        </div>
-        <div class="classic-value">{{ dataService.META_CAPTACAO | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <div class="classic-sub">Total planejado</div>
-        <mat-progress-bar mode="determinate" [value]="100" class="classic-progress teal"></mat-progress-bar>
-        <div class="classic-footer">Objetivo de captação</div>
-      </mat-card-content>
-    </mat-card>
+        <!-- 4. Meta Total -->
+        <mat-card class="classic-card card-indicator-teal" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon teal-dark"><mat-icon>flag</mat-icon></div>
+              <div class="classic-label">META TOTAL CAPTAÇÃO</div>
+            </div>
+            <div class="classic-value">{{ dataService.META_CAPTACAO | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Total planejado</div>
+            <mat-progress-bar mode="determinate" [value]="100" class="classic-progress teal"></mat-progress-bar>
+            <div class="classic-footer">Objetivo de captação</div>
+          </mat-card-content>
+        </mat-card>
       </div>
     </mat-expansion-panel>
 
@@ -156,29 +163,31 @@
       <!-- Row 2: Consolidado -->
       <div class="kpi-grid-classic">
         <mat-card class="classic-card card-indicator-green" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header" style="margin-bottom: 40px;">
-          <div class="circle-icon green"><mat-icon>account_balance_wallet</mat-icon></div>
-          <div class="classic-label">TOTAL RECEBIDO (NET)</div>
-        </div>
-        <div class="classic-value">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <mat-progress-bar mode="determinate" [value]="pctTotalRecebido" class="classic-progress teal"></mat-progress-bar>
-        <div class="classic-footer">{{ pctTotalRecebido | number: "1.1-1" }}% da meta total conquistada</div>
-      </mat-card-content>
-    </mat-card>
+          <mat-card-content>
+            <div class="classic-header" style="margin-bottom: 40px;">
+              <div class="circle-icon green"><mat-icon>account_balance_wallet</mat-icon></div>
+              <div class="classic-label">TOTAL RECEBIDO (NET)</div>
+            </div>
+            <div class="classic-value">{{ detalhado.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <mat-progress-bar mode="determinate" [value]="pctTotalRecebido"
+              class="classic-progress teal"></mat-progress-bar>
+            <div class="classic-footer">{{ pctTotalRecebido | number: "1.1-1" }}% da meta total conquistada</div>
+          </mat-card-content>
+        </mat-card>
 
-    <mat-card class="classic-card card-indicator-gold" appearance="outlined">
-      <mat-card-content>
-        <div class="classic-header">
-          <div class="circle-icon gold"><mat-icon>stars</mat-icon></div>
-          <div class="classic-label">POTENCIAL TOTAL (META)</div>
-        </div>
-        <div class="classic-value">{{ dataService.META_TOTAL | currency: "BRL":"symbol":"1.2-2" }}</div>
-        <div class="classic-sub">Aporte + Captação Planejada</div>
-        <mat-progress-bar mode="determinate" [value]="pctTotalComPrevisto" class="classic-progress orange"></mat-progress-bar>
-        <div class="classic-footer">{{ pctTotalComPrevisto | number: "1.1-1" }}% das metas formalizadas</div>
-      </mat-card-content>
-    </mat-card>
+        <mat-card class="classic-card card-indicator-gold" appearance="outlined">
+          <mat-card-content>
+            <div class="classic-header">
+              <div class="circle-icon gold"><mat-icon>stars</mat-icon></div>
+              <div class="classic-label">POTENCIAL TOTAL (META)</div>
+            </div>
+            <div class="classic-value">{{ dataService.META_TOTAL | currency: "BRL":"symbol":"1.2-2" }}</div>
+            <div class="classic-sub">Aporte + Captação Planejada</div>
+            <mat-progress-bar mode="determinate" [value]="pctTotalComPrevisto"
+              class="classic-progress orange"></mat-progress-bar>
+            <div class="classic-footer">{{ pctTotalComPrevisto | number: "1.1-1" }}% das metas formalizadas</div>
+          </mat-card-content>
+        </mat-card>
       </div>
     </mat-expansion-panel>
   </mat-accordion>
@@ -187,12 +196,12 @@
   <!-- Charts & Insights -->
   <div class="charts-row">
     @if (isLoading) {
-      <mat-card class="chart-card compact" appearance="outlined">
-        <div class="skeleton-box" style="height: 100%; width: 100%;"></div>
-      </mat-card>
-      <mat-card class="chart-card compact" appearance="outlined">
-        <div class="skeleton-box" style="height: 100%; width: 100%;"></div>
-      </mat-card>
+    <mat-card class="chart-card compact" appearance="outlined">
+      <div class="skeleton-box" style="height: 100%; width: 100%;"></div>
+    </mat-card>
+    <mat-card class="chart-card compact" appearance="outlined">
+      <div class="skeleton-box" style="height: 100%; width: 100%;"></div>
+    </mat-card>
     } @else {
     <mat-card class="chart-card compact" appearance="outlined">
       <mat-card-header><mat-card-title>Distribuição dos Recursos</mat-card-title></mat-card-header>
@@ -230,7 +239,7 @@
             <mat-label>Projeto</mat-label>
             <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroProjeto" placeholder="projeto...">
           </mat-form-field>
-          
+
           <mat-form-field appearance="outline" class="filter-field mini">
             <mat-label>Tipo</mat-label>
             <mat-select [(ngModel)]="filtroTipo" (selectionChange)="applyFilter()">
@@ -239,7 +248,7 @@
               <mat-option value="Captação">Captação</mat-option>
             </mat-select>
           </mat-form-field>
-          
+
           <mat-form-field appearance="outline" class="filter-field mini">
             <mat-label>Mês/Ano</mat-label>
             <input matInput (keyup)="applyFilter()" [(ngModel)]="filtroPeriodo" placeholder="01/2026">
@@ -251,12 +260,32 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Projeto</th>
-              <th>Fornecedor</th>
-              <th>Identificação / Obs</th>
-              <th>Mês/Ano</th>
-              <th class="num">Valor</th>
-              <th>Status</th>
+              <th class="sortable" (click)="sort('projeto')">
+                Projeto
+                <mat-icon class="sort-icon">{{ sortColumn === 'projeto' ? (sortDirection === 'asc' ? 'arrow_upward' :
+                  'arrow_downward') : 'unfold_more' }}</mat-icon>
+              </th>
+              <th class="sortable" (click)="sort('fornecedor')">
+                Fornecedor
+                <mat-icon class="sort-icon">{{ sortColumn === 'fornecedor' ? (sortDirection === 'asc' ? 'arrow_upward' :
+                  'arrow_downward') : 'unfold_more' }}</mat-icon>
+              </th>
+              <th>Identificação/Obs</th>
+              <th class="sortable" (click)="sort('mesAno')">
+                Mês/Ano
+                <mat-icon class="sort-icon">{{ sortColumn === 'mesAno' ? (sortDirection === 'asc' ? 'arrow_upward' :
+                  'arrow_downward') : 'unfold_more' }}</mat-icon>
+              </th>
+              <th class="num sortable" (click)="sort('valor')">
+                Valor
+                <mat-icon class="sort-icon">{{ sortColumn === 'valor' ? (sortDirection === 'asc' ? 'arrow_upward' :
+                  'arrow_downward') : 'unfold_more' }}</mat-icon>
+              </th>
+              <th class="sortable" (click)="sort('status')">
+                Status
+                <mat-icon class="sort-icon">{{ sortColumn === 'status' ? (sortDirection === 'asc' ? 'arrow_upward' :
+                  'arrow_downward') : 'unfold_more' }}</mat-icon>
+              </th>
               <th>Detalhe</th>
             </tr>
           </thead>
@@ -269,7 +298,8 @@
               <td class="white-text">{{ r.mesAno }}</td>
               <td class="num positive font-bold">{{ r.valor | currency: "BRL":"symbol":"1.2-2" }}</td>
               <td>
-                <span class="status-badge" [class.recebido]="r.status === 'recebido'" [class.previsto]="r.status === 'previsto'">
+                <span class="status-badge" [class.recebido]="r.status === 'recebido'"
+                  [class.previsto]="r.status === 'previsto'">
                   {{ r.status }}
                 </span>
               </td>

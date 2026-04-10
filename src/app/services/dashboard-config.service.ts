@@ -24,13 +24,13 @@ export class DashboardConfigService {
     recebido: true,
     executado: true,
     saldo: true,
-    percentual: true,
-    pagamentos: true,
-    ticket: true,
-    inflacao: true,
-    meta: true,
-    runway: true,
-    gap: true,
+    percentual: false,
+    pagamentos: false,
+    ticket: false,
+    inflacao: false,
+    meta: false,
+    runway: false,
+    gap: false,
   };
 
   // Inicializa com configuração padrão

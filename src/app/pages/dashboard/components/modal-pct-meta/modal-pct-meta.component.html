@@ -1,0 +1,83 @@
+<div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+  <div class="modal-header" cdkDragHandle>
+    <h2><mat-icon>analytics</mat-icon> % Atingido — Composição dos {{ data.percentual | number: "1.1-1" }}%</h2>
+    <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-divider></mat-divider>
+
+  <div class="modal-content">
+    <!-- Stacked progress -->
+    <div class="stack-section">
+      <div class="stack-label-row">
+        <span class="stack-title">Composição do Total Recebido vs Meta</span>
+        <span class="stack-pct">{{ data.percentual | number: "1.1-1" }}%</span>
+      </div>
+      <div class="stack-bar">
+        <div class="seg aporte" [style.width.%]="pctAporte" title="Aporte ENAP"></div>
+        <div class="seg captacao" [style.width.%]="pctCaptacao" title="Captação"></div>
+      </div>
+      <div class="stack-legend">
+        <span class="dot aporte"></span> Aporte ENAP
+        <span class="dot captacao"></span> Captação
+        <span class="dot faltante"></span> A captar
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-item purple">
+        <mat-icon>archive</mat-icon>
+        <span class="kpi-label">Aporte Recebido</span>
+        <span class="kpi-val">{{ data.aporteRecebido | currency: "BRL":"symbol":"1.0-0" }}</span>
+        <span class="kpi-sub">{{ pctAporte | number: "1.1-1" }}% da meta</span>
+      </div>
+      <div class="kpi-item teal">
+        <mat-icon>public</mat-icon>
+        <span class="kpi-label">Captação Recebida</span>
+        <span class="kpi-val">{{ data.captacaoRecebida | currency: "BRL":"symbol":"1.0-0" }}</span>
+        <span class="kpi-sub">{{ pctCaptacao | number: "1.1-1" }}% da meta</span>
+      </div>
+      <div class="kpi-item green">
+        <mat-icon>account_balance_wallet</mat-icon>
+        <span class="kpi-label">Total Recebido</span>
+        <span class="kpi-val">{{ data.totalRecebido | currency: "BRL":"symbol":"1.0-0" }}</span>
+        <span class="kpi-sub">{{ data.percentual | number: "1.1-1" }}% da meta</span>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Meta & Gap -->
+    <div class="meta-row">
+      <div class="meta-item">
+        <mat-icon class="icon-gold">stars</mat-icon>
+        <div>
+          <span class="meta-label">Meta Total</span>
+          <span class="meta-val">{{ data.metaTotal | currency: "BRL":"symbol":"1.0-0" }}</span>
+        </div>
+      </div>
+      <div class="meta-item">
+        <mat-icon class="icon-red">not_interested</mat-icon>
+        <div>
+          <span class="meta-label">A Captar (Gap)</span>
+          <span class="meta-val gap">{{ data.saldoACaptar | currency: "BRL":"symbol":"1.0-0" }}</span>
+        </div>
+      </div>
+    </div>
+
+    @if (data.financiadores.length) {
+      <mat-divider></mat-divider>
+      <div class="financiadores-section">
+        <div class="list-title">Financiadores</div>
+        @for (f of data.financiadores; track f.financiador) {
+          <div class="fin-row">
+            <span class="fin-name">{{ f.financiador }}</span>
+            <span class="fin-val">{{ f.valor | currency: "BRL":"symbol":"1.0-0" }}</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

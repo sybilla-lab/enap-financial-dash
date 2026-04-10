@@ -1,0 +1,190 @@
+<div class="page-container">
+  <h1 class="page-title">
+    <mat-icon>trending_up</mat-icon>
+    Rendimentos Financeiros
+  </h1>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>show_chart</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">Valor Total Bruto</span>
+          @if (isLoading) {
+            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          } @else {
+            <span class="kpi-value text-green">{{ resumo.totalBruto | currency:"BRL":"symbol":"1.2-2" }}</span>
+          }
+          <span class="kpi-sub">Soma de todos os rendimentos</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-red" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">Valor Total Impostos</span>
+          @if (isLoading) {
+            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          } @else {
+            <span class="kpi-value text-red">{{ resumo.totalImpostos | currency:"BRL":"symbol":"1.2-2" }}</span>
+          }
+          <span class="kpi-sub">Soma de IOF/IR descontados</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>account_balance_wallet</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">Valor Total Líquido</span>
+          @if (isLoading) {
+            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          } @else {
+            <span class="kpi-value text-blue">{{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
+          }
+          <span class="kpi-sub">Bruto − Impostos</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>task_alt</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">Já Utilizado</span>
+          @if (isLoading) {
+            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          } @else {
+            <span class="kpi-value text-orange">{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
+          }
+          <span class="kpi-sub">Líquido dos lançamentos utilizados</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="kpi-card card-indicator-teal" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-icon"><mat-icon>savings</mat-icon></div>
+        <div class="kpi-info">
+          <span class="kpi-label">Saldo Líquido Disponível</span>
+          @if (isLoading) {
+            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          } @else {
+            <span class="kpi-value text-teal">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
+          }
+          <span class="kpi-sub">Líquido dos lançamentos não utilizados</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Barra de Utilização + nota contextual -->
+  @if (!isLoading) {
+  <mat-card class="utilization-card" appearance="outlined">
+    <mat-card-content>
+      <div class="util-header">
+        <mat-icon>donut_large</mat-icon>
+        <span class="util-title">Composição do Saldo Líquido</span>
+        <span class="util-total">Total líquido: {{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
+      </div>
+      <div class="stacked-bar">
+        <div class="seg-used" [style.width.%]="pctUtilizado"
+             [matTooltip]="'Utilizado: ' + (resumo.totalUtilizado | currency:'BRL':'symbol':'1.2-2')">
+        </div>
+        <div class="seg-available" [style.width.%]="pctDisponivel"
+             [matTooltip]="'Disponível: ' + (resumo.saldoDisponivel | currency:'BRL':'symbol':'1.2-2')">
+        </div>
+      </div>
+      <div class="util-legend">
+        <div class="leg-item">
+          <span class="dot used"></span>
+          <span>Utilizado — {{ pctUtilizado | number:"1.1-1" }}%</span>
+          <strong>{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</strong>
+        </div>
+        <div class="leg-item">
+          <span class="dot available"></span>
+          <span>Disponível — {{ pctDisponivel | number:"1.1-1" }}%</span>
+          <strong class="text-teal">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</strong>
+        </div>
+      </div>
+      <div class="context-note">
+        <mat-icon>info_outline</mat-icon>
+        O valor utilizado foi formalizado via Transferegov e autorizado pela ENAP. Foi aplicado na Operação Básica da parceria em momento de ausência de caixa por atraso de aporte (saldo acumulado até ago/25). O saldo disponível ainda não tem destino definido.
+      </div>
+    </mat-card-content>
+  </mat-card>
+  }
+
+  <!-- Gráfico mensal -->
+  <mat-card class="chart-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Evolução Mensal — Rendimento Bruto, Impostos e Saldo Líquido Acumulado</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="chart-wrapper">
+        @if (isLoading) {
+          <div class="skeleton-box" style="width:100%;height:100%;border-radius:8px;"></div>
+        } @else if (chartReady) {
+          <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Tabela de Detalhamento -->
+  <mat-card class="table-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title><mat-icon>table_chart</mat-icon> Detalhamento dos Lançamentos</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="sort('mesAno')">
+                Mês/Ano
+                <mat-icon class="sort-icon">{{ sortColumn==='mesAno' ? (sortDirection==='asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}</mat-icon>
+              </th>
+              <th class="num sortable" (click)="sort('valor')">
+                Valor
+                <mat-icon class="sort-icon">{{ sortColumn==='valor' ? (sortDirection==='asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}</mat-icon>
+              </th>
+              <th>Utilização</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (isLoading) {
+              @for (i of [1,2,3,4,5]; track i) {
+                <tr>
+                  <td><div class="skeleton-box" style="width:70px;height:16px;border-radius:4px;"></div></td>
+                  <td><div class="skeleton-box" style="width:110px;height:16px;border-radius:4px;margin-left:auto;"></div></td>
+                  <td><div class="skeleton-box" style="width:150px;height:16px;border-radius:4px;"></div></td>
+                </tr>
+              }
+            } @else {
+              @for (r of rendimentos; track $index) {
+                <tr [class.row-imposto]="r.valor < 0">
+                  <td>{{ r.mesAno }}</td>
+                  <td class="num font-bold" [class.positive]="r.valor > 0" [class.negative]="r.valor < 0">
+                    {{ r.valor | currency:"BRL":"symbol":"1.2-2" }}
+                  </td>
+                  <td>
+                    @if (r.utilizacao.toLowerCase().trim() === 'utilizado') {
+                      <span class="badge-used">utilizado</span>
+                    } @else {
+                      <span class="badge-disponivel">não utilizado</span>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

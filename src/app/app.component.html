@@ -3,11 +3,11 @@
     <!-- Sidebar header: Logos -->
     <div class="sidenav-header">
       @if (!sidenavCollapsed) {
-        <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub" />
-        <img src="enap_40.png" alt="ENAP" class="enap_40" />
+      <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub" />
+      <img src="enap_40.png" alt="ENAP" class="enap_40" />
       } @else {
-        <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub-small" />
-        <img src="enap_40.png" alt="ENAP" class="enap_40-small" />
+      <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="logo-hub-small" />
+      <img src="enap_40.png" alt="ENAP" class="enap_40-small" />
       }
     </div>
 
@@ -51,9 +51,10 @@
       <button mat-icon-button (click)="sidenav.toggle()" class="menu-btn">
         <mat-icon>menu</mat-icon>
       </button>
-      <span class="toolbar-title">Execuçao Financeira do Termo de Colaboração da Estratégia de Inovação Aberta</span>
+      <span class="toolbar-title">Execução Financeira do Termo de Colaboração da Estratégia de Inovação Aberta</span>
       <span class="spacer"></span>
-      <button mat-icon-button (click)="themeService.toggle()" [matTooltip]="themeService.isDark() ? 'Modo Claro' : 'Modo Escuro'">
+      <button mat-icon-button (click)="themeService.toggle()"
+        [matTooltip]="themeService.isDark() ? 'Modo Claro' : 'Modo Escuro'">
         <mat-icon>{{ themeService.isDark() ? "light_mode" : "dark_mode" }}</mat-icon>
       </button>
     </mat-toolbar>

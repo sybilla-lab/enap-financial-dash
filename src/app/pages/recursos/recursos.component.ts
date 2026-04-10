@@ -55,6 +55,24 @@ export class RecursosComponent implements OnInit {
   filtroPeriodo = "";
   isLoading = true;
 
+  sortColumn: keyof Recebimento | "" = "mesAno";
+  sortDirection: "asc" | "desc" = "asc";
+
+  sort(column: keyof Recebimento): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = "asc";
+    }
+    this.applyFilter();
+  }
+
+  private parseMesAno(s: string): number {
+    const parts = (s || "").split("/");
+    return parts.length === 2 ? parseInt(parts[1]) * 100 + parseInt(parts[0]) : 0;
+  }
+
   pctAporte = 0;
   pctCaptacaoRecebida = 0;
   pctCaptacaoTotal = 0;
@@ -161,5 +179,23 @@ export class RecursosComponent implements OnInit {
       const matchType = !type || r.observacao.toLowerCase().includes(type);
       return matchProj && matchPeriod && matchType;
     });
+
+    if (this.sortColumn) {
+      const col = this.sortColumn;
+      const dir = this.sortDirection;
+      this.recebimentosFiltrados.sort((a, b) => {
+        if (col === "mesAno") {
+          const diff = this.parseMesAno(a.mesAno) - this.parseMesAno(b.mesAno);
+          return dir === "asc" ? diff : -diff;
+        }
+        const valA = a[col];
+        const valB = b[col];
+        if (typeof valA === "number" && typeof valB === "number") {
+          return dir === "asc" ? valA - valB : valB - valA;
+        }
+        const cmp = String(valA || "").localeCompare(String(valB || ""));
+        return dir === "asc" ? cmp : -cmp;
+      });
+    }
   }
 }

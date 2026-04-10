@@ -73,3 +73,11 @@ export interface SaldoRemanescente {
   valorProjeto: number;
   percentualSobra: number;
 }
+
+export interface Rendimento {
+  categoria: string;
+  data: string;
+  mesAno: string;  // derivado de data
+  valor: number;
+  utilizacao: string; // preenchido = utilizado; vazio = disponível
+}

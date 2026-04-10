@@ -6,13 +6,14 @@ import { MatDividerModule } from "@angular/material/divider";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { MatDialogModule, MatDialog } from "@angular/material/dialog";
 import { BaseChartDirective } from "ng2-charts";
+import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { DashboardConfigService } from "../../services/dashboard-config.service";
 
-// Importando os novos componentes de modal
-import { ModalFinanciadoresComponent } from "./components/modal-financiadores/modal-financiadores.component";
-import { ModalExecucaoComponent } from "./components/modal-execucao/modal-execucao.component";
 import { ModalInfoComponent } from "./components/modal-info/modal-info.component";
+import { ModalPctExecucaoComponent } from "./components/modal-pct-execucao/modal-pct-execucao.component";
+import { ModalPctMetaComponent } from "./components/modal-pct-meta/modal-pct-meta.component";
+import { RecursoDetalhado } from "../../models/lancamento.model";
 
 @Component({
   selector: "app-dashboard",
@@ -47,7 +48,45 @@ export class DashboardComponent implements OnInit {
   gapCaptacao = 0;
   inflacao = 0;
   totalRecebidoNet = 0;
-  modalCount = 0;
+  recursoDetalhado: RecursoDetalhado | null = null;
+
+  // Charts inline
+  financiadoresChartReady = false;
+  execucaoChartReady = false;
+
+  financiadoresChartData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
+  financiadoresChartOptions: ChartConfiguration<"doughnut">["options"] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "60%",
+    plugins: {
+      legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 12 } },
+      datalabels: { display: false },
+    }
+  };
+
+  execucaoChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
+  execucaoChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: "y",
+    plugins: {
+      legend: { display: false },
+      datalabels: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(15,23,42,0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.parsed.x.toFixed(1)}%`
+        }
+      }
+    },
+    scales: {
+      x: { max: 100, ticks: { color: "#64748b", callback: (v: any) => v + "%" }, grid: { display: false } },
+      y: { ticks: { color: "#64748b" }, grid: { display: false } },
+    }
+  };
 
   get config() {
     return this.configService.config;
@@ -69,10 +108,26 @@ export class DashboardComponent implements OnInit {
     this.dataService.getRecursoDetalhado().subscribe(rd => {
       this.inflacao = rd.aporteInflacao;
       this.totalRecebidoNet = rd.totalRecebido;
+      this.recursoDetalhado = rd;
     });
 
     this.dataService.getRecebimentosPorFinanciador().subscribe((f) => {
       this.financiadores = f;
+      setTimeout(() => {
+        this.financiadoresChartData = {
+          labels: f.map(x => x.financiador),
+          datasets: [{
+            data: f.map(x => x.valor),
+            backgroundColor: [
+              "#10b981", "#6366f1", "#f59e0b", "#3b82f6", "#ef4444",
+              "#ec4899", "#14b8a6", "#f97316", "#a855f7", "#84cc16",
+              "#06b6d4", "#e11d48", "#8b5cf6", "#22c55e", "#fb923c"
+            ],
+            borderWidth: 0,
+          }]
+        };
+        this.financiadoresChartReady = true;
+      }, 50);
     });
 
     this.dataService.getRunway().subscribe(r => this.runway = r);
@@ -84,36 +139,73 @@ export class DashboardComponent implements OnInit {
         .filter(x => x.status && x.status.toLowerCase() !== "finalizado" && x.status.toLowerCase() !== "encerrado")
         .map(x => ({ projeto: x.projeto, execucao: x.execucao }));
 
-      // Reintroduzindo o delay de 1.5 segundos solicitado para efeito de skeleton loader
       setTimeout(() => {
+        this.execucaoChartData = {
+          labels: this.projetosAtivos.map(x => x.projeto),
+          datasets: [{
+            label: "Execução %",
+            data: this.projetosAtivos.map(x => Math.min(x.execucao, 100)),
+            backgroundColor: this.projetosAtivos.map(x =>
+              x.execucao >= 90 ? "rgba(16,185,129,0.5)" :
+              x.execucao >= 60 ? "rgba(99,102,241,0.5)" :
+              x.execucao >= 30 ? "rgba(245,158,11,0.5)" : "rgba(239,68,68,0.5)"
+            ),
+            borderColor: this.projetosAtivos.map(x =>
+              x.execucao >= 90 ? "#10b981" :
+              x.execucao >= 60 ? "#6366f1" :
+              x.execucao >= 30 ? "#f59e0b" : "#ef4444"
+            ),
+            borderWidth: 1,
+            borderRadius: 4,
+          }]
+        };
+        this.execucaoChartReady = true;
         this.isLoading = false;
       }, 1500);
     });
   }
 
   abrirModal(tipo: string): void {
-    this.modalCount++;
-    const offsetTop = 40 + (this.modalCount % 5) * 40;
-    const offsetLeft = 40 + (this.modalCount % 5) * 40;
-
     const dialogOptions = {
       width: "960px",
       height: "680px",
       maxWidth: "95vw",
       panelClass: "draggable-modal-panel",
-      hasBackdrop: false,
-      position: { top: `${offsetTop}px`, left: `${offsetLeft}px` }
+      hasBackdrop: true,
     };
 
-    if (tipo === "finance") {
-      this.dialog.open(ModalFinanciadoresComponent, {
+    if (tipo === "pct-execucao") {
+      this.dialog.open(ModalPctExecucaoComponent, {
         ...dialogOptions,
-        data: this.financiadores
+        width: "680px",
+        height: "600px",
+        data: {
+          percentual: this.indicadores.percentualExecucao,
+          totalRecebido: this.indicadores.totalRecebido,
+          totalExecutado: this.indicadores.totalExecutado,
+          saldoDisponivel: this.indicadores.saldoDisponivel,
+          projetos: this.projetos.map((p: any) => ({
+            projeto: p.projeto,
+            execucao: p.execucao,
+            entradas: p.entradas,
+            saidas: p.saidas
+          }))
+        }
       });
-    } else if (tipo === "execucao") {
-      this.dialog.open(ModalExecucaoComponent, {
+    } else if (tipo === "pct-meta") {
+      this.dialog.open(ModalPctMetaComponent, {
         ...dialogOptions,
-        data: this.projetosAtivos
+        width: "680px",
+        height: "640px",
+        data: {
+          percentual: this.recursoDetalhado ? (this.totalRecebidoNet / this.dataService.META_TOTAL * 100) : 0,
+          aporteRecebido: this.recursoDetalhado?.aporteRecebido ?? 0,
+          captacaoRecebida: this.recursoDetalhado?.captacaoRecebida ?? 0,
+          totalRecebido: this.totalRecebidoNet,
+          metaTotal: this.dataService.META_TOTAL,
+          saldoACaptar: this.recursoDetalhado?.saldoACaptar ?? 0,
+          financiadores: this.financiadores
+        }
       });
     } else if (tipo === "pagamentos") {
       this.dialog.open(ModalInfoComponent, {

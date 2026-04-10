@@ -56,4 +56,11 @@ export const routes: Routes = [
         (m) => m.SaldosGestaoComponent
       ),
   },
+  {
+    path: "rendimentos",
+    loadComponent: () =>
+      import("./pages/rendimentos/rendimentos.component").then(
+        (m) => m.RendimentosComponent
+      ),
+  },
 ];

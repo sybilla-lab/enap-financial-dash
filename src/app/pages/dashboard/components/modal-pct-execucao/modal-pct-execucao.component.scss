@@ -1,0 +1,45 @@
+.modal-box {
+  padding: 0;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  resize: both;
+  overflow: hidden;
+  min-width: 420px;
+  min-height: 320px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border-radius: 12px;
+}
+:host-context(body.dark-theme) .modal-box {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; cursor: move; }
+.modal-header h2 { margin: 0; font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); pointer-events: none; }
+
+.modal-content { padding: 20px 24px; flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; min-height: 0; }
+
+.kpi-row { display: flex; gap: 12px; }
+.kpi-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 10px; border-radius: 10px; border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.03);
+}
+.kpi-item mat-icon { font-size: 22px; width: 22px; height: 22px; }
+.kpi-item.green mat-icon { color: #10b981; }
+.kpi-item.indigo mat-icon { color: #6366f1; }
+.kpi-item.blue mat-icon { color: #3b82f6; }
+.kpi-label { font-size: 11px; color: var(--text-muted); text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-val { font-size: 15px; font-weight: 700; color: var(--text-primary); text-align: center; }
+
+.list-title { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+
+.project-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.project-row { display: grid; grid-template-columns: 1fr 120px 52px; align-items: center; gap: 12px; }
+.proj-name { font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-wrap { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.proj-pct { font-size: 13px; font-weight: 700; text-align: right; }

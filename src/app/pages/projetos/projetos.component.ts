@@ -52,7 +52,17 @@ export class ProjetosComponent implements OnInit {
     maintainAspectRatio: false,
     indexAxis: "y",
     plugins: {
-      legend: { position: "top", labels: { color: "#1f2937", font: { weight: 'bold' } } },
+      legend: {
+        position: "top",
+        labels: {
+          color: "#1f2937",
+          font: { weight: 'bold' },
+          filter: (item: any, data: any) => {
+            const firstIdx = data.datasets.findIndex((d: any) => d.label === item.text);
+            return firstIdx === item.datasetIndex;
+          }
+        }
+      },
       datalabels: { display: false },
       tooltip: {
         backgroundColor: "rgba(15, 23, 42, 0.9)",
@@ -64,10 +74,10 @@ export class ProjetosComponent implements OnInit {
           label: (context: any) => {
             let label = context.dataset.label || "";
             if (label) {
-                label += ": ";
+              label += ": ";
             }
             if (context.parsed.x !== null) {
-                label += new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(context.parsed.x);
+              label += new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(context.parsed.x);
             }
             return label;
           }
@@ -80,7 +90,7 @@ export class ProjetosComponent implements OnInit {
     },
   };
 
-  constructor(private dataService: DataService, private themeService: ThemeService) { 
+  constructor(private dataService: DataService, private themeService: ThemeService) {
     // Efeito para ajustar cores do gráfico dinamicamente quando o tema muda
     effect(() => {
       const isDark = this.themeService.isDark();
@@ -100,14 +110,14 @@ export class ProjetosComponent implements OnInit {
           }
         },
         scales: {
-          x: { 
+          x: {
             ...this.barChartOptions.scales?.x,
             ticks: { ...this.barChartOptions.scales?.x?.ticks, color: subColor }
           },
-          y: { 
+          y: {
             ...this.barChartOptions.scales?.y,
-            ticks: { 
-              ...this.barChartOptions.scales?.y?.ticks, 
+            ticks: {
+              ...this.barChartOptions.scales?.y?.ticks,
               color: subColor,
               autoSkip: false // Garantir que todos os labels de projetos apareçam
             }
@@ -181,7 +191,7 @@ export class ProjetosComponent implements OnInit {
           },
           {
             // Só aparece na linha de Operação Básica: soma de todos os saldos recebidos
-            label: "Saldos Recebidos (Op. Básica)",
+            label: "Saldo Remanescente",
             data: p.map(x => x.projeto === "Operação Básica" ? totalSaldosParaOpBasica : 0),
             backgroundColor: "#065f46",
             borderRadius: 4,
@@ -196,9 +206,9 @@ export class ProjetosComponent implements OnInit {
           },
           {
             // Saldo que saiu de cada projeto (exceto Op. Básica): aparece como despesa
-            label: "Saldo Transferido p/ Op. Básica",
+            label: "Saldo Remanescente",
             data: p.map(x => x.projeto === "Operação Básica" ? 0 : (x.saldoRemanescente || 0)),
-            backgroundColor: "#f59e0b",
+            backgroundColor: "#065f46",
             borderRadius: 4,
             stack: "Stack 1",
           },

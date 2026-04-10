@@ -12,6 +12,7 @@ import {
   RecursoDetalhado,
   StatusProjeto,
   SaldoRemanescente,
+  Rendimento,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
 
@@ -21,11 +22,13 @@ export class DataService {
   private recebimentosSubject = new BehaviorSubject<Recebimento[]>([]);
   private statusSubject = new BehaviorSubject<StatusProjeto[]>([]);
   private saldosSubject = new BehaviorSubject<SaldoRemanescente[]>([]);
-  
+  private rendimentosSubject = new BehaviorSubject<Rendimento[]>([]);
+
   lancamentos$ = this.lancamentosSubject.asObservable();
   recebimentos$ = this.recebimentosSubject.asObservable();
   status$ = this.statusSubject.asObservable();
   saldos$ = this.saldosSubject.asObservable();
+  rendimentos$ = this.rendimentosSubject.asObservable();
 
   // Metas financeiras
   readonly META_APORTE = 3023000;
@@ -37,6 +40,7 @@ export class DataService {
   private readonly SHEET_RECEBIMENTOS = this.SHEET_BASE + "&gid=595659211";
   private readonly SHEET_STATUS_PROJETOS = this.SHEET_BASE + "&gid=1699326950";
   private readonly SHEET_SALDOS = this.SHEET_BASE + "&gid=86178020";
+  private readonly SHEET_RENDIMENTOS = this.SHEET_BASE + "&gid=2032068393";
 
   constructor(private http: HttpClient) {
     this.carregarDados();
@@ -48,12 +52,14 @@ export class DataService {
       recebimentos: this.http.get(this.SHEET_RECEBIMENTOS, { responseType: "text" }),
       status: this.http.get(this.SHEET_STATUS_PROJETOS, { responseType: "text" }),
       saldos: this.http.get(this.SHEET_SALDOS, { responseType: "text" }),
+      rendimentos: this.http.get(this.SHEET_RENDIMENTOS, { responseType: "text" }),
     }).subscribe({
-      next: ({ principal, recebimentos, status, saldos }) => {
+      next: ({ principal, recebimentos, status, saldos, rendimentos }) => {
         this.parsePrincipal(principal);
         this.parseRecebimentos(recebimentos);
         this.parseStatusProjetos(status);
         this.parseSaldos(saldos);
+        this.parseRendimentos(rendimentos);
       },
       error: (err) => {
         console.error("Erro ao carregar dados do Google Sheets:", err);
@@ -510,6 +516,109 @@ export class DataService {
         return Array.from(mapa.entries())
           .map(([parceiro, valor]) => ({ parceiro, valor }))
           .sort((a, b) => b.valor - a.valor);
+      })
+    );
+  }
+
+  // ===== RENDIMENTOS (Aba GID 2032068393) =====
+  private parseRendimentos(csvText: string): void {
+    const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = parsed.data as string[][];
+    const rendimentos: Rendimento[] = [];
+
+    // Colunas: categoria(0), data(1), valor(2), utilização(3)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length < 3) continue;
+
+      const categoria = (row[0] || "").trim();
+      const data = (row[1] || "").trim();
+      const valor = this.parseValor((row[2] || "").trim());
+      const utilizacao = (row[3] || "").trim();
+
+      if (!categoria && valor === 0) continue;
+
+      // Derivar mesAno a partir da data (aceita DD/MM/YYYY ou MM/YYYY)
+      const mesAno = this.extrairMesAno(data);
+
+      rendimentos.push({ categoria, data, mesAno, valor, utilizacao });
+    }
+
+    // Ordenar por mesAno cronológico
+    rendimentos.sort((a, b) => this.compareMesAno(a.mesAno, b.mesAno));
+    this.rendimentosSubject.next(rendimentos);
+  }
+
+  private extrairMesAno(data: string): string {
+    if (!data) return "";
+    // Formato DD/MM/YYYY
+    const fullDate = data.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (fullDate) return `${fullDate[2].padStart(2, "0")}/${fullDate[3]}`;
+    // Formato MM/YYYY
+    const mesAno = data.match(/^(\d{1,2})\/(\d{4})$/);
+    if (mesAno) return `${mesAno[1].padStart(2, "0")}/${mesAno[2]}`;
+    return data;
+  }
+
+  private compareMesAno(a: string, b: string): number {
+    const parse = (s: string) => {
+      const parts = s.split("/");
+      return parts.length === 2 ? parseInt(parts[1]) * 100 + parseInt(parts[0]) : 0;
+    };
+    return parse(a) - parse(b);
+  }
+
+  getRendimentos(): Observable<Rendimento[]> {
+    return this.rendimentos$;
+  }
+
+  getRendimentoResumo(): Observable<{
+    totalBruto: number;
+    totalImpostos: number;
+    saldoLiquido: number;
+    totalUtilizado: number;
+    saldoDisponivel: number;
+    porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[];
+  }> {
+    return this.rendimentos$.pipe(
+      map((rends) => {
+        let totalBruto = 0;
+        let totalImpostos = 0;
+        // Calculados por registro: utilizado = campo preenchido, disponível = campo vazio
+        let totalUtilizado = 0;
+        let saldoDisponivel = 0;
+
+        const porMesMap = new Map<string, { bruto: number; imposto: number }>();
+
+        rends.forEach((r) => {
+          if (r.valor > 0) totalBruto += r.valor;
+          else totalImpostos += r.valor; // negativo
+
+          // Campo sempre preenchido: "utilizado" ou "não utilizado"
+          if (r.utilizacao.toLowerCase().trim() === "utilizado") {
+            totalUtilizado += r.valor;
+          } else {
+            saldoDisponivel += r.valor;
+          }
+
+          const key = r.mesAno || "Sem data";
+          if (!porMesMap.has(key)) porMesMap.set(key, { bruto: 0, imposto: 0 });
+          const m = porMesMap.get(key)!;
+          if (r.valor > 0) m.bruto += r.valor;
+          else m.imposto += r.valor;
+        });
+
+        const saldoLiquido = totalBruto + totalImpostos;
+
+        let acumulado = 0;
+        const porMes = Array.from(porMesMap.entries())
+          .sort((a, b) => this.compareMesAno(a[0], b[0]))
+          .map(([mesAno, d]) => {
+            acumulado += d.bruto + d.imposto;
+            return { mesAno, bruto: d.bruto, imposto: d.imposto, liquido: d.bruto + d.imposto, acumulado };
+          });
+
+        return { totalBruto, totalImpostos, saldoLiquido, totalUtilizado, saldoDisponivel, porMes };
       })
     );
   }

@@ -1,0 +1,45 @@
+<div class="modal-box" cdkDrag cdkDragBoundary=".cdk-overlay-container">
+  <div class="modal-header" cdkDragHandle>
+    <h2><mat-icon>speed</mat-icon> % Execução — Composição dos {{ data.percentual | number: "1.1-1" }}%</h2>
+    <button mat-icon-button (click)="dialogRef.close()"><mat-icon>close</mat-icon></button>
+  </div>
+  <mat-divider></mat-divider>
+
+  <div class="modal-content">
+    <!-- KPI trio -->
+    <div class="kpi-row">
+      <div class="kpi-item green">
+        <mat-icon>account_balance_wallet</mat-icon>
+        <span class="kpi-label">Total Recebido</span>
+        <span class="kpi-val">{{ data.totalRecebido | currency: "BRL":"symbol":"1.0-0" }}</span>
+      </div>
+      <div class="kpi-item indigo">
+        <mat-icon>payments</mat-icon>
+        <span class="kpi-label">Total Executado</span>
+        <span class="kpi-val">{{ data.totalExecutado | currency: "BRL":"symbol":"1.0-0" }}</span>
+      </div>
+      <div class="kpi-item blue">
+        <mat-icon>savings</mat-icon>
+        <span class="kpi-label">Saldo Disponível</span>
+        <span class="kpi-val">{{ data.saldoDisponivel | currency: "BRL":"symbol":"1.0-0" }}</span>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Project list -->
+    <div class="project-list">
+      <div class="list-title">Execução por Projeto</div>
+      @for (p of data.projetos; track p.projeto) {
+        <div class="project-row">
+          <span class="proj-name">{{ p.projeto }}</span>
+          <div class="bar-wrap">
+            <div class="bar-fill" [style.width.%]="p.execucao > 100 ? 100 : p.execucao"
+                 [style.background]="getBarColor(p.execucao)"></div>
+          </div>
+          <span class="proj-pct" [style.color]="getBarColor(p.execucao)">{{ p.execucao | number: "1.1-1" }}%</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>

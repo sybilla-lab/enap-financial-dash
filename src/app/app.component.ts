@@ -7,6 +7,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatListModule } from "@angular/material/list";
 import { MatTooltipModule } from "@angular/material/tooltip";
+import { Router, NavigationEnd } from "@angular/router";
+import { MatDialog } from "@angular/material/dialog";
+import { filter } from "rxjs/operators";
 import { ThemeService } from "./services/theme.service";
 
 interface NavItem {
@@ -42,7 +45,19 @@ export class AppComponent {
     { label: "Categorias", icon: "category", route: "/categorias" },
     { label: "Fluxo de Caixa", icon: "timeline", route: "/fluxo-caixa" },
     { label: "Saldos Remanescentes", icon: "history_edu", route: "/saldos" },
+    { label: "Rendimentos", icon: "trending_up", route: "/rendimentos" },
   ];
 
-  constructor(public themeService: ThemeService) { }
+  constructor(
+    public themeService: ThemeService,
+    private router: Router,
+    private dialog: MatDialog
+  ) {
+    // Fecha todos os modais ao mudar de rota (menu)
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.dialog.closeAll();
+    });
+  }
 }

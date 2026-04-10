@@ -39,8 +39,9 @@ export class ModalFinanciadoresComponent implements OnInit {
         datasets: [{
           data: this.data.map(d => d.valor),
           backgroundColor: [
-            "#7c4dff", "#00bcd4", "#ff9800", "#4caf50", "#f44336",
-            "#2196f3", "#9c27b0", "#ff5722", "#8bc34a", "#ffc107"
+            "#10b981", "#6366f1", "#f59e0b", "#3b82f6", "#ef4444",
+            "#ec4899", "#14b8a6", "#f97316", "#a855f7", "#84cc16",
+            "#06b6d4", "#e11d48", "#8b5cf6", "#22c55e", "#fb923c"
           ],
           borderWidth: 0
         }]
