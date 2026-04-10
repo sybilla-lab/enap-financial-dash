@@ -53,6 +53,7 @@ export class DashboardComponent implements OnInit {
   // Charts inline
   financiadoresChartReady = false;
   execucaoChartReady = false;
+  recebimentosAnoChartReady = false;
 
   financiadoresChartData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
   financiadoresChartOptions: ChartConfiguration<"doughnut">["options"] = {
@@ -62,6 +63,28 @@ export class DashboardComponent implements OnInit {
     plugins: {
       legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 12 } },
       datalabels: { display: false },
+    }
+  };
+
+  recebimentosAnoChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
+  recebimentosAnoChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "top", labels: { color: "#94a3b8", font: { weight: "bold" } } },
+      datalabels: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(15,23,42,0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ctx.parsed.y)}`
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: "#64748b" }, grid: { display: false } },
+      y: { ticks: { color: "#64748b", callback: (v: any) => "R$ " + new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(v) }, grid: { color: "rgba(255,255,255,0.05)" } },
     }
   };
 
@@ -132,6 +155,33 @@ export class DashboardComponent implements OnInit {
 
     this.dataService.getRunway().subscribe(r => this.runway = r);
     this.dataService.getGapCaptacao().subscribe(g => this.gapCaptacao = g);
+
+    this.dataService.getRecebimentosPorAno().subscribe((anos) => {
+      setTimeout(() => {
+        this.recebimentosAnoChartData = {
+          labels: anos.map(a => a.ano),
+          datasets: [
+            {
+              label: "Recebido",
+              data: anos.map(a => a.recebido),
+              backgroundColor: "rgba(16,185,129,0.5)",
+              borderColor: "#10b981",
+              borderWidth: 1,
+              borderRadius: 4,
+            },
+            {
+              label: "Previsto",
+              data: anos.map(a => a.previsto),
+              backgroundColor: "rgba(99,102,241,0.5)",
+              borderColor: "#6366f1",
+              borderWidth: 1,
+              borderRadius: 4,
+            },
+          ]
+        };
+        this.recebimentosAnoChartReady = true;
+      }, 50);
+    });
 
     this.dataService.getProjetoResumos().subscribe((p) => {
       this.projetos = p;

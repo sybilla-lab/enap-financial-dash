@@ -247,4 +247,20 @@
 
   </div>
 
+  <!-- Recebimentos por Ano (Previsto vs Recebido) -->
+  <mat-card class="chart-card" appearance="outlined" style="margin-top: 0;">
+    <mat-card-header>
+      <mat-card-title><mat-icon>bar_chart</mat-icon> Recebimentos por Ano — Previsto vs Recebido</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="chart-wrapper-bar">
+        @if (isLoading || !recebimentosAnoChartReady) {
+          <div class="skeleton-box" style="width:100%;height:100%;border-radius:8px;"></div>
+        } @else {
+          <canvas baseChart [data]="recebimentosAnoChartData" [options]="recebimentosAnoChartOptions" [type]="'bar'"></canvas>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
 </div>

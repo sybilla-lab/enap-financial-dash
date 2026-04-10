@@ -460,6 +460,28 @@ export class DataService {
     );
   }
 
+  getRecebimentosPorAno(): Observable<{ ano: string; previsto: number; recebido: number }[]> {
+    return this.recebimentos$.pipe(
+      map((recs) => {
+        const mapa = new Map<string, { previsto: number; recebido: number }>();
+
+        recs.forEach((r) => {
+          if (!r.mesAno) return;
+          const ano = r.mesAno.split("/")[1];
+          if (!ano) return;
+          if (!mapa.has(ano)) mapa.set(ano, { previsto: 0, recebido: 0 });
+          const m = mapa.get(ano)!;
+          if (r.status === "previsto") m.previsto += r.valor;
+          else if (r.status === "recebido") m.recebido += r.valor;
+        });
+
+        return Array.from(mapa.entries())
+          .map(([ano, d]) => ({ ano, previsto: d.previsto, recebido: d.recebido }))
+          .sort((a, b) => a.ano.localeCompare(b.ano));
+      })
+    );
+  }
+
   getGapCaptacao(): Observable<number> {
     return this.getRecursoDetalhado().pipe(
       map((d) => Math.max(0, this.META_CAPTACAO - d.captacaoRecebida))
