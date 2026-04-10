@@ -62,7 +62,18 @@ export class DashboardComponent implements OnInit {
     cutout: "60%",
     plugins: {
       legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 12 } },
-      datalabels: { display: false },
+      datalabels: {
+        display: true,
+        formatter: (value: number, ctx: any) => {
+          const total = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);
+          const pct = ((value / total) * 100);
+          return pct >= 4 ? pct.toFixed(1) + "%" : "";
+        },
+        color: "#fff",
+        font: { size: 11, weight: "bold" },
+        textShadowBlur: 4,
+        textShadowColor: "rgba(0,0,0,0.5)",
+      } as any,
     }
   };
 
@@ -71,7 +82,7 @@ export class DashboardComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, labels: { color: "#64748b", font: { size: 11, weight: "bold" }, usePointStyle: true } },
       datalabels: { display: false },
       tooltip: {
         backgroundColor: "rgba(15,23,42,0.9)",
@@ -173,7 +184,7 @@ export class DashboardComponent implements OnInit {
               label: "Meta 500k",
               type: "line",
               data: anos.map(() => 500000),
-              borderColor: "rgba(255, 255, 255, 0.4)",
+              borderColor: "#3b82f6",
               borderWidth: 2,
               borderDash: [5, 5],
               pointRadius: 0,
