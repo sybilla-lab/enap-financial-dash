@@ -282,9 +282,9 @@ body.dark-theme {
 .skeleton-box {
   background: linear-gradient(
     90deg, 
-    rgba(200, 200, 200, 0.1) 25%, 
-    rgba(200, 200, 200, 0.25) 50%, 
-    rgba(200, 200, 200, 0.1) 75%
+    rgba(16, 185, 129, 0.06) 25%, 
+    rgba(16, 185, 129, 0.12) 50%, 
+    rgba(16, 185, 129, 0.06) 75%
   );
   background-size: 200% 100%;
   animation: shimmer-global 1.5s infinite linear;
@@ -296,9 +296,9 @@ body.dark-theme {
 body.dark-theme .skeleton-box {
   background-image: linear-gradient(
     90deg, 
-    rgba(255, 255, 255, 0.05) 25%, 
-    rgba(255, 255, 255, 0.15) 50%, 
-    rgba(255, 255, 255, 0.05) 75%
+    rgba(16, 185, 129, 0.05) 25%, 
+    rgba(16, 185, 129, 0.15) 50%, 
+    rgba(16, 185, 129, 0.05) 75%
   );
 }
 

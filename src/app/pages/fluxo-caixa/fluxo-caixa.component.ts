@@ -78,7 +78,7 @@ export class FluxoCaixaComponent implements OnInit {
       y1: {
         type: "linear",
         position: "right",
-        ticks: { color: "#6366f1" },
+        ticks: { color: "#f59e0b" },
         grid: { display: false },
       },
     },
@@ -196,8 +196,8 @@ export class FluxoCaixaComponent implements OnInit {
           {
             type: "line", label: "Saldo Acumulado",
             data: this.fluxo.map((f: FluxoMensal) => f.saldoAcumulado),
-            borderColor: "#6366f1", backgroundColor: "rgba(99, 102, 241, 0.1)",
-            borderWidth: 3, pointBackgroundColor: "#6366f1", pointRadius: 2,
+            borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.1)",
+            borderWidth: 3, pointBackgroundColor: "#f59e0b", pointRadius: 2,
             fill: true, tension: 0.4, yAxisID: "y1",
           } as any,
         ],
