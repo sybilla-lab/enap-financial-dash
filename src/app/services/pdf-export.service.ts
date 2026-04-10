@@ -1,7 +1,6 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, signal, inject, PLATFORM_ID } from "@angular/core";
+import { isPlatformBrowser } from "@angular/common";
 import { Router } from "@angular/router";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 export interface ExportProgress {
   running: boolean;
@@ -11,42 +10,47 @@ export interface ExportProgress {
 }
 
 const PAGES = [
-  { route: "/dashboard",    title: "Dashboard",              wait: 3500 },
-  { route: "/recursos",     title: "Recursos",               wait: 3500 },
-  { route: "/projetos",     title: "Projetos",               wait: 3500 },
-  { route: "/fluxo-caixa",  title: "Fluxo de Caixa",         wait: 2500 },
-  { route: "/saldos",       title: "Saldos Remanescentes",   wait: 2500 },
-  { route: "/rendimentos",  title: "Rendimentos",            wait: 2500 },
-  { route: "/categorias",   title: "Categorias",             wait: 2500 },
+  { route: "/dashboard",   title: "Dashboard",            wait: 3500 },
+  { route: "/recursos",    title: "Recursos",             wait: 3500 },
+  { route: "/projetos",    title: "Projetos",             wait: 3500 },
+  { route: "/fluxo-caixa", title: "Fluxo de Caixa",       wait: 2500 },
+  { route: "/saldos",      title: "Saldos Remanescentes", wait: 2500 },
+  { route: "/rendimentos", title: "Rendimentos",          wait: 2500 },
+  { route: "/categorias",  title: "Categorias",           wait: 2500 },
 ];
 
 @Injectable({ providedIn: "root" })
 export class PdfExportService {
+  private readonly platformId = inject(PLATFORM_ID);
+
   readonly progress = signal<ExportProgress>({
     running: false, current: 0, total: PAGES.length, label: ""
   });
 
   async exportAll(router: Router, contentEl: HTMLElement): Promise<void> {
-    const originalRoute = router.url;
+    if (!isPlatformBrowser(this.platformId)) return;
 
+    // Imports dinâmicos: não são incluídos no bundle SSR
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      import("jspdf"),
+      import("html2canvas"),
+    ]);
+
+    const originalRoute = router.url;
     this.progress.set({ running: true, current: 0, total: PAGES.length, label: "Iniciando..." });
 
-    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
+    const pdf     = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+    const pageW   = pdf.internal.pageSize.getWidth();
+    const pageH   = pdf.internal.pageSize.getHeight();
     let firstPage = true;
 
     for (let i = 0; i < PAGES.length; i++) {
       const page = PAGES[i];
       this.progress.set({ running: true, current: i + 1, total: PAGES.length, label: page.title });
 
-      // router.navigate() retorna Promise<boolean> que resolve após NavigationEnd
       await router.navigate([page.route]);
-
-      // Aguarda renderização completa dos gráficos e dados assíncronos
       await this.delay(page.wait);
 
-      // Expande temporariamente para captura completa
       const prev = { overflow: contentEl.style.overflow, height: contentEl.style.height };
       contentEl.style.overflow = "visible";
       contentEl.style.height   = "auto";
@@ -66,7 +70,6 @@ export class PdfExportService {
           windowHeight: contentEl.scrollHeight,
           ignoreElements: (el) => el.classList.contains("pdf-ignore"),
           onclone: (_doc, clonedEl) => {
-            // Transfere conteúdo dos canvas Chart.js para o clone
             const srcCanvases    = Array.from(contentEl.querySelectorAll("canvas")) as HTMLCanvasElement[];
             const clonedCanvases = Array.from(clonedEl.querySelectorAll("canvas"))  as HTMLCanvasElement[];
             srcCanvases.forEach((src, idx) => {
@@ -84,39 +87,36 @@ export class PdfExportService {
         contentEl.style.height   = prev.height;
       }
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const margin  = 4;
-      const usableW = pageW - margin * 2;
-      const headerH = 10;
-      const imgH    = (canvas.height * usableW) / canvas.width;
+      const imgData  = canvas.toDataURL("image/jpeg", 0.92);
+      const margin   = 4;
+      const usableW  = pageW - margin * 2;
+      const headerH  = 10;
+      const topOffset = headerH + 2;
+      const usableH  = pageH - topOffset - margin;
+      const imgH     = (canvas.height * usableW) / canvas.width;
 
       if (!firstPage) pdf.addPage();
       firstPage = false;
 
       this.drawHeader(pdf, page.title, pageW, headerH);
 
-      const topOffset = headerH + 2;
-      const usableH   = pageH - topOffset - margin;
-
       if (imgH <= usableH) {
         pdf.addImage(imgData, "JPEG", margin, topOffset, usableW, imgH);
       } else {
-        // Divide em fatias de altura pageH cada
-        const totalPx  = canvas.height;
-        const slicePx  = Math.floor(totalPx * (usableH / imgH));
-        let   srcOffY  = 0;
+        const totalPx   = canvas.height;
+        const slicePx   = Math.floor(totalPx * (usableH / imgH));
+        let   srcOffY   = 0;
         let   firstSlice = true;
 
         while (srcOffY < totalPx) {
-          const thisPx    = Math.min(slicePx, totalPx - srcOffY);
-          const thisMmH   = (thisPx * usableW) / canvas.width;
+          const thisPx = Math.min(slicePx, totalPx - srcOffY);
+          const thisMmH = (thisPx * usableW) / canvas.width;
           const sliceCanvas = document.createElement("canvas");
           sliceCanvas.width  = canvas.width;
           sliceCanvas.height = thisPx;
           sliceCanvas.getContext("2d")!.drawImage(canvas, 0, srcOffY, canvas.width, thisPx, 0, 0, canvas.width, thisPx);
           const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
-          const yPos = firstSlice ? topOffset : margin;
-          pdf.addImage(sliceData, "JPEG", margin, yPos, usableW, thisMmH);
+          pdf.addImage(sliceData, "JPEG", margin, firstSlice ? topOffset : margin, usableW, thisMmH);
           srcOffY += thisPx;
           if (srcOffY < totalPx) {
             pdf.addPage();
@@ -127,7 +127,6 @@ export class PdfExportService {
       }
     }
 
-    // Rodapé na última página
     pdf.setFillColor(15, 23, 42);
     pdf.rect(0, pageH - 8, pageW, 8, "F");
     pdf.setTextColor(100, 116, 139);
@@ -145,7 +144,7 @@ export class PdfExportService {
     pdf.save(`fincontrol-relatorio-${today}.pdf`);
   }
 
-  private drawHeader(pdf: jsPDF, title: string, pageW: number, h: number): void {
+  private drawHeader(pdf: any, title: string, pageW: number, h: number): void {
     pdf.setFillColor(15, 23, 42);
     pdf.rect(0, 0, pageW, h, "F");
     pdf.setTextColor(248, 250, 252);
