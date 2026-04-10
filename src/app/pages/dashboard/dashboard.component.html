@@ -15,9 +15,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Total Recebido</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value text-green">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-green">{{ indicadores.totalRecebido | currency: "BRL":"symbol":"1.2-2" }}</span>
           }
         </div>
       </mat-card-content>
@@ -33,9 +33,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Total Executado</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value text-red">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-red">{{ indicadores.totalExecutado | currency: "BRL":"symbol":"1.2-2" }}</span>
           }
         </div>
       </mat-card-content>
@@ -51,9 +51,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Saldo Disponível</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value text-blue">{{ indicadores.saldoDisponivel | currency: "BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-blue">{{ indicadores.saldoDisponivel | currency: "BRL":"symbol":"1.2-2" }}</span>
           }
         </div>
       </mat-card-content>
@@ -61,7 +61,8 @@
     }
 
     @if (config().percentual) {
-    <mat-card class="kpi-card clickable kpi-execucao card-indicator-yellow expanded" appearance="outlined" (click)="abrirModal('pct-execucao')">
+    <mat-card class="kpi-card clickable kpi-execucao card-indicator-yellow expanded" appearance="outlined"
+      (click)="abrirModal('pct-execucao')">
       <mat-card-content>
         <div class="kpi-icon">
           <mat-icon>speed</mat-icon>
@@ -71,7 +72,8 @@
         </div>
         <div class="gauge-container">
           <div class="gauge-body">
-            <div class="gauge-fill" [style.transform]="'rotate(' + (indicadores.percentualExecucao / 100 * 180) + 'deg)'"></div>
+            <div class="gauge-fill"
+              [style.transform]="'rotate(' + (indicadores.percentualExecucao / 100 * 180) + 'deg)'"></div>
             <div class="gauge-cover">
               <span class="gauge-percent text-yellow">{{ indicadores.percentualExecucao | number: "1.0-1" }}%</span>
             </div>
@@ -89,9 +91,9 @@
         <div class="kpi-info">
           <span class="kpi-label">N° de Pagamentos</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 60px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 60px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value">{{ indicadores.numPagamentos }}</span>
+          <span class="kpi-value">{{ indicadores.numPagamentos }}</span>
           }
         </div>
         <mat-icon class="view-more-icon">visibility</mat-icon>
@@ -106,9 +108,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Ticket Médio</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 120px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 120px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value">{{ indicadores.ticketMedio | currency: "BRL":"symbol":"1.2-2" }}</span>
           }
         </div>
         <mat-icon class="view-more-icon">visibility</mat-icon>
@@ -123,9 +125,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Inflação Recebida</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 130px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 130px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value text-orange">{{ inflacao | currency: "BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-orange">{{ inflacao | currency: "BRL":"symbol":"1.2-2" }}</span>
           }
           <span class="kpi-sub">Reajustes contratuais (extra)</span>
         </div>
@@ -134,7 +136,8 @@
     }
 
     @if (config().meta) {
-    <mat-card class="kpi-card clickable card-indicator-purple expanded" appearance="outlined" (click)="abrirModal('pct-meta')">
+    <mat-card class="kpi-card clickable card-indicator-purple expanded" appearance="outlined"
+      (click)="abrirModal('pct-meta')">
       <mat-card-content>
         <div class="kpi-icon"><mat-icon>analytics</mat-icon></div>
         <div class="kpi-info">
@@ -155,15 +158,16 @@
     }
 
     @if (config().runway) {
-    <mat-card class="kpi-card clickable kpi-runway card-indicator-gray" appearance="outlined" (click)="abrirModal('runway')">
+    <mat-card class="kpi-card clickable kpi-runway card-indicator-gray" appearance="outlined"
+      (click)="abrirModal('runway')">
       <mat-card-content>
         <div class="kpi-icon"><mat-icon>timer</mat-icon></div>
         <div class="kpi-info">
           <span class="kpi-label">Runway (Meses)</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 70px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 70px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value">{{ runway | number: "1.1-1" }}</span>
+          <span class="kpi-value">{{ runway | number: "1.1-1" }}</span>
           }
           <span class="kpi-sub">Tempo estimado de sobrevivência</span>
         </div>
@@ -179,9 +183,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Gap de Captação</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
+          <div class="skeleton-box" style="width: 140px; height: 32px; border-radius: 4px; margin-top: 4px;"></div>
           } @else {
-            <span class="kpi-value text-red">{{ gapCaptacao | currency: "BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-red">{{ gapCaptacao | currency: "BRL":"symbol":"1.2-2" }}</span>
           }
           <span class="kpi-sub">Déficit vs Meta Total</span>
         </div>
@@ -202,26 +206,27 @@
       <mat-card-content>
         <div class="chart-wrapper">
           @if (isLoading || !financiadoresChartReady) {
-            <div class="skeleton-box" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+          <div class="skeleton-box" style="width: 100%; height: 100%; border-radius: 8px;"></div>
           } @else {
-            <canvas baseChart [data]="financiadoresChartData" [options]="financiadoresChartOptions" [type]="'doughnut'"></canvas>
+          <canvas baseChart [data]="financiadoresChartData" [options]="financiadoresChartOptions"
+            [type]="'doughnut'"></canvas>
           }
         </div>
         <div class="fin-list">
           @if (isLoading) {
-            @for (i of [1,2,3,4,5]; track i) {
-              <div class="fin-row">
-                <div class="skeleton-box" style="width: 120px; height: 14px; border-radius: 4px;"></div>
-                <div class="skeleton-box" style="width: 80px; height: 14px; border-radius: 4px;"></div>
-              </div>
-            }
+          @for (i of [1,2,3,4,5]; track i) {
+          <div class="fin-row">
+            <div class="skeleton-box" style="width: 120px; height: 14px; border-radius: 4px;"></div>
+            <div class="skeleton-box" style="width: 80px; height: 14px; border-radius: 4px;"></div>
+          </div>
+          }
           } @else {
-            @for (f of financiadores; track f.financiador) {
-              <div class="fin-row">
-                <span class="fin-name">{{ f.financiador }}</span>
-                <span class="fin-val">{{ f.valor | currency:"BRL":"symbol":"1.0-0" }}</span>
-              </div>
-            }
+          @for (f of financiadores; track f.financiador) {
+          <div class="fin-row">
+            <span class="fin-name">{{ f.financiador }}</span>
+            <span class="fin-val">{{ f.valor | currency:"BRL":"symbol":"1.0-0" }}</span>
+          </div>
+          }
           }
         </div>
       </mat-card-content>
@@ -236,9 +241,9 @@
       <mat-card-content>
         <div class="chart-wrapper-bar">
           @if (isLoading || !execucaoChartReady) {
-            <div class="skeleton-box" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+          <div class="skeleton-box" style="width: 100%; height: 100%; border-radius: 8px;"></div>
           } @else {
-            <canvas baseChart [data]="execucaoChartData" [options]="execucaoChartOptions" [type]="'bar'"></canvas>
+          <canvas baseChart [data]="execucaoChartData" [options]="execucaoChartOptions" [type]="'bar'"></canvas>
           }
         </div>
       </mat-card-content>
@@ -248,16 +253,17 @@
   </div>
 
   <!-- Recebimentos por Ano (Previsto vs Recebido) -->
-  <mat-card class="chart-card" appearance="outlined" style="margin-top: 0;">
+  <mat-card class="chart-card" appearance="outlined" style="margin-top: 1rem;">
     <mat-card-header>
-      <mat-card-title><mat-icon>bar_chart</mat-icon> Recebimentos por Ano — Previsto vs Recebido</mat-card-title>
+      <mat-card-title><mat-icon>bar_chart</mat-icon>Aportes Enap</mat-card-title>
     </mat-card-header>
     <mat-card-content>
       <div class="chart-wrapper-bar">
         @if (isLoading || !recebimentosAnoChartReady) {
-          <div class="skeleton-box" style="width:100%;height:100%;border-radius:8px;"></div>
+        <div class="skeleton-box" style="width:100%;height:100%;border-radius:8px;"></div>
         } @else {
-          <canvas baseChart [data]="recebimentosAnoChartData" [options]="recebimentosAnoChartOptions" [type]="'bar'"></canvas>
+        <canvas baseChart [data]="recebimentosAnoChartData" [options]="recebimentosAnoChartOptions"
+          [type]="'bar'"></canvas>
         }
       </div>
     </mat-card-content>

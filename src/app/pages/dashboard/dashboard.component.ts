@@ -71,7 +71,7 @@ export class DashboardComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top", labels: { color: "#94a3b8", font: { weight: "bold" } } },
+      legend: { display: false },
       datalabels: { display: false },
       tooltip: {
         backgroundColor: "rgba(15,23,42,0.9)",
@@ -156,27 +156,29 @@ export class DashboardComponent implements OnInit {
     this.dataService.getRunway().subscribe(r => this.runway = r);
     this.dataService.getGapCaptacao().subscribe(g => this.gapCaptacao = g);
 
-    this.dataService.getRecebimentosPorAno().subscribe((anos) => {
+    this.dataService.getAportesEnapPorAno().subscribe((anos) => {
       setTimeout(() => {
         this.recebimentosAnoChartData = {
           labels: anos.map(a => a.ano),
           datasets: [
             {
-              label: "Recebido",
-              data: anos.map(a => a.recebido),
+              label: "Total Anual",
+              data: anos.map(a => a.recebido + a.previsto),
               backgroundColor: "rgba(16,185,129,0.5)",
               borderColor: "#10b981",
               borderWidth: 1,
               borderRadius: 4,
             },
             {
-              label: "Previsto",
-              data: anos.map(a => a.previsto),
-              backgroundColor: "rgba(99,102,241,0.5)",
-              borderColor: "#6366f1",
-              borderWidth: 1,
-              borderRadius: 4,
-            },
+              label: "Meta 500k",
+              type: "line",
+              data: anos.map(() => 500000),
+              borderColor: "rgba(255, 255, 255, 0.4)",
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 0,
+              fill: false
+            } as any
           ]
         };
         this.recebimentosAnoChartReady = true;

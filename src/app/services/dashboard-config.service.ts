@@ -27,7 +27,7 @@ export class DashboardConfigService {
     percentual: false,
     pagamentos: false,
     ticket: false,
-    inflacao: false,
+    inflacao: true,
     meta: false,
     runway: false,
     gap: false,
