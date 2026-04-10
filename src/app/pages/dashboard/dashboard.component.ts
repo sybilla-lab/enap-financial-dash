@@ -62,18 +62,17 @@ export class DashboardComponent implements OnInit {
     cutout: "60%",
     plugins: {
       legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 12 } },
-      datalabels: {
-        display: true,
-        formatter: (value: number, ctx: any) => {
-          const total = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);
-          const pct = ((value / total) * 100);
-          return pct >= 4 ? pct.toFixed(1) + "%" : "";
-        },
-        color: "#fff",
-        font: { size: 11, weight: "bold" },
-        textShadowBlur: 4,
-        textShadowColor: "rgba(0,0,0,0.5)",
-      } as any,
+      datalabels: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => {
+            const total = (ctx.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
+            const pct = ((ctx.parsed / total) * 100).toFixed(1);
+            const val = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ctx.parsed);
+            return `  ${val}  (${pct}%)`;
+          }
+        }
+      }
     }
   };
 
