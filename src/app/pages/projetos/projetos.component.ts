@@ -44,6 +44,7 @@ export class ProjetosComponent implements OnInit {
   stats = { ativos: 0, execucaoMedia: 0 };
   saldosOpBasica = 0;
   totalSaldosRemanescentes = 0;
+  previstosPorProjeto = new Map<string, number>();
 
   chartReady = false;
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
@@ -58,8 +59,14 @@ export class ProjetosComponent implements OnInit {
           color: "#1f2937",
           font: { weight: 'bold' },
           filter: (item: any, data: any) => {
+            // Show each label only once; hide "Previsto" if all values are zero
             const firstIdx = data.datasets.findIndex((d: any) => d.label === item.text);
-            return firstIdx === item.datasetIndex;
+            if (firstIdx !== item.datasetIndex) return false;
+            if (item.text === "Previsto") {
+              const ds = data.datasets[item.datasetIndex];
+              return (ds.data as number[]).some((v: number) => v > 0);
+            }
+            return true;
           }
         }
       },
@@ -134,9 +141,11 @@ export class ProjetosComponent implements OnInit {
   ngOnInit(): void {
     combineLatest({
       p: this.dataService.getProjetoResumos(),
-      saldos: this.dataService.getSaldosResgatadosOperacaoBasica()
-    }).subscribe(({ p, saldos }) => {
+      saldos: this.dataService.getSaldosResgatadosOperacaoBasica(),
+      previstos: this.dataService.getPrevistosPorProjeto(),
+    }).subscribe(({ p, saldos, previstos }) => {
       this.saldosOpBasica = saldos;
+      this.previstosPorProjeto = previstos;
       this.projetos = p;
       this.projetosFiltrados = p;
       this.projetosLista = p.map((x) => x.projeto);
@@ -174,17 +183,25 @@ export class ProjetosComponent implements OnInit {
   private buildChart(p: ProjetoResumo[]): void {
     this.chartReady = false;
     setTimeout(() => {
+      // Ativos primeiro, demais depois — mantendo ordem por entradas dentro de cada grupo
+      const isAtivo = (x: ProjetoResumo) =>
+        !x.status || (x.status.toLowerCase() !== "finalizado" && x.status.toLowerCase() !== "encerrado");
+      const sorted = [
+        ...p.filter(isAtivo).sort((a, b) => b.entradas - a.entradas),
+        ...p.filter(x => !isAtivo(x)).sort((a, b) => b.entradas - a.entradas),
+      ];
+
       // Total de saldos que saíram dos projetos e foram para Operação Básica
-      const totalSaldosParaOpBasica = p
+      const totalSaldosParaOpBasica = sorted
         .filter(x => x.projeto !== "Operação Básica")
         .reduce((acc, x) => acc + (x.saldoRemanescente || 0), 0);
 
       this.barChartData = {
-        labels: p.map((x) => x.projeto),
+        labels: sorted.map((x) => x.projeto),
         datasets: [
           {
             label: "Receitas",
-            data: p.map(x => x.entradas),
+            data: sorted.map(x => x.entradas),
             backgroundColor: "#10b981",
             borderRadius: 4,
             stack: "Stack 0",
@@ -192,14 +209,25 @@ export class ProjetosComponent implements OnInit {
           {
             // Só aparece na linha de Operação Básica: soma de todos os saldos recebidos
             label: "Saldo Remanescente",
-            data: p.map(x => x.projeto === "Operação Básica" ? totalSaldosParaOpBasica : 0),
+            data: sorted.map(x => x.projeto === "Operação Básica" ? totalSaldosParaOpBasica : 0),
             backgroundColor: "#065f46",
             borderRadius: 4,
             stack: "Stack 0",
           },
           {
+            // Valores previstos por projeto (aparecem na mesma barra de receitas, mais claros)
+            label: "Previsto",
+            data: sorted.map(x => this.previstosPorProjeto.get(x.projeto) || 0),
+            backgroundColor: "rgba(16,185,129,0.25)",
+            borderColor: "#10b981",
+            borderWidth: 1,
+            borderRadius: 4,
+            borderDash: [4, 3],
+            stack: "Stack 0",
+          } as any,
+          {
             label: "Despesas",
-            data: p.map(x => x.saidas),
+            data: sorted.map(x => x.saidas),
             backgroundColor: "#6366f1",
             borderRadius: 4,
             stack: "Stack 1",
@@ -207,7 +235,7 @@ export class ProjetosComponent implements OnInit {
           {
             // Saldo que saiu de cada projeto (exceto Op. Básica): aparece como despesa
             label: "Saldo Remanescente",
-            data: p.map(x => x.projeto === "Operação Básica" ? 0 : (x.saldoRemanescente || 0)),
+            data: sorted.map(x => x.projeto === "Operação Básica" ? 0 : (x.saldoRemanescente || 0)),
             backgroundColor: "#065f46",
             borderRadius: 4,
             stack: "Stack 1",

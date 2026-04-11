@@ -36,6 +36,7 @@ export class RendimentosComponent implements OnInit {
   };
 
   rendimentos: Rendimento[] = [];
+  saldosAcumulados: number[] = [];
   sortColumn: keyof Rendimento | "" = "mesAno";
   sortDirection: "asc" | "desc" = "asc";
 
@@ -61,12 +62,12 @@ export class RendimentosComponent implements OnInit {
     },
     scales: {
       x: { ticks: { color: "#64748b" }, grid: { display: false } },
-      y: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.05)" } },
-      y1: {
-        type: "linear",
-        position: "right",
-        ticks: { color: "#6366f1" },
-        grid: { display: false },
+      y: {
+        ticks: {
+          color: "#64748b",
+          callback: (v: any) => "R$ " + new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(v)
+        },
+        grid: { color: "rgba(255,255,255,0.05)" }
       },
     },
   };
@@ -89,6 +90,10 @@ export class RendimentosComponent implements OnInit {
   private buildChart(porMes: typeof this.resumo.porMes): void {
     this.chartReady = false;
     setTimeout(() => {
+      // Normaliza a linha para começar em 0
+      const base = porMes.length > 0 ? porMes[0].acumulado : 0;
+      const acumuladoNorm = porMes.map((m) => m.acumulado - base);
+
       this.barChartData = {
         labels: porMes.map((m) => m.mesAno),
         datasets: [
@@ -115,15 +120,16 @@ export class RendimentosComponent implements OnInit {
           {
             type: "line",
             label: "Saldo Líquido Acumulado",
-            data: porMes.map((m) => m.acumulado),
+            data: acumuladoNorm,
             borderColor: "#6366f1",
-            backgroundColor: "rgba(99,102,241,0.1)",
-            borderWidth: 3,
+            backgroundColor: "rgba(99,102,241,0.08)",
+            borderWidth: 2,
             pointBackgroundColor: "#6366f1",
-            pointRadius: 4,
+            pointRadius: 3,
+            pointHoverRadius: 5,
             fill: true,
             tension: 0.4,
-            yAxisID: "y1",
+            yAxisID: "y",
           } as any,
         ],
       };
@@ -160,6 +166,21 @@ export class RendimentosComponent implements OnInit {
       const cmp = String(va || "").localeCompare(String(vb || ""));
       return dir === "asc" ? cmp : -cmp;
     });
+    this.calcularSaldoAcumulado();
+  }
+
+  private calcularSaldoAcumulado(): void {
+    let acc = 0;
+    let resetado = false;
+    this.saldosAcumulados = this.rendimentos.map(r => {
+      const isDisponivel = r.utilizacao.toLowerCase().trim() !== "utilizado";
+      if (isDisponivel && !resetado) {
+        acc = 0;
+        resetado = true;
+      }
+      acc += r.valor;
+      return acc;
+    });
   }
 
   get pctUtilizado(): number {
@@ -170,5 +191,13 @@ export class RendimentosComponent implements OnInit {
 
   get pctDisponivel(): number {
     return 100 - this.pctUtilizado;
+  }
+
+  get maxSaldoAcumulado(): number {
+    return Math.max(...this.saldosAcumulados.map(v => Math.abs(v)), 1);
+  }
+
+  pctBarAcumulado(idx: number): number {
+    return (Math.abs(this.saldosAcumulados[idx]) / this.maxSaldoAcumulado) * 100;
   }
 }

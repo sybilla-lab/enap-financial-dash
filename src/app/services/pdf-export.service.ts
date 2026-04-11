@@ -39,7 +39,7 @@ export class PdfExportService {
     const originalRoute = router.url;
     this.progress.set({ running: true, current: 0, total: PAGES.length, label: "Iniciando..." });
 
-    const pdf     = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+    const pdf     = new jsPDF({ orientation: "l", unit: "mm", format: "a4" });
     const pageW   = pdf.internal.pageSize.getWidth();
     const pageH   = pdf.internal.pageSize.getHeight();
     let firstPage = true;
@@ -70,6 +70,7 @@ export class PdfExportService {
           windowHeight: contentEl.scrollHeight,
           ignoreElements: (el) => el.classList.contains("pdf-ignore"),
           onclone: (_doc, clonedEl) => {
+            // ── Copy chart canvases ──────────────────────────────────────
             const srcCanvases    = Array.from(contentEl.querySelectorAll("canvas")) as HTMLCanvasElement[];
             const clonedCanvases = Array.from(clonedEl.querySelectorAll("canvas"))  as HTMLCanvasElement[];
             srcCanvases.forEach((src, idx) => {
@@ -80,6 +81,36 @@ export class PdfExportService {
                 dst.getContext("2d")?.drawImage(src, 0, 0);
               }
             });
+
+            // ── Expand Angular Material expansion panels ─────────────────
+            (Array.from(clonedEl.querySelectorAll("mat-expansion-panel")) as HTMLElement[])
+              .forEach((panel) => {
+                panel.classList.add("mat-expanded");
+                // Force the body wrapper visible
+                const body = panel.querySelector(".mat-expansion-panel-body") as HTMLElement | null;
+                if (body) {
+                  body.style.display  = "block";
+                  body.style.overflow = "visible";
+                  body.style.height   = "auto";
+                  body.style.visibility = "visible";
+                }
+                // Remove collapsed indicator arrow rotation
+                const indicator = panel.querySelector(".mat-expansion-indicator") as HTMLElement | null;
+                if (indicator) indicator.style.transform = "rotate(180deg)";
+              });
+
+            // ── Expand custom accordions (fluxo-caixa filters) ───────────
+            (Array.from(clonedEl.querySelectorAll(".accordion")) as HTMLElement[])
+              .forEach((acc) => {
+                acc.classList.add("open");
+                const body = acc.querySelector(".accordion-body") as HTMLElement | null;
+                if (body) {
+                  body.style.maxHeight  = "none";
+                  body.style.overflow   = "visible";
+                  body.style.height     = "auto";
+                  body.style.visibility = "visible";
+                }
+              });
           },
         });
       } finally {

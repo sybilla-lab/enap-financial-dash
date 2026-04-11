@@ -333,6 +333,20 @@ export class DataService {
     );
   }
 
+  getPrevistosPorProjeto(): Observable<Map<string, number>> {
+    return this.recebimentos$.pipe(
+      map((recs) => {
+        const mapa = new Map<string, number>();
+        recs
+          .filter((r) => r.status === "previsto" && r.projeto)
+          .forEach((r) => {
+            mapa.set(r.projeto, (mapa.get(r.projeto) || 0) + r.valor);
+          });
+        return mapa;
+      })
+    );
+  }
+
   getLancamentosPorProjeto(projeto: string): Observable<Lancamento[]> {
     return this.lancamentos$.pipe(
       map((l) => l.filter((x) => x.projeto === projeto))

@@ -12,9 +12,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Valor Total Bruto</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
           } @else {
-            <span class="kpi-value text-green">{{ resumo.totalBruto | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-green">{{ resumo.totalBruto | currency:"BRL":"symbol":"1.2-2" }}</span>
           }
           <span class="kpi-sub">Soma de todos os rendimentos</span>
         </div>
@@ -27,9 +27,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Valor Total Impostos</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
           } @else {
-            <span class="kpi-value text-red">{{ resumo.totalImpostos | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-red">{{ resumo.totalImpostos | currency:"BRL":"symbol":"1.2-2" }}</span>
           }
           <span class="kpi-sub">Soma de IOF/IR descontados</span>
         </div>
@@ -42,9 +42,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Valor Total Líquido</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
           } @else {
-            <span class="kpi-value text-blue">{{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-blue">{{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
           }
           <span class="kpi-sub">Bruto − Impostos</span>
         </div>
@@ -57,9 +57,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Já Utilizado</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
           } @else {
-            <span class="kpi-value text-orange">{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-orange">{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
           }
           <span class="kpi-sub">Líquido dos lançamentos utilizados</span>
         </div>
@@ -72,9 +72,9 @@
         <div class="kpi-info">
           <span class="kpi-label">Saldo Líquido Disponível</span>
           @if (isLoading) {
-            <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
+          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
           } @else {
-            <span class="kpi-value text-teal">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="kpi-value text-teal">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
           }
           <span class="kpi-sub">Líquido dos lançamentos não utilizados</span>
         </div>
@@ -88,15 +88,15 @@
     <mat-card-content>
       <div class="util-header">
         <mat-icon>donut_large</mat-icon>
-        <span class="util-title">Composição do Saldo Líquido</span>
+        <span class="util-title">Composição dos saldos de rendimentos da conta da parceria</span>
         <span class="util-total">Total líquido: {{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
       </div>
       <div class="stacked-bar">
         <div class="seg-used" [style.width.%]="pctUtilizado"
-             [matTooltip]="'Utilizado: ' + (resumo.totalUtilizado | currency:'BRL':'symbol':'1.2-2')">
+          [matTooltip]="'Utilizado: ' + (resumo.totalUtilizado | currency:'BRL':'symbol':'1.2-2')">
         </div>
         <div class="seg-available" [style.width.%]="pctDisponivel"
-             [matTooltip]="'Disponível: ' + (resumo.saldoDisponivel | currency:'BRL':'symbol':'1.2-2')">
+          [matTooltip]="'Disponível: ' + (resumo.saldoDisponivel | currency:'BRL':'symbol':'1.2-2')">
         </div>
       </div>
       <div class="util-legend">
@@ -113,7 +113,9 @@
       </div>
       <div class="context-note">
         <mat-icon>info_outline</mat-icon>
-        O valor utilizado foi formalizado via Transferegov e autorizado pela ENAP. Foi aplicado na Operação Básica da parceria em momento de ausência de caixa por atraso de aporte (saldo acumulado até ago/25). O saldo disponível ainda não tem destino definido.
+        O valor utilizado foi formalizado via Transferegov e autorizado pela ENAP. Foi aplicado na Operação Básica da
+        parceria em momento de ausência de caixa por atraso de aporte (saldo acumulado até ago/25). O saldo disponível
+        ainda não tem destino definido.
       </div>
     </mat-card-content>
   </mat-card>
@@ -127,9 +129,9 @@
     <mat-card-content>
       <div class="chart-wrapper">
         @if (isLoading) {
-          <div class="skeleton-box" style="width:100%;height:100%;border-radius:8px;"></div>
+        <div class="skeleton-box" style="width:100%;height:100%;border-radius:8px;"></div>
         } @else if (chartReady) {
-          <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
+        <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
         }
       </div>
     </mat-card-content>
@@ -143,6 +145,12 @@
     <mat-card-content>
       <div class="table-container">
         <table class="data-table">
+          <colgroup>
+            <col class="col-equal">
+            <col class="col-equal">
+            <col class="col-equal">
+            <col class="col-equal">
+          </colgroup>
           <thead>
             <tr>
               <th class="sortable" (click)="sort('mesAno')">
@@ -153,34 +161,57 @@
                 Valor
                 <mat-icon class="sort-icon">{{ sortColumn==='valor' ? (sortDirection==='asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}</mat-icon>
               </th>
+              <th class="num">Saldo Acumulado</th>
               <th>Utilização</th>
             </tr>
           </thead>
           <tbody>
             @if (isLoading) {
-              @for (i of [1,2,3,4,5]; track i) {
-                <tr>
-                  <td><div class="skeleton-box" style="width:70px;height:16px;border-radius:4px;"></div></td>
-                  <td><div class="skeleton-box" style="width:110px;height:16px;border-radius:4px;margin-left:auto;"></div></td>
-                  <td><div class="skeleton-box" style="width:150px;height:16px;border-radius:4px;"></div></td>
-                </tr>
-              }
+            @for (i of [1,2,3,4,5,6,7,8]; track i) {
+            <tr>
+              <td>
+                <div class="skeleton-box" style="width:56px;height:14px;border-radius:3px;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:100px;height:14px;border-radius:3px;margin-left:auto;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:100px;height:14px;border-radius:3px;margin-left:auto;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:70px;height:14px;border-radius:3px;"></div>
+              </td>
+            </tr>
+            }
             } @else {
-              @for (r of rendimentos; track $index) {
-                <tr [class.row-imposto]="r.valor < 0">
-                  <td>{{ r.mesAno }}</td>
-                  <td class="num font-bold" [class.positive]="r.valor > 0" [class.negative]="r.valor < 0">
-                    {{ r.valor | currency:"BRL":"symbol":"1.2-2" }}
-                  </td>
-                  <td>
-                    @if (r.utilizacao.toLowerCase().trim() === 'utilizado') {
-                      <span class="badge-used">utilizado</span>
-                    } @else {
-                      <span class="badge-disponivel">não utilizado</span>
-                    }
-                  </td>
-                </tr>
-              }
+            @for (r of rendimentos; track $index) {
+            <tr [class.row-imposto]="r.valor < 0">
+              <td class="cell-mes">{{ r.mesAno }}</td>
+              <td class="cell-valor" [class.positive]="r.valor > 0" [class.negative]="r.valor < 0">
+                {{ r.valor | currency:"BRL":"symbol":"1.2-2" }}
+              </td>
+              <td class="cell-acumulado">
+                <div class="acum-wrap">
+                  <span class="acum-value" [class.positive]="saldosAcumulados[$index] > 0"
+                    [class.negative]="saldosAcumulados[$index] < 0">
+                    {{ saldosAcumulados[$index] | currency:"BRL":"symbol":"1.2-2" }}
+                  </span>
+                  <div class="acum-bar-track">
+                    <div class="acum-bar-fill" [style.width.%]="pctBarAcumulado($index)"
+                      [style.background]="saldosAcumulados[$index] >= 0 ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,#ef4444,#f87171)'">
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                @if (r.utilizacao.toLowerCase().trim() === 'utilizado') {
+                <span class="badge-used">utilizado</span>
+                } @else {
+                <span class="badge-disponivel">disponível</span>
+                }
+              </td>
+            </tr>
+            }
             }
           </tbody>
         </table>
