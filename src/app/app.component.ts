@@ -12,6 +12,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { filter } from "rxjs/operators";
 import { ThemeService } from "./services/theme.service";
 import { PdfExportService } from "./services/pdf-export.service";
+import { AiChatComponent } from "./components/ai-chat/ai-chat.component";
 
 interface NavItem {
   label: string;
@@ -32,6 +33,7 @@ interface NavItem {
     MatButtonModule,
     MatListModule,
     MatTooltipModule,
+    AiChatComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.scss",
