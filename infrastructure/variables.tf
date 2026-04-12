@@ -8,3 +8,9 @@ variable "bucket_name" {
   description = "Nome único do bucket S3 para o frontend"
   type        = string
 }
+
+variable "domain_name" {
+  description = "Domínio principal da aplicação"
+  type        = string
+  default     = "sybillalabs.com.br"
+}

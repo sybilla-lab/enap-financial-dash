@@ -37,6 +37,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
   is_ipv6_enabled     = true
   comment             = "CDN para Enap Financial Dash"
   default_root_object = "index.html"
+  aliases             = [var.domain_name, "www.${var.domain_name}"]
 
   origin {
     domain_name              = aws_s3_bucket.website_bucket.bucket_regional_domain_name
@@ -85,7 +86,9 @@ resource "aws_cloudfront_distribution" "website_cdn" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = aws_acm_certificate_validation.cert_validation.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {
