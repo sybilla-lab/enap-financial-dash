@@ -11,6 +11,7 @@ import { MatInputModule } from "@angular/material/input";
 import { FormsModule } from "@angular/forms";
 import { MatDividerModule } from "@angular/material/divider";
 import { MatExpansionModule } from "@angular/material/expansion";
+import { BreakpointObserver, Breakpoints } from "@angular/cdk/layout";
 import { DataService } from "../../services/data.service";
 import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
 // Chart.register foi movido para o main.ts
@@ -106,9 +107,26 @@ export class RecursosComponent implements OnInit {
     },
   };
 
-  constructor(public dataService: DataService) { }
+  constructor(
+    public dataService: DataService,
+    private breakpointObserver: BreakpointObserver
+  ) { }
 
   ngOnInit(): void {
+    // Monitorar mobile para ajustar legendas dos gráficos
+    this.breakpointObserver.observe([Breakpoints.Handset, "(max-width: 768px)"])
+      .subscribe(result => {
+        if (this.pieOptions && this.pieOptions.plugins && this.pieOptions.plugins.legend) {
+          this.pieOptions.plugins.legend.position = result.matches ? "bottom" : "right";
+          
+          // Forçar atualização do gráfico se ele já estiver pronto
+          if (this.doughnutReady) {
+            this.doughnutReady = false;
+            setTimeout(() => this.doughnutReady = true, 0);
+          }
+        }
+      });
+
     this.dataService.getRecursoDetalhado().subscribe((d) => {
       this.isLoading = false;
       this.detalhado = d;

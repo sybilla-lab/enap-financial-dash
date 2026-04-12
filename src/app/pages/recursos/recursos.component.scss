@@ -30,10 +30,27 @@
   border: 1px solid var(--border-color) !important;
   opacity: 1 !important;
 }
-.classic-card mat-card-content { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+.classic-card mat-card-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (max-width: 600px) {
+    padding: 16px;
+  }
+}
 .classic-header { display: flex; align-items: center; gap: 15px; margin-bottom: 4px; }
 .classic-label { font-size: 13px; font-weight: 600; color: var(--text-muted); opacity: 0.8; letter-spacing: 0.5px; }
-.classic-value { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.classic-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+
+  @media (max-width: 600px) {
+    font-size: 24px;
+  }
+}
 .classic-meta, .classic-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
 .classic-footer { font-size: 12px; color: var(--text-secondary); text-align: right; }
 
@@ -75,7 +92,17 @@
 .consolidado-row-header { font-size: 14px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; margin: 24px 0 12px; padding-left: 4px; border-left: 3px solid var(--accent-green); }
 .consolidado-row-header.first { margin-top: 0; }
 
-.charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px; margin-bottom: 24px; }
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
 .chart-card.compact { height: 420px; }
 .chart-wrapper-small { height: 320px; padding: 16px; position: relative; }
 
