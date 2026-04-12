@@ -5,6 +5,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration production --base-href /",
+    "clean": "rimraf dist",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:fincontrol": "node dist/fincontrol/server/server.mjs"

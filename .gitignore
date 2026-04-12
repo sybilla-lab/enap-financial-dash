@@ -44,3 +44,9 @@ enap.code-workspace
 
 # Environment files com dados sensíveis
 src/environments/environment.development.ts
+
+# Terraform
+infrastructure/.terraform/
+infrastructure/*.tfstate
+infrastructure/*.tfstate.backup
+infrastructure/.terraform.lock.hcl
