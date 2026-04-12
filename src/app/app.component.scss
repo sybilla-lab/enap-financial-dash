@@ -112,7 +112,15 @@ mat-nav-list a span { color: var(--text-primary); font-size: 14px; }
 }
 .menu-btn { display: none; }
 @media (max-width: 768px) { .menu-btn { display: block; } }
-.toolbar-title { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
+.toolbar-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70vw;
+}
 .spacer { flex: 1; }
 .bottom-nav { flex-shrink: 0; padding: 0 !important; }
 .app-sidenav .spacer { flex: 1; }
@@ -124,6 +132,10 @@ mat-nav-list a span { color: var(--text-primary); font-size: 14px; }
   height: calc(100vh - 64px);
   padding: 32px 64px 32px 32px;
   box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
 }
 
 /* ===== PDF export button ===== */

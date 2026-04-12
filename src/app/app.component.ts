@@ -9,7 +9,8 @@ import { MatListModule } from "@angular/material/list";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { Router, NavigationEnd } from "@angular/router";
 import { MatDialog } from "@angular/material/dialog";
-import { filter } from "rxjs/operators";
+import { filter, map, shareReplay } from "rxjs/operators";
+import { BreakpointObserver, Breakpoints } from "@angular/cdk/layout";
 import { ThemeService } from "./services/theme.service";
 import { PdfExportService } from "./services/pdf-export.service";
 
@@ -37,9 +38,11 @@ interface NavItem {
   styleUrl: "./app.component.scss",
 })
 export class AppComponent {
+  @ViewChild("sidenav") sidenav!: any;
   @ViewChild("contentArea", { read: ElementRef }) contentAreaRef!: ElementRef<HTMLDivElement>;
 
   sidenavCollapsed = false;
+  isMobile = false;
 
   navItems: NavItem[] = [
     { label: "Dashboard",            icon: "dashboard",       route: "/dashboard" },
@@ -57,8 +60,19 @@ export class AppComponent {
     public themeService: ThemeService,
     public pdfExport: PdfExportService,
     private router: Router,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private breakpointObserver: BreakpointObserver
   ) {
+    this.breakpointObserver.observe([Breakpoints.Handset, "(max-width: 768px)"])
+      .pipe(map(result => result.matches))
+      .subscribe(matches => {
+        this.isMobile = matches;
+        // Se for mobile, o nav não começa colapsado, mas fechado
+        if (this.isMobile) {
+          this.sidenavCollapsed = false;
+        }
+      });
+
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
@@ -69,5 +83,15 @@ export class AppComponent {
   exportPdf(): void {
     const el = this.contentAreaRef.nativeElement;
     this.pdfExport.exportAll(this.router, el);
+  }
+
+  toggleSidenav(): void {
+    this.sidenav.toggle();
+  }
+
+  onNavItemClick(): void {
+    if (this.isMobile) {
+      this.sidenav.close();
+    }
   }
 }
