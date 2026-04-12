@@ -1,6 +1,7 @@
-import { Injectable, signal, inject, PLATFORM_ID } from "@angular/core";
+import { Injectable, signal, inject, PLATFORM_ID, ApplicationRef } from "@angular/core";
 import { isPlatformBrowser } from "@angular/common";
 import { Router } from "@angular/router";
+import { first } from "rxjs";
 
 export interface ExportProgress {
   running: boolean;
@@ -9,19 +10,29 @@ export interface ExportProgress {
   label: string;
 }
 
+/* Ordem idêntica ao menu lateral */
 const PAGES = [
-  { route: "/dashboard",   title: "Dashboard",            wait: 3500 },
-  { route: "/recursos",    title: "Recursos",             wait: 3500 },
-  { route: "/projetos",    title: "Projetos",             wait: 3500 },
-  { route: "/fluxo-caixa", title: "Fluxo de Caixa",       wait: 2500 },
-  { route: "/saldos",      title: "Saldos Remanescentes", wait: 2500 },
-  { route: "/rendimentos", title: "Rendimentos",          wait: 2500 },
-  { route: "/categorias",  title: "Categorias",           wait: 2500 },
+  { route: "/dashboard",   title: "Dashboard"            },
+  { route: "/recursos",    title: "Recursos"             },
+  { route: "/projetos",    title: "Projetos"             },
+  { route: "/categorias",  title: "Categorias"           },
+  { route: "/fluxo-caixa", title: "Fluxo de Caixa"       },
+  { route: "/saldos",      title: "Saldos Remanescentes" },
+  { route: "/rendimentos", title: "Rendimentos"          },
 ];
+
+// Ajustes de qualidade vs velocidade
+const SCALE                  = 1.5;   // 1.5x: sharp no PDF, 44% menos memória que 2x
+const IMG_QUALITY            = 0.85;  // 85% JPEG: boa qualidade, encoding mais rápido
+const STABLE_TIMEOUT         = 6000;  // Espera máxima por página para o Angular estabilizar
+const CANVAS_TIMEOUT         = 2500;  // Espera máxima para charts (Chart.js usa rAF, fora da zone)
+const POST_STABLE_MS         = 120;   // Buffer pós-estabilidade para renders finais
+const CANVAS_CAPTURE_TIMEOUT = 25000; // Timeout de segurança para html2canvas (25s)
 
 @Injectable({ providedIn: "root" })
 export class PdfExportService {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly appRef      = inject(ApplicationRef);
 
   readonly progress = signal<ExportProgress>({
     running: false, current: 0, total: PAGES.length, label: ""
@@ -30,7 +41,7 @@ export class PdfExportService {
   async exportAll(router: Router, contentEl: HTMLElement): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    // Imports dinâmicos: não são incluídos no bundle SSR
+    // Imports dinâmicos: não incluídos no bundle SSR
     const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
       import("jspdf"),
       import("html2canvas"),
@@ -44,135 +55,234 @@ export class PdfExportService {
     const pageH   = pdf.internal.pageSize.getHeight();
     let firstPage = true;
 
-    for (let i = 0; i < PAGES.length; i++) {
-      const page = PAGES[i];
-      this.progress.set({ running: true, current: i + 1, total: PAGES.length, label: page.title });
-
-      await router.navigate([page.route]);
-      await this.delay(page.wait);
-
-      const prev = { overflow: contentEl.style.overflow, height: contentEl.style.height };
-      contentEl.style.overflow = "visible";
-      contentEl.style.height   = "auto";
-
-      let canvas: HTMLCanvasElement;
-      try {
-        canvas = await html2canvas(contentEl, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: getComputedStyle(document.body).getPropertyValue("--bg-primary").trim() || "#0f172a",
-          scrollX: 0,
-          scrollY: 0,
-          width:        contentEl.scrollWidth,
-          height:       contentEl.scrollHeight,
-          windowWidth:  contentEl.scrollWidth,
-          windowHeight: contentEl.scrollHeight,
-          ignoreElements: (el) => el.classList.contains("pdf-ignore"),
-          onclone: (_doc, clonedEl) => {
-            // ── Copy chart canvases ──────────────────────────────────────
-            const srcCanvases    = Array.from(contentEl.querySelectorAll("canvas")) as HTMLCanvasElement[];
-            const clonedCanvases = Array.from(clonedEl.querySelectorAll("canvas"))  as HTMLCanvasElement[];
-            srcCanvases.forEach((src, idx) => {
-              const dst = clonedCanvases[idx];
-              if (dst && src.width > 0 && src.height > 0) {
-                dst.width  = src.width;
-                dst.height = src.height;
-                dst.getContext("2d")?.drawImage(src, 0, 0);
-              }
-            });
-
-            // ── Expand Angular Material expansion panels ─────────────────
-            (Array.from(clonedEl.querySelectorAll("mat-expansion-panel")) as HTMLElement[])
-              .forEach((panel) => {
-                panel.classList.add("mat-expanded");
-                // Force the body wrapper visible
-                const body = panel.querySelector(".mat-expansion-panel-body") as HTMLElement | null;
-                if (body) {
-                  body.style.display  = "block";
-                  body.style.overflow = "visible";
-                  body.style.height   = "auto";
-                  body.style.visibility = "visible";
-                }
-                // Remove collapsed indicator arrow rotation
-                const indicator = panel.querySelector(".mat-expansion-indicator") as HTMLElement | null;
-                if (indicator) indicator.style.transform = "rotate(180deg)";
-              });
-
-            // ── Expand custom accordions (fluxo-caixa filters) ───────────
-            (Array.from(clonedEl.querySelectorAll(".accordion")) as HTMLElement[])
-              .forEach((acc) => {
-                acc.classList.add("open");
-                const body = acc.querySelector(".accordion-body") as HTMLElement | null;
-                if (body) {
-                  body.style.maxHeight  = "none";
-                  body.style.overflow   = "visible";
-                  body.style.height     = "auto";
-                  body.style.visibility = "visible";
-                }
-              });
-          },
-        });
-      } finally {
-        contentEl.style.overflow = prev.overflow;
-        contentEl.style.height   = prev.height;
+    // ── Patch createPattern para evitar InvalidStateError ─────────────
+    // html2canvas converte CSS gradients em canvas patterns internos.
+    // Se o elemento renderizado tiver dimensão 0 (qualquer causa: width:0%,
+    // flex shrink, overflow hidden, etc.), o canvas interno fica 0×0 e
+    // createPattern lança InvalidStateError.
+    //
+    // Solução: intercepta createPattern e, quando recebe um canvas 0×0,
+    // retorna um pattern transparente 1×1 em vez de lançar exceção.
+    // Isso é seguro porque o elemento original é invisível de qualquer forma.
+    const origCreatePattern = CanvasRenderingContext2D.prototype.createPattern;
+    CanvasRenderingContext2D.prototype.createPattern = function (
+      image: CanvasImageSource,
+      repetition: string | null
+    ): CanvasPattern | null {
+      if (
+        image instanceof HTMLCanvasElement &&
+        (image.width === 0 || image.height === 0)
+      ) {
+        const fallback = document.createElement("canvas");
+        fallback.width  = 1;
+        fallback.height = 1;
+        return origCreatePattern.call(this, fallback, repetition);
       }
+      return origCreatePattern.call(this, image, repetition);
+    };
 
-      const imgData  = canvas.toDataURL("image/jpeg", 0.92);
-      const margin   = 4;
-      const usableW  = pageW - margin * 2;
-      const headerH  = 10;
-      const topOffset = headerH + 2;
-      const usableH  = pageH - topOffset - margin;
-      const imgH     = (canvas.height * usableW) / canvas.width;
+    try {
+      for (let i = 0; i < PAGES.length; i++) {
+        const page = PAGES[i];
+        this.progress.set({ running: true, current: i + 1, total: PAGES.length, label: page.title });
 
-      if (!firstPage) pdf.addPage();
-      firstPage = false;
+        await router.navigate([page.route]);
+        await this.waitForPageReady(contentEl);
 
-      this.drawHeader(pdf, page.title, pageW, headerH);
+        const prev = { overflow: contentEl.style.overflow, height: contentEl.style.height };
+        contentEl.style.overflow = "visible";
+        contentEl.style.height   = "auto";
 
-      if (imgH <= usableH) {
-        pdf.addImage(imgData, "JPEG", margin, topOffset, usableW, imgH);
-      } else {
-        const totalPx   = canvas.height;
-        const slicePx   = Math.floor(totalPx * (usableH / imgH));
-        let   srcOffY   = 0;
-        let   firstSlice = true;
+        let canvas: HTMLCanvasElement;
+        try {
+          canvas = await this.captureWithTimeout(html2canvas, contentEl);
+        } finally {
+          contentEl.style.overflow = prev.overflow;
+          contentEl.style.height   = prev.height;
+        }
 
-        while (srcOffY < totalPx) {
-          const thisPx = Math.min(slicePx, totalPx - srcOffY);
-          const thisMmH = (thisPx * usableW) / canvas.width;
+        const margin    = 4;
+        const usableW   = pageW - margin * 2;
+        const headerH   = 10;
+        const topOffset = headerH + 2;
+        const usableH   = pageH - topOffset - margin;
+        const imgH      = (canvas.height * usableW) / canvas.width;
+
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+
+        this.drawHeader(pdf, page.title, pageW, headerH);
+
+        if (imgH <= usableH) {
+          pdf.addImage(canvas.toDataURL("image/jpeg", IMG_QUALITY), "JPEG", margin, topOffset, usableW, imgH);
+        } else {
+          const totalPx  = canvas.height;
+          const slicePx  = Math.floor(totalPx * (usableH / imgH));
+          let   srcOffY  = 0;
+          let   firstSlice = true;
+
           const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width  = canvas.width;
-          sliceCanvas.height = thisPx;
-          sliceCanvas.getContext("2d")!.drawImage(canvas, 0, srcOffY, canvas.width, thisPx, 0, 0, canvas.width, thisPx);
-          const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
-          pdf.addImage(sliceData, "JPEG", margin, firstSlice ? topOffset : margin, usableW, thisMmH);
-          srcOffY += thisPx;
-          if (srcOffY < totalPx) {
-            pdf.addPage();
-            this.drawHeader(pdf, `${page.title} (cont.)`, pageW, headerH);
+          sliceCanvas.width = canvas.width;
+          const ctx = sliceCanvas.getContext("2d")!;
+
+          while (srcOffY < totalPx) {
+            const thisPx  = Math.min(slicePx, totalPx - srcOffY);
+            const thisMmH = (thisPx * usableW) / canvas.width;
+
+            sliceCanvas.height = thisPx;
+            ctx.drawImage(canvas, 0, srcOffY, canvas.width, thisPx, 0, 0, canvas.width, thisPx);
+
+            pdf.addImage(sliceCanvas.toDataURL("image/jpeg", IMG_QUALITY), "JPEG",
+              margin, firstSlice ? topOffset : margin, usableW, thisMmH);
+
+            srcOffY += thisPx;
+            if (srcOffY < totalPx) {
+              pdf.addPage();
+              this.drawHeader(pdf, `${page.title} (cont.)`, pageW, headerH);
+            }
+            firstSlice = false;
           }
-          firstSlice = false;
         }
       }
+
+      // Rodapé na última página
+      pdf.setFillColor(15, 23, 42);
+      pdf.rect(0, pageH - 8, pageW, 8, "F");
+      pdf.setTextColor(100, 116, 139);
+      pdf.setFontSize(7);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(
+        "FinControl — Execução Financeira do Termo de Colaboração da Estratégia de Inovação Aberta",
+        pageW / 2, pageH - 3, { align: "center" }
+      );
+
+      const today = new Date().toISOString().split("T")[0];
+      pdf.save(`fincontrol-relatorio-${today}.pdf`);
+
+    } catch (err) {
+      console.error("[PdfExport] falha durante a exportação:", err);
+      this.progress.set({
+        running: false, current: 0, total: PAGES.length,
+        label: `Erro: ${err instanceof Error ? err.message : "falha inesperada"}`
+      });
+      return;
+    } finally {
+      // Sempre restaura o createPattern original e navega de volta
+      CanvasRenderingContext2D.prototype.createPattern = origCreatePattern;
+      await router.navigate([originalRoute]);
     }
 
-    pdf.setFillColor(15, 23, 42);
-    pdf.rect(0, pageH - 8, pageW, 8, "F");
-    pdf.setTextColor(100, 116, 139);
-    pdf.setFontSize(7);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(
-      "FinControl — Execução Financeira do Termo de Colaboração da Estratégia de Inovação Aberta",
-      pageW / 2, pageH - 3, { align: "center" }
-    );
-
-    await router.navigate([originalRoute]);
     this.progress.set({ running: false, current: PAGES.length, total: PAGES.length, label: "Concluído" });
+  }
 
-    const today = new Date().toISOString().split("T")[0];
-    pdf.save(`fincontrol-relatorio-${today}.pdf`);
+  /**
+   * Executa html2canvas com timeout de segurança.
+   */
+  private captureWithTimeout(
+    html2canvas: (el: HTMLElement, opts: object) => Promise<HTMLCanvasElement>,
+    contentEl: HTMLElement
+  ): Promise<HTMLCanvasElement> {
+    const opts = {
+      scale: SCALE,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: getComputedStyle(document.body).getPropertyValue("--bg-primary").trim() || "#0f172a",
+      scrollX: 0,
+      scrollY: 0,
+      width:        contentEl.scrollWidth,
+      height:       contentEl.scrollHeight,
+      windowWidth:  contentEl.scrollWidth,
+      windowHeight: contentEl.scrollHeight,
+      ignoreElements: (el: Element) => el.classList.contains("pdf-ignore"),
+      onclone: (_doc: Document, clonedEl: HTMLElement) => {
+        // ── Copia canvases dos charts ────────────────────────────────
+        const srcCanvases    = Array.from(contentEl.querySelectorAll("canvas")) as HTMLCanvasElement[];
+        const clonedCanvases = Array.from(clonedEl.querySelectorAll("canvas"))  as HTMLCanvasElement[];
+        srcCanvases.forEach((src, idx) => {
+          const dst = clonedCanvases[idx];
+          if (dst && src.width > 0 && src.height > 0) {
+            try {
+              dst.width  = src.width;
+              dst.height = src.height;
+              dst.getContext("2d")?.drawImage(src, 0, 0);
+            } catch {
+              // Canvas pode estar tainted — ignora
+            }
+          }
+        });
+
+        // ── Expande painéis do Angular Material ──────────────────────
+        (Array.from(clonedEl.querySelectorAll("mat-expansion-panel")) as HTMLElement[])
+          .forEach((panel) => {
+            panel.classList.add("mat-expanded");
+            const body = panel.querySelector(".mat-expansion-panel-body") as HTMLElement | null;
+            if (body) {
+              body.style.display    = "block";
+              body.style.overflow   = "visible";
+              body.style.height     = "auto";
+              body.style.visibility = "visible";
+            }
+            const indicator = panel.querySelector(".mat-expansion-indicator") as HTMLElement | null;
+            if (indicator) indicator.style.transform = "rotate(180deg)";
+          });
+
+        // ── Expande accordions customizados (filtros do fluxo-caixa) ─
+        (Array.from(clonedEl.querySelectorAll(".accordion")) as HTMLElement[])
+          .forEach((acc) => {
+            acc.classList.add("open");
+            const body = acc.querySelector(".accordion-body") as HTMLElement | null;
+            if (body) {
+              body.style.maxHeight  = "none";
+              body.style.overflow   = "visible";
+              body.style.height     = "auto";
+              body.style.visibility = "visible";
+            }
+          });
+      },
+    };
+
+    const capture = html2canvas(contentEl, opts);
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`html2canvas timeout após ${CANVAS_CAPTURE_TIMEOUT / 1000}s`)), CANVAS_CAPTURE_TIMEOUT)
+    );
+    return Promise.race([capture, timeout]);
+  }
+
+  /**
+   * Espera inteligente após navegação de rota.
+   */
+  private async waitForPageReady(contentEl: HTMLElement): Promise<void> {
+    await this.delay(150);
+
+    await new Promise<void>(resolve => {
+      let resolved = false;
+      const done = () => { if (!resolved) { resolved = true; resolve(); } };
+
+      const sub = this.appRef.isStable
+        .pipe(first(stable => stable))
+        .subscribe({ next: done, error: done, complete: done });
+
+      setTimeout(() => { try { sub.unsubscribe(); } catch { /* ignore */ } done(); }, STABLE_TIMEOUT);
+    });
+
+    await this.waitForCanvases(contentEl);
+    await this.delay(POST_STABLE_MS);
+  }
+
+  /**
+   * Aguarda pelo menos um canvas com conteúdo. Retorna imediatamente se não houver canvas.
+   */
+  private async waitForCanvases(contentEl: HTMLElement): Promise<void> {
+    const start = Date.now();
+    while (Date.now() - start < CANVAS_TIMEOUT) {
+      const canvases = contentEl.querySelectorAll("canvas");
+      if (canvases.length === 0) return;
+      const rendered = Array.from(canvases).some(
+        (c) => (c as HTMLCanvasElement).width > 0 && (c as HTMLCanvasElement).height > 0
+      );
+      if (rendered) return;
+      await this.delay(100);
+    }
   }
 
   private drawHeader(pdf: any, title: string, pageW: number, h: number): void {
