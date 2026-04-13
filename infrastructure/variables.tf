@@ -10,7 +10,13 @@ variable "bucket_name" {
 }
 
 variable "domain_name" {
-  description = "Domínio principal da aplicação"
+  description = "Domínio principal da aplicação (raiz)"
   type        = string
   default     = "sybillalabs.com.br"
+}
+
+variable "subdomain" {
+  description = "Subdomínio da aplicação FinControl"
+  type        = string
+  default     = "ih-enap"
 }

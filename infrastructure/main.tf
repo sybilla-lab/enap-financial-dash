@@ -37,7 +37,7 @@ resource "aws_cloudfront_distribution" "website_cdn" {
   is_ipv6_enabled     = true
   comment             = "CDN para Enap Financial Dash"
   default_root_object = "index.html"
-  aliases             = [var.domain_name, "www.${var.domain_name}"]
+  aliases             = ["${var.subdomain}.${var.domain_name}"]
 
   origin {
     domain_name              = aws_s3_bucket.website_bucket.bucket_regional_domain_name

@@ -13,6 +13,7 @@
     <mat-nav-list>
       @for (item of navItems; track item.route) {
         <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: item.route === '/' }"
           (click)="onNavItemClick()"
           [matTooltip]="sidenavCollapsed ? item.label : ''" matTooltipPosition="right">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
