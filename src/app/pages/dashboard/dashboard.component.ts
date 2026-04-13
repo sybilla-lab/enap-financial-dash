@@ -168,14 +168,21 @@ export class DashboardComponent implements OnInit {
 
     this.dataService.getAportesEnapPorAno().subscribe((anos) => {
       setTimeout(() => {
+        const bgColors = anos.map(a =>
+          a.recebido > 0 ? "rgba(16,185,129,0.5)" : "rgba(99,102,241,0.35)"
+        );
+        const borderColors = anos.map(a =>
+          a.recebido > 0 ? "#10b981" : "#6366f1"
+        );
+
         this.recebimentosAnoChartData = {
           labels: anos.map(a => a.ano),
           datasets: [
             {
               label: "Total Anual",
               data: anos.map(a => a.recebido + a.previsto),
-              backgroundColor: "rgba(16,185,129,0.5)",
-              borderColor: "#10b981",
+              backgroundColor: bgColors,
+              borderColor: borderColors,
               borderWidth: 1,
               borderRadius: 4,
             },
