@@ -20,6 +20,7 @@ interface AuditoriaItem {
   dataObj?: Date;
   ano?: number;
   mes?: number;
+  fornecedor?: string;
 }
 
 const MESES = [
@@ -53,13 +54,14 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
 
   fileName = "";
   totalBase = 0;
-  totalCanceladasIgnoradas = 0;
-
   todosItens: AuditoriaItem[] = [];
-
+  erro = "";
   processando = false;
   dragging = false;
-  erro = "";
+
+  totalCanceladasIgnoradas = 0;
+  totalEstornadasIgnoradas = 0;
+
   abaAtiva: "faltantes" | "encontrados" = "faltantes";
 
   filtroEncontrados = "";
@@ -120,6 +122,7 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
     this.fileName = "";
     this.todosItens = [];
     this.totalCanceladasIgnoradas = 0;
+    this.totalEstornadasIgnoradas = 0;
     this.anosComMeses = [];
     this.periodosSelecionados.clear();
     this.temCampoData = false;
@@ -139,9 +142,9 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
           const wb = XLSX.read(data, { type: "array", cellDates: true });
           const firstSheet = wb.SheetNames[0];
           const ws = wb.Sheets[firstSheet];
-          const json: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
+          const json: any[] = XLSX.utils.sheet_to_json(ws, { header: "A", defval: "", raw: false });
 
-        if (!json.length) {
+        if (!json.length || json.length < 2) {
           this.erro = "Planilha vazia.";
           this.processando = false;
           return;
@@ -154,15 +157,46 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
           return;
         }
 
-        const colSituacao = this.encontrarColunaSituacao(json[0]);
-        const colData = this.encontrarColunaData(json[0]);
+        const keysArr = Object.keys(json[0]);
+        const headerRow = json[0];
+        const dataRows = json.slice(1);
+
+        const colSituacao = this.encontrarColunaSituacao(headerRow);
+        const colData = this.encontrarColunaData(headerRow);
+        
+        const findC = (subs: string[], ignores: string[] = []): string | null => {
+           for (const [k, v] of Object.entries(headerRow)) {
+             const n = this.normalizar(String(v));
+             if (subs.some(s => n.includes(this.normalizar(s))) && !ignores.some(i => n.includes(this.normalizar(i)))) {
+               return k;
+             }
+           }
+           return null;
+        };
+
+        const colBruto = "D";
+        const colFavorecidoValor = "E";
+        
+        // Pelo seu Excel de importação, Fornecedor bate G(Cnpj) e H(Nome).
+        const colCnpj = "G";
+        let colRazao = "H"; 
+        
         this.temCampoData = !!colData;
         const CANCELADA = this.normalizar("Movimentação Financeira Cancelada");
+
+        const isZeroVal = (val: any): boolean => {
+          if (val === 0 || val === "0" || val === "0,00" || val === "0.00") return true;
+          if (!val || String(val).trim() === "" || String(val).trim() === "-") return true;
+          const cln = String(val).replace(/[^\d,\.-]/g, "").replace(",", ".");
+          if (!cln) return true;
+          return parseFloat(cln) === 0;
+        };
 
         const itens: AuditoriaItem[] = [];
         const anosMap = new Map<number, Set<number>>();
         let canceladas = 0;
-        json.forEach((row, idx) => {
+        let estornadas = 0;
+        dataRows.forEach((row, idx) => {
           if (colSituacao) {
             const sit = this.normalizar(row[colSituacao]);
             if (sit === CANCELADA) {
@@ -170,6 +204,14 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
               return;
             }
           }
+          
+          if (colBruto && colFavorecidoValor) {
+             if (isZeroVal(row[colBruto]) && isZeroVal(row[colFavorecidoValor])) {
+                 estornadas++;
+                 return;
+             }
+          }
+
           const raw = row[colKey];
           const numero = this.normalizar(raw);
           if (!numero) return;
@@ -183,7 +225,22 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
             anosMap.get(a)!.add(m);
           }
 
+          const fCnpj = colCnpj ? String(row[colCnpj] || "").trim() : "";
+          const fRazao = colRazao ? String(row[colRazao] || "").trim() : "";
+          let fFinal = fCnpj;
+          if (fRazao && fCnpj !== fRazao) {
+              fFinal = fCnpj ? `${fRazao} (${fCnpj})` : fRazao;
+          } else if (fRazao) {
+              fFinal = fRazao;
+          }
+
           const lanc = this.baseMap.get(numero);
+          
+          let fornecedorExibir = fFinal;
+          if (lanc && lanc.fornecedor) {
+             fornecedorExibir = fCnpj ? `${lanc.fornecedor} (${fCnpj})` : lanc.fornecedor;
+          }
+
           itens.push({
             numero: String(raw).trim(),
             linhaPlanilha: idx + 2,
@@ -193,10 +250,12 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
             dataObj,
             ano: dataObj?.getFullYear(),
             mes: dataObj ? dataObj.getMonth() + 1 : undefined,
+            fornecedor: fornecedorExibir,
           });
         });
 
         this.totalCanceladasIgnoradas = canceladas;
+        this.totalEstornadasIgnoradas = estornadas;
         this.todosItens = itens;
         this.anosComMeses = Array.from(anosMap.entries()).map(([ano, mesesSet]) => ({
              ano,
@@ -242,31 +301,32 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
     return undefined;
   }
 
-  private encontrarColunaNumero(sample: any): string | null {
-    const keys = Object.keys(sample);
-    const alvo = keys.find((k) => this.normalizar(k) === "NUMERO" || this.normalizar(k) === "NÚMERO");
-    if (alvo) return alvo;
-    const contem = keys.find((k) => this.normalizar(k).includes("NUMERO"));
-    return contem || null;
+  private encontrarColunaNumero(headerRow: any): string | null {
+    const entries = Object.entries(headerRow);
+    const alvo = entries.find(([k, v]) => this.normalizar(String(v)) === "NUMERO" || this.normalizar(String(v)) === "NÚMERO");
+    if (alvo) return alvo[0];
+    const contem = entries.find(([k, v]) => this.normalizar(String(v)).includes("NUMERO"));
+    return contem ? contem[0] : null;
   }
 
-  private encontrarColunaSituacao(sample: any): string | null {
-    const keys = Object.keys(sample);
-    const exata = keys.find((k) => {
-      const n = this.normalizar(k);
+  private encontrarColunaSituacao(headerRow: any): string | null {
+    const entries = Object.entries(headerRow);
+    const exata = entries.find(([k, v]) => {
+      const n = this.normalizar(String(v));
       return n === "SITUACAO" || n === "SITUAÇÃO";
     });
-    if (exata) return exata;
-    const contem = keys.find((k) => this.normalizar(k).includes("SITUA"));
-    if (contem) return contem;
-    return keys.length ? keys[keys.length - 1] : null;
+    if (exata) return exata[0];
+    const contem = entries.find(([k, v]) => this.normalizar(String(v)).includes("SITUA"));
+    if (contem) return contem[0];
+    return entries.length ? entries[entries.length - 1][0] : null;
   }
 
-  private encontrarColunaData(sample: any): string | null {
-    const keys = Object.keys(sample);
-    const exata = keys.find((k) => this.normalizar(k) === "DATA");
-    if (exata) return exata;
-    return keys.find((k) => this.normalizar(k).includes("DATA")) || null;
+  private encontrarColunaData(headerRow: any): string | null {
+    const entries = Object.entries(headerRow);
+    const exata = entries.find(([k, v]) => this.normalizar(String(v)) === "DATA");
+    if (exata) return exata[0];
+    const contem = entries.find(([k, v]) => this.normalizar(String(v)).includes("DATA"));
+    return contem ? contem[0] : null;
   }
 
   private passaFiltroData(item: AuditoriaItem): boolean {
@@ -372,6 +432,7 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
       Data: this.formatarData(i),
       "Linha Planilha": i.linhaPlanilha,
       Status: i.encontrado ? "Encontrado" : "Não encontrado",
+      Fornecedor: i.fornecedor || "",
       Projeto: i.lancamento?.projeto || "",
       Categoria: i.lancamento?.categoria || "",
       Valor: i.lancamento?.valor || "",

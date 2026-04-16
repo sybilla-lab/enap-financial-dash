@@ -4,7 +4,8 @@
       <div class="title-icon"><mat-icon>fact_check</mat-icon></div>
       <div>
         <h1>Auditoria de Pagamentos</h1>
-        <p>Confronte uma planilha externa com a base Principal e descubra o que está conciliado e o que ficou de fora.
+        <p>Confronte a planilha Pagamentos OBTV - Transferegov.br com a base Principal e descubra o que está conciliado
+          e o que ficou de fora.
         </p>
       </div>
     </div>
@@ -50,6 +51,12 @@
           matTooltip="Linhas com Situação = 'Movimentação Financeira Cancelada' foram desconsideradas">
           <mat-icon>block</mat-icon>
           <span><strong>{{ totalCanceladasIgnoradas }}</strong> cancelada(s) ignorada(s)</span>
+        </div>
+
+        <div class="ignoradas-chip extorno" *ngIf="totalEstornadasIgnoradas"
+             matTooltip="Linhas com Valor Bruto e Valor Favorecido zerados foram desconsideradas (Estorno)">
+          <mat-icon>money_off</mat-icon>
+          <span><strong>{{ totalEstornadasIgnoradas }}</strong> estornada(s) ignorada(s)</span>
         </div>
       </div>
 
@@ -99,7 +106,8 @@
             <mat-icon>restart_alt</mat-icon>
             Resetar
           </button>
-          <button mat-icon-button class="toggle-btn" [class.rotated]="filtrosExpandidos" (click)="$event.stopPropagation(); filtrosExpandidos = !filtrosExpandidos">
+          <button mat-icon-button class="toggle-btn" [class.rotated]="filtrosExpandidos"
+            (click)="$event.stopPropagation(); filtrosExpandidos = !filtrosExpandidos">
             <mat-icon>expand_more</mat-icon>
           </button>
         </div>
@@ -117,9 +125,7 @@
               </div>
             </div>
             <div class="chips chips-meses">
-              <button *ngFor="let m of grupo.meses"
-                class="chip-filter"
-                [class.ativo]="isSelecionado(grupo.ano, m.num)"
+              <button *ngFor="let m of grupo.meses" class="chip-filter" [class.ativo]="isSelecionado(grupo.ano, m.num)"
                 (click)="togglePeriodo(grupo.ano, m.num)">
                 {{ m.label }}
               </button>
@@ -147,7 +153,7 @@
         <div class="painel-header miss">
           <div>
             <h3><mat-icon>search_off</mat-icon> Não localizados na base</h3>
-            <p>Esses números existem na planilha, mas não foram encontrados em <code>Principal.num_pag</code>.</p>
+            <p>Esses números existem na planilha, mas não foram encontrados na base <code>Principal</code>.</p>
           </div>
           <div class="actions">
             <div class="search">
@@ -172,6 +178,9 @@
             <div class="numero">{{ item.numero }}</div>
             <span class="data-chip" *ngIf="item.dataObj || item.dataTexto">
               <mat-icon>event</mat-icon>{{ formatarData(item) }}
+            </span>
+            <span class="fornecedor" *ngIf="item.fornecedor" [matTooltip]="item.fornecedor">
+              <mat-icon>store</mat-icon> <span>{{ item.fornecedor }}</span>
             </span>
             <span class="linha">linha {{ item.linhaPlanilha }}</span>
             <span class="tag">Ausente na base</span>
@@ -209,10 +218,11 @@
             <span class="data-chip" *ngIf="item.dataObj || item.dataTexto">
               <mat-icon>event</mat-icon>{{ formatarData(item) }}
             </span>
+            <span class="fornecedor" *ngIf="item.fornecedor" [matTooltip]="item.fornecedor">
+              <mat-icon>store</mat-icon> <span>{{ item.fornecedor }}</span>
+            </span>
             <span class="linha">linha {{ item.linhaPlanilha }}</span>
             <div class="meta" *ngIf="item.lancamento as l">
-              <span *ngIf="l.projeto" class="chip">{{ l.projeto }}</span>
-              <span *ngIf="l.categoria" class="chip chip-soft">{{ l.categoria }}</span>
               <span *ngIf="l.mesAno" class="chip chip-soft">{{ l.mesAno }}</span>
             </div>
           </li>

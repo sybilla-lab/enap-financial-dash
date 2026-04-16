@@ -178,6 +178,13 @@
   border-radius: 999px;
   font-size: 13px;
   strong { color: var(--text-primary); }
+
+  &.extorno {
+    background: color-mix(in srgb, #fb923c 14%, transparent);
+    color: #fb923c;
+    border-color: color-mix(in srgb, #fb923c 35%, transparent);
+  }
+
   mat-icon { font-size: 18px; width: 18px; height: 18px; }
 }
 
@@ -603,10 +610,9 @@
 }
 
 .item {
-  display: grid;
-  grid-template-columns: 12px minmax(120px, 220px) auto auto 1fr auto;
+  display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   padding: 14px 22px;
   border-bottom: 1px solid var(--border-color);
   transition: background 0.15s;
@@ -620,20 +626,46 @@
     border-radius: 50%;
   }
 
-  .numero {
-    font-family: ui-monospace, Menlo, Consolas, monospace;
-    font-weight: 700;
-    color: var(--text-primary);
-    font-size: 15px;
-  }
-
   .linha {
     font-size: 12px;
     color: var(--text-muted);
   }
 
+  .data-chip, .fornecedor {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--accent-blue) 6%, transparent);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .fornecedor {
+    max-width: 450px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  }
+
+  .numero {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 15px;
+    min-width: 110px;
+  }
+
   .tag {
-    justify-self: end;
+    margin-left: auto;
     padding: 4px 10px;
     border-radius: 999px;
     font-size: 12px;
@@ -643,6 +675,7 @@
   }
 
   .meta {
+    margin-left: auto;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;

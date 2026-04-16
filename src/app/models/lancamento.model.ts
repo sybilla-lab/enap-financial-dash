@@ -5,6 +5,7 @@ export interface Lancamento {
   mesAno: string;
   valor: number;
   numPag: string;
+  fornecedor?: string;
 }
 
 export interface Recebimento {

@@ -77,6 +77,7 @@ export class DataService {
       if (row.length < 11) continue;
 
       const numPag = (row[3] || "").trim();
+      const fornecedor = (row[7] || "").trim(); // Coluna H
       const categoria = (row[8] || "").trim();
       const observacao = (row[9] || "").trim();
       const projeto = (row[10] || "").trim();
@@ -85,7 +86,7 @@ export class DataService {
       const valor = this.parseValor(valorStr);
 
       if (categoria || projeto) {
-        lancamentos.push({ categoria, observacao, projeto, mesAno, valor, numPag });
+        lancamentos.push({ fornecedor, categoria, observacao, projeto, mesAno, valor, numPag });
       }
     }
 
