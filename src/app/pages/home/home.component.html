@@ -12,7 +12,6 @@
       Painel de execução do Termo de Colaboração da
       <strong>Estratégia Nacional de Inovação Aberta</strong>.
     </p>
-    <p class="hero-frase">&ldquo;{{ frase }}&rdquo;</p>
   </header>
 
   <!-- ===== Máquina do Tempo ===== -->
@@ -29,7 +28,7 @@
         <input matSliderThumb [(ngModel)]="currentTimelineIndex" (ngModelChange)="onTimelineChange($event)">
       </mat-slider>
       <div class="tm-bounds">
-        <span>Início: {{ timelineTicks[0]?.label }}</span>
+        <span>Início: {{ timelineTicks[0].label }}</span>
         <span>Tempo Real (Global)</span>
       </div>
     </div>
