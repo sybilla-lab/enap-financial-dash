@@ -12,27 +12,8 @@
       Painel de execução do Termo de Colaboração da
       <strong>Estratégia Nacional de Inovação Aberta</strong>.
     </p>
+    <p class="hero-frase">&ldquo;{{ frase }}&rdquo;</p>
   </header>
-
-  <!-- ===== Máquina do Tempo ===== -->
-  <div class="time-machine-container" *ngIf="timelineTicks.length > 0">
-    <div class="tm-header">
-      <mat-icon class="tm-icon">restore</mat-icon>
-      <div class="tm-info">
-        <h3>{{ timelineLabelCurrent }}</h3>
-        <p>Arraste para recalcular o cenário acumulado como existia no passado.</p>
-      </div>
-    </div>
-    <div class="tm-slider-wrapper">
-      <mat-slider class="slider-neon" [min]="0" [max]="timelineTicks.length" step="1" showTickMarks discrete [displayWith]="formatTimelineLabel">
-        <input matSliderThumb [(ngModel)]="currentTimelineIndex" (ngModelChange)="onTimelineChange($event)">
-      </mat-slider>
-      <div class="tm-bounds">
-        <span>Início: {{ timelineTicks[0].label }}</span>
-        <span>Tempo Real (Global)</span>
-      </div>
-    </div>
-  </div>
 
   <!-- ===== Pulso Financeiro ===== -->
   <section class="pulso" [class.loading]="carregando">
