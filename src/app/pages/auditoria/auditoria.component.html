@@ -85,14 +85,58 @@
       </div>
     </section>
 
+    <section class="filtros" *ngIf="temCampoData" [class.collapsed]="!filtrosExpandidos">
+      <div class="filtros-header" (click)="filtrosExpandidos = !filtrosExpandidos">
+        <div class="filtros-title">
+          <mat-icon>event</mat-icon>
+          <div>
+            <h3>Filtrar por período</h3>
+            <p>Refine a auditoria selecionando anos e meses.</p>
+          </div>
+        </div>
+        <div class="filtros-actions">
+          <button *ngIf="filtroDataAtivo" mat-stroked-button (click)="$event.stopPropagation(); resetarFiltroData()">
+            <mat-icon>restart_alt</mat-icon>
+            Resetar
+          </button>
+          <button mat-icon-button class="toggle-btn" [class.rotated]="filtrosExpandidos" (click)="$event.stopPropagation(); filtrosExpandidos = !filtrosExpandidos">
+            <mat-icon>expand_more</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="accordion-body" [class.expanded]="filtrosExpandidos">
+        <div class="filtros-grid">
+          <div class="filtro-bloco" *ngFor="let grupo of anosComMeses">
+            <div class="bloco-head">
+              <span class="bloco-label">Ano {{ grupo.ano }}</span>
+              <div class="bloco-acoes">
+                <button (click)="selecionarGrupo(grupo.ano)">Todos</button>
+                <span>·</span>
+                <button (click)="limparGrupo(grupo.ano)">Nenhum</button>
+              </div>
+            </div>
+            <div class="chips chips-meses">
+              <button *ngFor="let m of grupo.meses"
+                class="chip-filter"
+                [class.ativo]="isSelecionado(grupo.ano, m.num)"
+                (click)="togglePeriodo(grupo.ano, m.num)">
+                {{ m.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="resultado">
       <div class="tabs">
-        <button class="tab" [class.active]="abaAtiva === 'faltantes'" (click)="abaAtiva = 'faltantes'">
+        <button class="tab tab-miss" [class.active]="abaAtiva === 'faltantes'" (click)="abaAtiva = 'faltantes'">
           <mat-icon>warning_amber</mat-icon>
           Não encontrados
           <span class="badge badge-miss">{{ totalFaltante }}</span>
         </button>
-        <button class="tab" [class.active]="abaAtiva === 'encontrados'" (click)="abaAtiva = 'encontrados'">
+        <button class="tab tab-ok" [class.active]="abaAtiva === 'encontrados'" (click)="abaAtiva = 'encontrados'">
           <mat-icon>verified</mat-icon>
           Encontrados
           <span class="badge badge-ok">{{ totalEncontrado }}</span>
@@ -126,6 +170,9 @@
           <li *ngFor="let item of faltantesFiltrados" class="item miss">
             <div class="dot"></div>
             <div class="numero">{{ item.numero }}</div>
+            <span class="data-chip" *ngIf="item.dataObj || item.dataTexto">
+              <mat-icon>event</mat-icon>{{ formatarData(item) }}
+            </span>
             <span class="linha">linha {{ item.linhaPlanilha }}</span>
             <span class="tag">Ausente na base</span>
           </li>
@@ -159,6 +206,9 @@
           <li *ngFor="let item of encontradosFiltrados" class="item ok">
             <div class="dot"></div>
             <div class="numero">{{ item.numero }}</div>
+            <span class="data-chip" *ngIf="item.dataObj || item.dataTexto">
+              <mat-icon>event</mat-icon>{{ formatarData(item) }}
+            </span>
             <span class="linha">linha {{ item.linhaPlanilha }}</span>
             <div class="meta" *ngIf="item.lancamento as l">
               <span *ngIf="l.projeto" class="chip">{{ l.projeto }}</span>

@@ -16,7 +16,18 @@ interface AuditoriaItem {
   linhaPlanilha: number;
   encontrado: boolean;
   lancamento?: Lancamento;
+  dataTexto: string;
+  dataObj?: Date;
+  ano?: number;
+  mes?: number;
 }
+
+const MESES = [
+  { num: 1, label: "Jan" }, { num: 2, label: "Fev" }, { num: 3, label: "Mar" },
+  { num: 4, label: "Abr" }, { num: 5, label: "Mai" }, { num: 6, label: "Jun" },
+  { num: 7, label: "Jul" }, { num: 8, label: "Ago" }, { num: 9, label: "Set" },
+  { num: 10, label: "Out" }, { num: 11, label: "Nov" }, { num: 12, label: "Dez" },
+];
 
 @Component({
   selector: "app-auditoria",
@@ -35,20 +46,16 @@ interface AuditoriaItem {
 })
 export class AuditoriaComponent implements OnInit, OnDestroy {
   private sub?: Subscription;
-  private lancamentos: Lancamento[] = [];
   private baseSet = new Set<string>();
   private baseMap = new Map<string, Lancamento>();
 
+  readonly meses = MESES;
+
   fileName = "";
   totalBase = 0;
-  totalEnviado = 0;
-  totalEncontrado = 0;
-  totalFaltante = 0;
   totalCanceladasIgnoradas = 0;
-  percentualMatch = 0;
 
-  encontrados: AuditoriaItem[] = [];
-  faltantes: AuditoriaItem[] = [];
+  todosItens: AuditoriaItem[] = [];
 
   processando = false;
   dragging = false;
@@ -58,11 +65,15 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
   filtroEncontrados = "";
   filtroFaltantes = "";
 
+  anosComMeses: { ano: number, meses: { num: number, label: string }[] }[] = [];
+  periodosSelecionados = new Set<string>();
+  temCampoData = false;
+  filtrosExpandidos = false;
+
   constructor(private data: DataService) {}
 
   ngOnInit(): void {
     this.sub = this.data.lancamentos$.subscribe((lanc) => {
-      this.lancamentos = lanc;
       this.baseSet.clear();
       this.baseMap.clear();
       for (const l of lanc) {
@@ -107,13 +118,11 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
 
   limpar(): void {
     this.fileName = "";
-    this.encontrados = [];
-    this.faltantes = [];
-    this.totalEnviado = 0;
-    this.totalEncontrado = 0;
-    this.totalFaltante = 0;
+    this.todosItens = [];
     this.totalCanceladasIgnoradas = 0;
-    this.percentualMatch = 0;
+    this.anosComMeses = [];
+    this.periodosSelecionados.clear();
+    this.temCampoData = false;
     this.erro = "";
   }
 
@@ -126,7 +135,7 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
+        const wb = XLSX.read(data, { type: "array", cellDates: true });
         const firstSheet = wb.SheetNames[0];
         const ws = wb.Sheets[firstSheet];
         const json: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
@@ -145,9 +154,12 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
         }
 
         const colSituacao = this.encontrarColunaSituacao(json[0]);
+        const colData = this.encontrarColunaData(json[0]);
+        this.temCampoData = !!colData;
         const CANCELADA = this.normalizar("Movimentação Financeira Cancelada");
 
         const itens: AuditoriaItem[] = [];
+        const anosMap = new Map<number, Set<number>>();
         let canceladas = 0;
         json.forEach((row, idx) => {
           if (colSituacao) {
@@ -160,24 +172,37 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
           const raw = row[colKey];
           const numero = this.normalizar(raw);
           if (!numero) return;
+
+          const dataTexto = colData ? String(row[colData] || "").trim() : "";
+          const dataObj = dataTexto ? this.parseData(dataTexto) : undefined;
+          if (dataObj) {
+            const a = dataObj.getFullYear();
+            const m = dataObj.getMonth() + 1;
+            if (!anosMap.has(a)) anosMap.set(a, new Set());
+            anosMap.get(a)!.add(m);
+          }
+
           const lanc = this.baseMap.get(numero);
           itens.push({
             numero: String(raw).trim(),
             linhaPlanilha: idx + 2,
             encontrado: this.baseSet.has(numero),
             lancamento: lanc,
+            dataTexto,
+            dataObj,
+            ano: dataObj?.getFullYear(),
+            mes: dataObj ? dataObj.getMonth() + 1 : undefined,
           });
         });
-        this.totalCanceladasIgnoradas = canceladas;
 
-        this.encontrados = itens.filter((i) => i.encontrado);
-        this.faltantes = itens.filter((i) => !i.encontrado);
-        this.totalEnviado = itens.length;
-        this.totalEncontrado = this.encontrados.length;
-        this.totalFaltante = this.faltantes.length;
-        this.percentualMatch = this.totalEnviado
-          ? Math.round((this.totalEncontrado / this.totalEnviado) * 100)
-          : 0;
+        this.totalCanceladasIgnoradas = canceladas;
+        this.todosItens = itens;
+        this.anosComMeses = Array.from(anosMap.entries()).map(([ano, mesesSet]) => ({
+             ano,
+             meses: Array.from(mesesSet).sort((a, b) => a - b).map(num => MESES.find(x => x.num === num)!)
+        })).sort((a, b) => b.ano - a.ano);
+        this.periodosSelecionados.clear();
+        this.anosComMeses.forEach(g => g.meses.forEach(m => this.periodosSelecionados.add(`${g.ano}-${m.num}`)));
         this.abaAtiva = this.totalFaltante > 0 ? "faltantes" : "encontrados";
       } catch (err: any) {
         this.erro = "Falha ao ler planilha: " + (err?.message || err);
@@ -190,6 +215,29 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
       this.processando = false;
     };
     reader.readAsArrayBuffer(file);
+  }
+
+  private parseData(v: any): Date | undefined {
+    if (!v) return undefined;
+    if (v instanceof Date && !isNaN(v.getTime())) return v;
+    const s = String(v).trim();
+
+    const br = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+    if (br) {
+      const dia = parseInt(br[1], 10);
+      const mes = parseInt(br[2], 10) - 1;
+      let ano = parseInt(br[3], 10);
+      if (ano < 100) ano += 2000;
+      const d = new Date(ano, mes, dia);
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+      const d = new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10));
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+    return undefined;
   }
 
   private encontrarColunaNumero(sample: any): string | null {
@@ -212,6 +260,37 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
     return keys.length ? keys[keys.length - 1] : null;
   }
 
+  private encontrarColunaData(sample: any): string | null {
+    const keys = Object.keys(sample);
+    const exata = keys.find((k) => this.normalizar(k) === "DATA");
+    if (exata) return exata;
+    return keys.find((k) => this.normalizar(k).includes("DATA")) || null;
+  }
+
+  private passaFiltroData(item: AuditoriaItem): boolean {
+    if (!this.temCampoData) return true;
+    if (!item.ano || !item.mes) return !this.filtroDataAtivo;
+    return this.periodosSelecionados.has(`${item.ano}-${item.mes}`);
+  }
+
+  get itensVisiveis(): AuditoriaItem[] {
+    return this.todosItens.filter((i) => this.passaFiltroData(i));
+  }
+
+  get encontrados(): AuditoriaItem[] {
+    return this.itensVisiveis.filter((i) => i.encontrado);
+  }
+  get faltantes(): AuditoriaItem[] {
+    return this.itensVisiveis.filter((i) => !i.encontrado);
+  }
+
+  get totalEnviado(): number { return this.itensVisiveis.length; }
+  get totalEncontrado(): number { return this.encontrados.length; }
+  get totalFaltante(): number { return this.faltantes.length; }
+  get percentualMatch(): number {
+    return this.totalEnviado ? Math.round((this.totalEncontrado / this.totalEnviado) * 100) : 0;
+  }
+
   get encontradosFiltrados(): AuditoriaItem[] {
     if (!this.filtroEncontrados) return this.encontrados;
     const q = this.normalizar(this.filtroEncontrados);
@@ -222,6 +301,58 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
     if (!this.filtroFaltantes) return this.faltantes;
     const q = this.normalizar(this.filtroFaltantes);
     return this.faltantes.filter((i) => this.normalizar(i.numero).includes(q));
+  }
+
+  isSelecionado(ano: number, mes: number): boolean {
+    return this.periodosSelecionados.has(`${ano}-${mes}`);
+  }
+
+  togglePeriodo(ano: number, mes: number): void {
+    const k = `${ano}-${mes}`;
+    if (this.periodosSelecionados.has(k)) this.periodosSelecionados.delete(k);
+    else this.periodosSelecionados.add(k);
+    this.periodosSelecionados = new Set(this.periodosSelecionados);
+  }
+
+  selecionarGrupo(ano: number): void {
+    const grupo = this.anosComMeses.find(g => g.ano === ano);
+    if (grupo) {
+       grupo.meses.forEach(m => this.periodosSelecionados.add(`${ano}-${m.num}`));
+       this.periodosSelecionados = new Set(this.periodosSelecionados);
+    }
+  }
+
+  limparGrupo(ano: number): void {
+    const grupo = this.anosComMeses.find(g => g.ano === ano);
+    if (grupo) {
+       grupo.meses.forEach(m => this.periodosSelecionados.delete(`${ano}-${m.num}`));
+       this.periodosSelecionados = new Set(this.periodosSelecionados);
+    }
+  }
+
+  get totalPeriodos(): number {
+    return this.anosComMeses.reduce((acc, g) => acc + g.meses.length, 0);
+  }
+
+  get filtroDataAtivo(): boolean {
+    if (!this.temCampoData) return false;
+    return this.periodosSelecionados.size !== this.totalPeriodos;
+  }
+
+  resetarFiltroData(): void {
+    this.periodosSelecionados.clear();
+    this.anosComMeses.forEach(g => g.meses.forEach(m => this.periodosSelecionados.add(`${g.ano}-${m.num}`)));
+    this.periodosSelecionados = new Set(this.periodosSelecionados);
+  }
+
+  formatarData(item: AuditoriaItem): string {
+    if (item.dataObj) {
+      const d = item.dataObj;
+      const dia = String(d.getDate()).padStart(2, "0");
+      const mes = String(d.getMonth() + 1).padStart(2, "0");
+      return `${dia}/${mes}/${d.getFullYear()}`;
+    }
+    return item.dataTexto || "";
   }
 
   exportarFaltantes(): void {
@@ -236,6 +367,7 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
     if (!itens.length) return;
     const data = itens.map((i) => ({
       Numero: i.numero,
+      Data: this.formatarData(i),
       "Linha Planilha": i.linhaPlanilha,
       Status: i.encontrado ? "Encontrado" : "Não encontrado",
       Projeto: i.lancamento?.projeto || "",
