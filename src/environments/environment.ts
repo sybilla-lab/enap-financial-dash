@@ -4,4 +4,9 @@ export const environment = {
   features: {
     auditoria: ("__FEATURE_AUDITORIA__" as string) === "true",
   },
+  google: {
+    clientId: "591136537189-82mno6s31ef54r8t5lt8qvksijs6vmc1.apps.googleusercontent.com",
+    allowedEmails: ["mrclima.dev@gmail.com", "fernanda.kleinschmidt@impacthub.net", "fernandakdt@gmail.com"],
+    allowedDomains: [] as string[],
+  },
 };

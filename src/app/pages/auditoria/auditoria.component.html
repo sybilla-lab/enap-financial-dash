@@ -9,9 +9,19 @@
         </p>
       </div>
     </div>
-    <div class="base-badge" *ngIf="totalBase">
-      <mat-icon>storage</mat-icon>
-      <span><strong>{{ totalBase }}</strong> pagamentos na base</span>
+    <div class="header-actions">
+      <div class="base-badge" *ngIf="totalBase">
+        <mat-icon>storage</mat-icon>
+        <span><strong>{{ totalBase }}</strong> pagamentos na base</span>
+      </div>
+      <div class="user-chip" *ngIf="usuario() as u" [matTooltip]="u.email">
+        <img *ngIf="u.picture" [src]="u.picture" [alt]="u.name" referrerpolicy="no-referrer" />
+        <mat-icon *ngIf="!u.picture">account_circle</mat-icon>
+        <span class="user-name">{{ u.name }}</span>
+        <button type="button" class="logout-btn" (click)="sair()" matTooltip="Sair">
+          <mat-icon>logout</mat-icon>
+        </button>
+      </div>
     </div>
   </header>
 

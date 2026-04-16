@@ -1,6 +1,7 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
@@ -10,6 +11,7 @@ import { Subscription } from "rxjs";
 import * as XLSX from "xlsx";
 import { DataService } from "../../services/data.service";
 import { Lancamento } from "../../models/lancamento.model";
+import { AuthService } from "../../auth/auth.service";
 
 interface AuditoriaItem {
   numero: string;
@@ -72,7 +74,17 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
   temCampoData = false;
   filtrosExpandidos = false;
 
+  private auth = inject(AuthService);
+  private router = inject(Router);
+
+  usuario = this.auth.currentUser;
+
   constructor(private data: DataService) {}
+
+  sair(): void {
+    this.auth.signOut();
+    this.router.navigate(["/"]);
+  }
 
   ngOnInit(): void {
     this.sub = this.data.lancamentos$.subscribe((lanc) => {

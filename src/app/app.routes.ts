@@ -1,6 +1,7 @@
 import { Routes, Router, CanActivateFn } from "@angular/router";
 import { inject } from "@angular/core";
 import { environment } from "../environments/environment";
+import { authGuard } from "./auth/auth.guard";
 
 const auditoriaGuard: CanActivateFn = () => {
   if (environment.features?.auditoria) return true;
@@ -76,10 +77,17 @@ export const routes: Routes = [
   },
   {
     path: "auditoria",
-    canActivate: [auditoriaGuard],
+    canActivate: [auditoriaGuard, authGuard],
     loadComponent: () =>
       import("./pages/auditoria/auditoria.component").then(
         (m) => m.AuditoriaComponent
+      ),
+  },
+  {
+    path: "login",
+    loadComponent: () =>
+      import("./pages/login/login.component").then(
+        (m) => m.LoginComponent
       ),
   },
 ];

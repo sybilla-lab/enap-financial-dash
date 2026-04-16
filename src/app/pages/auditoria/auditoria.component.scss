@@ -14,15 +14,17 @@
 /* ===== Header ===== */
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 
   .title-wrap {
     display: flex;
     align-items: center;
     gap: 16px;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .title-icon {
@@ -52,7 +54,6 @@
     margin: 4px 0 0;
     color: var(--text-secondary);
     font-size: 14px;
-    white-space: nowrap;
   }
 
   .base-badge {
@@ -68,6 +69,80 @@
     box-shadow: var(--card-shadow);
     strong { color: var(--text-primary); }
     mat-icon { color: var(--accent-blue); }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 720px) {
+    flex-wrap: wrap;
+    .header-actions { width: 100%; justify-content: flex-start; }
+  }
+
+  .user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 4px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    box-shadow: var(--card-shadow);
+
+    img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    > mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: var(--text-muted);
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .logout-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &:hover {
+        background: color-mix(in srgb, var(--accent-red) 12%, transparent);
+        color: var(--accent-red);
+      }
+    }
   }
 }
 
