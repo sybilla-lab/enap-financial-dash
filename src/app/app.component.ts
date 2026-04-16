@@ -45,13 +45,15 @@ export class AppComponent {
   isMobile = false;
 
   navItems: NavItem[] = [
-    { label: "Dashboard",            icon: "dashboard",       route: "/" },
+    { label: "Inicio",              icon: "home",            route: "/" },
+    { label: "Dashboard",            icon: "dashboard",       route: "/dashboard" },
     { label: "Recursos",             icon: "account_balance", route: "/recursos" },
     { label: "Projetos",             icon: "folder_special",  route: "/projetos" },
     { label: "Categorias",           icon: "category",        route: "/categorias" },
     { label: "Fluxo de Caixa",       icon: "timeline",        route: "/fluxo-caixa" },
     { label: "Saldos Remanescentes", icon: "history_edu",     route: "/saldos" },
     { label: "Rendimentos",          icon: "trending_up",     route: "/rendimentos" },
+    { label: "Auditoria",            icon: "fact_check",      route: "/auditoria" },
   ];
 
   get exportProgress() { return this.pdfExport.progress(); }

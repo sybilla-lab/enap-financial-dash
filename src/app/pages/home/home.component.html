@@ -1,0 +1,148 @@
+<div class="home-container">
+
+  <header class="home-hero">
+    <div class="hero-logos">
+      <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="hero-logo-hub" />
+      <span class="hero-sep"></span>
+      <img src="enap_40.png" alt="ENAP" class="hero-logo-enap" />
+    </div>
+
+    <h1 class="hero-title">Impact Hub - ENAP</h1>
+    <p class="hero-subtitle">
+      Painel de execução do Termo de Colaboração da
+      <strong>Estratégia Nacional de Inovação Aberta</strong>.
+    </p>
+    <p class="hero-frase">&ldquo;{{ frase }}&rdquo;</p>
+  </header>
+
+  <!-- ===== Pulso Financeiro ===== -->
+  <section class="pulso" [class.loading]="carregando">
+    <div class="pulso-header">
+      <div>
+        <span class="eyebrow">Pulso Financeiro</span>
+        <h2>Execução em tempo real</h2>
+      </div>
+      <span class="update-chip">
+        <mat-icon>sync</mat-icon>
+        Atualizado {{ ultimaAtualizacao | date:'HH:mm' }}
+      </span>
+    </div>
+
+    <div class="pulso-grid">
+      <!-- Ring principal -->
+      <div class="ring-big-wrap">
+        <div class="ring-big" [style.--pct.%]="percentualExecucao">
+          <div class="ring-inner">
+            <span class="ring-pct">{{ percentualExecucao }}%</span>
+            <span class="ring-label">executado</span>
+          </div>
+        </div>
+        <div class="ring-meta">
+          <div class="meta-item">
+            <span class="dot dot-in"></span>
+            <div>
+              <span class="mi-label">Recebido</span>
+              <span class="mi-value">{{ totalRecebido | currency:'BRL':'symbol':'1.0-0' }}</span>
+            </div>
+          </div>
+          <div class="meta-item">
+            <span class="dot dot-out"></span>
+            <div>
+              <span class="mi-label">Executado</span>
+              <span class="mi-value">{{ totalExecutado | currency:'BRL':'symbol':'1.0-0' }}</span>
+            </div>
+          </div>
+          <div class="meta-item">
+            <span class="dot dot-bal"></span>
+            <div>
+              <span class="mi-label">Saldo</span>
+              <span class="mi-value">{{ saldoDisponivel | currency:'BRL':'symbol':'1.0-0' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI mini cards -->
+      <div class="kpis">
+        <div class="kpi">
+          <mat-icon class="kpi-icon blue">savings</mat-icon>
+          <div>
+            <span class="kpi-label">Captação + Aporte</span>
+            <span class="kpi-value">{{ percentualRecebido }}%</span>
+            <span class="kpi-sub">da meta total</span>
+          </div>
+          <div class="kpi-bar">
+            <div class="kpi-bar-fill blue" [style.width.%]="percentualRecebido"></div>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <mat-icon class="kpi-icon purple">folder_special</mat-icon>
+          <div>
+            <span class="kpi-label">Projetos ativos</span>
+            <span class="kpi-value">{{ projetosAtivos }}<span class="kpi-of">/{{ projetosTotais }}</span></span>
+            <span class="kpi-sub">em execução</span>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <mat-icon class="kpi-icon green">trending_up</mat-icon>
+          <div>
+            <span class="kpi-label">Meta total</span>
+            <span class="kpi-value">{{ metaTotal | currency:'BRL':'symbol':'1.0-0' }}</span>
+            <span class="kpi-sub">Termo de Colaboração</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Projetos em destaque ===== -->
+  <section class="destaque" *ngIf="projetosDestaque.length">
+    <div class="destaque-header">
+      <div>
+        <span class="eyebrow">Top execução</span>
+        <h2>Projetos em destaque</h2>
+      </div>
+      <a mat-stroked-button routerLink="/projetos">
+        <mat-icon>arrow_forward</mat-icon>
+        Ver todos
+      </a>
+    </div>
+
+    <div class="destaque-grid">
+      <a *ngFor="let p of projetosDestaque" class="proj-card" [routerLink]="['/projetos']">
+        <div class="proj-top">
+          <span class="proj-name">{{ p.projeto }}</span>
+          <span class="proj-status" [ngClass]="statusClass(p.status)">{{ p.status }}</span>
+        </div>
+
+        <div class="proj-bar">
+          <div class="proj-bar-fill" [style.width.%]="p.execucao > 100 ? 100 : p.execucao"></div>
+        </div>
+
+        <div class="proj-nums">
+          <span><strong>{{ p.execucao | number:'1.0-0' }}%</strong> executado</span>
+          <span class="muted">{{ p.saidas | currency:'BRL':'symbol':'1.0-0' }} / {{ p.entradas |
+            currency:'BRL':'symbol':'1.0-0' }}</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ===== Atalho contextual ===== -->
+  <section class="atalho">
+    <div class="atalho-inner">
+      <div class="atalho-icon"><mat-icon>fact_check</mat-icon></div>
+      <div class="atalho-body">
+        <h3>Precisa conferir pagamentos?</h3>
+        <p>Importe uma planilha e confira em segundos o que já foi lançado na base Principal.</p>
+      </div>
+      <a mat-flat-button routerLink="/auditoria" class="atalho-cta">
+        Iniciar auditoria
+        <mat-icon>chevron_right</mat-icon>
+      </a>
+    </div>
+  </section>
+
+</div>

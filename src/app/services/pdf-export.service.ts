@@ -12,7 +12,7 @@ export interface ExportProgress {
 
 /* Ordem idêntica ao menu lateral */
 const PAGES = [
-  { route: "/",            title: "Dashboard"            },
+  { route: "/dashboard",   title: "Dashboard"            },
   { route: "/recursos",    title: "Recursos"             },
   { route: "/projetos",    title: "Projetos"             },
   { route: "/categorias",  title: "Categorias"           },

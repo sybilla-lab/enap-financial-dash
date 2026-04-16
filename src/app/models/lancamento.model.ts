@@ -4,6 +4,7 @@ export interface Lancamento {
   projeto: string;
   mesAno: string;
   valor: number;
+  numPag: string;
 }
 
 export interface Recebimento {

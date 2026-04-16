@@ -4,15 +4,17 @@ export const routes: Routes = [
   {
     path: "",
     loadComponent: () =>
-      import("./pages/dashboard/dashboard.component").then(
-        (m) => m.DashboardComponent
+      import("./pages/home/home.component").then(
+        (m) => m.HomeComponent
       ),
     pathMatch: "full",
   },
   {
     path: "dashboard",
-    redirectTo: "",
-    pathMatch: "full",
+    loadComponent: () =>
+      import("./pages/dashboard/dashboard.component").then(
+        (m) => m.DashboardComponent
+      ),
   },
   {
     path: "recursos",
@@ -62,6 +64,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import("./pages/rendimentos/rendimentos.component").then(
         (m) => m.RendimentosComponent
+      ),
+  },
+  {
+    path: "auditoria",
+    loadComponent: () =>
+      import("./pages/auditoria/auditoria.component").then(
+        (m) => m.AuditoriaComponent
       ),
   },
 ];
