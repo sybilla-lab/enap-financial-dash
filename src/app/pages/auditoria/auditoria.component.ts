@@ -133,12 +133,13 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array", cellDates: true });
-        const firstSheet = wb.SheetNames[0];
-        const ws = wb.Sheets[firstSheet];
-        const json: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
+      setTimeout(() => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const wb = XLSX.read(data, { type: "array", cellDates: true });
+          const firstSheet = wb.SheetNames[0];
+          const ws = wb.Sheets[firstSheet];
+          const json: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
 
         if (!json.length) {
           this.erro = "Planilha vazia.";
@@ -204,11 +205,12 @@ export class AuditoriaComponent implements OnInit, OnDestroy {
         this.periodosSelecionados.clear();
         this.anosComMeses.forEach(g => g.meses.forEach(m => this.periodosSelecionados.add(`${g.ano}-${m.num}`)));
         this.abaAtiva = this.totalFaltante > 0 ? "faltantes" : "encontrados";
-      } catch (err: any) {
-        this.erro = "Falha ao ler planilha: " + (err?.message || err);
-      } finally {
-        this.processando = false;
-      }
+        } catch (err: any) {
+          this.erro = "Falha ao ler planilha: " + (err?.message || err);
+        } finally {
+          this.processando = false;
+        }
+      }, 50);
     };
     reader.onerror = () => {
       this.erro = "Erro ao ler o arquivo.";

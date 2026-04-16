@@ -15,15 +15,15 @@
   </header>
 
   <section class="dropzone-wrap" *ngIf="!fileName || erro">
-    <label class="dropzone" [class.dragging]="dragging" [class.erro]="erro" (dragover)="onDragOver($event)"
-      (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+    <div class="dropzone" [class.dragging]="dragging" [class.erro]="erro" (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (click)="fileInput.click()">
       <input type="file" accept=".xlsx,.xls" (change)="onFileSelect($event)" hidden #fileInput />
-      <div class="dz-inner" (click)="fileInput.click()">
+      <div class="dz-inner">
         <mat-icon class="dz-icon">cloud_upload</mat-icon>
         <h3>Arraste a planilha aqui ou clique para selecionar</h3>
-        <p>Formatos aceitos: <strong>.xlsx</strong> / <strong>.xls</strong>
+        <p>Formatos aceitos: <strong>.xlsx</strong> / <strong>.xls</strong></p>
       </div>
-    </label>
+    </div>
     <div class="alerta-erro" *ngIf="erro">
       <mat-icon>error_outline</mat-icon>
       <span>{{ erro }}</span>
