@@ -24,11 +24,49 @@ export class DataService {
   private saldosSubject = new BehaviorSubject<SaldoRemanescente[]>([]);
   private rendimentosSubject = new BehaviorSubject<Rendimento[]>([]);
 
-  lancamentos$ = this.lancamentosSubject.asObservable();
-  recebimentos$ = this.recebimentosSubject.asObservable();
+  private timeFilterSubject = new BehaviorSubject<number | null>(null);
+
+  lancamentos$ = combineLatest([this.lancamentosSubject, this.timeFilterSubject]).pipe(
+    map(([lista, filter]) => filter ? lista.filter(x => this.parseMesAnoToTime(x.mesAno || "") <= filter) : lista)
+  );
+
+  recebimentos$ = combineLatest([this.recebimentosSubject, this.timeFilterSubject]).pipe(
+    map(([lista, filter]) => filter ? lista.filter(x => this.parseMesAnoToTime(x.mesAno || "") <= filter) : lista)
+  );
+
+  rendimentos$ = combineLatest([this.rendimentosSubject, this.timeFilterSubject]).pipe(
+    map(([lista, filter]) => filter ? lista.filter(x => this.parseMesAnoToTime(x.mesAno || "") <= filter) : lista)
+  );
+
   status$ = this.statusSubject.asObservable();
   saldos$ = this.saldosSubject.asObservable();
-  rendimentos$ = this.rendimentosSubject.asObservable();
+
+  // ----- MÁQUINA DO TEMPO (FILTRO) -----
+  getTimelineTicks(): Observable<{ label: string; value: number }[]> {
+    return combineLatest([this.lancamentosSubject, this.recebimentosSubject]).pipe(
+      map(([lancamentos, recebimentos]) => {
+        const dates = new Set<string>();
+        // Extrai todas as datas (Safra / mês-ano) em formato MM/YYYY
+        lancamentos.forEach(l => { if (l.mesAno && /^\d{2}\/\d{4}$/.test(l.mesAno)) dates.add(l.mesAno); });
+        recebimentos.forEach(r => { if (r.mesAno && /^\d{2}\/\d{4}$/.test(r.mesAno)) dates.add(r.mesAno); });
+
+        // Ordena e mapeia
+        const arr = Array.from(dates).sort((a, b) => this.compareMesAno(a, b));
+        return arr.map(label => ({ label, value: this.parseMesAnoToTime(label) }));
+      })
+    );
+  }
+
+  setTimeFilter(time: number | null): void {
+    this.timeFilterSubject.next(time);
+  }
+
+  private parseMesAnoToTime(mesAno: string): number {
+    const parts = mesAno.split("/");
+    if (parts.length !== 2) return 0;
+    return parseInt(parts[1]) * 100 + parseInt(parts[0]);
+  }
+  // ------------------------------------
 
   // Metas financeiras
   readonly META_APORTE = 3023000;

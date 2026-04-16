@@ -4,6 +4,8 @@ import { RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
 import { MatTooltipModule } from "@angular/material/tooltip";
+import { MatSliderModule } from "@angular/material/slider";
+import { FormsModule } from "@angular/forms";
 import { Subscription, combineLatest } from "rxjs";
 import { DataService } from "../../services/data.service";
 import { ProjetoResumo } from "../../models/lancamento.model";
@@ -12,15 +14,21 @@ import { environment } from "../../../environments/environment";
 @Component({
   selector: "app-home",
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule],
+  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatSliderModule, FormsModule],
   templateUrl: "./home.component.html",
   styleUrl: "./home.component.scss",
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private sub?: Subscription;
+  private timelineSub?: Subscription;
 
   carregando = true;
   readonly featureAuditoria = environment.features?.auditoria === true;
+
+  timelineTicks: { label: string; value: number }[] = [];
+  currentTimelineIndex: number = 0;
+  isTimelineAllTime: boolean = true;
+  timelineLabelCurrent: string = "Tempo Real (Visão Integral)";
 
   // KPIs
   totalRecebido = 0;
@@ -49,6 +57,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.frase = this.frases[Math.floor(Math.random() * this.frases.length)];
+
+    this.timelineSub = this.data.getTimelineTicks().subscribe((ticks) => {
+      this.timelineTicks = ticks;
+      if (ticks.length > 0 && this.isTimelineAllTime) {
+        this.currentTimelineIndex = ticks.length;
+      }
+    });
 
     this.sub = combineLatest({
       recurso: this.data.getRecursoDetalhado(),
@@ -82,6 +97,25 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+    this.timelineSub?.unsubscribe();
+  }
+
+  formatTimelineLabel = (value: number): string => {
+    if (value >= this.timelineTicks.length) return "Integral";
+    return this.timelineTicks[value]?.label || "";
+  }
+
+  onTimelineChange(index: number): void {
+    if (index >= this.timelineTicks.length) {
+      this.isTimelineAllTime = true;
+      this.timelineLabelCurrent = "Tempo Real (Visão Integral)";
+      this.data.setTimeFilter(null);
+    } else {
+      this.isTimelineAllTime = false;
+      const tick = this.timelineTicks[index];
+      this.timelineLabelCurrent = `Cenário retrospectivo até: ${tick.label}`;
+      this.data.setTimeFilter(tick.value);
+    }
   }
 
   statusClass(status?: string): string {
