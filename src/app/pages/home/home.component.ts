@@ -36,19 +36,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   ultimaAtualizacao = new Date();
 
-  // Citação rotativa (muda a cada reload)
-  frase = "";
-  private frases = [
-    "Transparência é o melhor investimento.",
-    "Cada centavo contado é um projeto bem executado.",
-    "Gestão financeira que entrega inovação.",
-    "O controle vira confiança quando é compartilhado.",
-  ];
-
   constructor(private data: DataService) { }
 
   ngOnInit(): void {
-    this.frase = this.frases[Math.floor(Math.random() * this.frases.length)];
 
     this.sub = combineLatest({
       recurso: this.data.getRecursoDetalhado(),
