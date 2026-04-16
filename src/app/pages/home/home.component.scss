@@ -365,6 +365,12 @@
     border-color: var(--accent-green);
     box-shadow: 0 10px 24px -8px rgba(16, 185, 129, 0.25);
   }
+
+  &.skeleton {
+    pointer-events: none;
+    cursor: default;
+    &:hover { transform: none; box-shadow: none; border-color: var(--border-color); }
+  }
 }
 
 .proj-top {
