@@ -13,6 +13,7 @@ import { filter, map, shareReplay } from "rxjs/operators";
 import { BreakpointObserver, Breakpoints } from "@angular/cdk/layout";
 import { ThemeService } from "./services/theme.service";
 import { PdfExportService } from "./services/pdf-export.service";
+import { environment } from "../environments/environment";
 
 interface NavItem {
   label: string;
@@ -53,7 +54,9 @@ export class AppComponent {
     { label: "Fluxo de Caixa",       icon: "timeline",        route: "/fluxo-caixa" },
     { label: "Saldos Remanescentes", icon: "history_edu",     route: "/saldos" },
     { label: "Rendimentos",          icon: "trending_up",     route: "/rendimentos" },
-    { label: "Auditoria",            icon: "fact_check",      route: "/auditoria" },
+    ...(environment.features?.auditoria
+      ? [{ label: "Auditoria", icon: "fact_check", route: "/auditoria" }]
+      : []),
   ];
 
   get exportProgress() { return this.pdfExport.progress(); }

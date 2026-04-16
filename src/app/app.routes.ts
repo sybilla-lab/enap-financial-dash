@@ -1,4 +1,12 @@
-import { Routes } from "@angular/router";
+import { Routes, Router, CanActivateFn } from "@angular/router";
+import { inject } from "@angular/core";
+import { environment } from "../environments/environment";
+
+const auditoriaGuard: CanActivateFn = () => {
+  if (environment.features?.auditoria) return true;
+  inject(Router).navigate(["/"]);
+  return false;
+};
 
 export const routes: Routes = [
   {
@@ -68,6 +76,7 @@ export const routes: Routes = [
   },
   {
     path: "auditoria",
+    canActivate: [auditoriaGuard],
     loadComponent: () =>
       import("./pages/auditoria/auditoria.component").then(
         (m) => m.AuditoriaComponent

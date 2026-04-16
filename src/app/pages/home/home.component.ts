@@ -7,6 +7,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { Subscription, combineLatest } from "rxjs";
 import { DataService } from "../../services/data.service";
 import { ProjetoResumo } from "../../models/lancamento.model";
+import { environment } from "../../../environments/environment";
 
 @Component({
   selector: "app-home",
@@ -19,6 +20,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private sub?: Subscription;
 
   carregando = true;
+  readonly featureAuditoria = environment.features?.auditoria === true;
 
   // KPIs
   totalRecebido = 0;

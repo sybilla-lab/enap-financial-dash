@@ -3,5 +3,8 @@
 
 export const environment = {
   production: false,
-  googleSheetsBaseUrl: "COLE_AQUI_A_URL_DA_PLANILHA"
+  googleSheetsBaseUrl: "COLE_AQUI_A_URL_DA_PLANILHA",
+  features: {
+    auditoria: true,
+  },
 };

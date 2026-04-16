@@ -25,9 +25,11 @@ jobs:
       - name: Injetar variáveis de ambiente secretas
         env:
           SHEETS_BASE_URL: ${{ secrets.SHEETS_BASE_URL }}
+          FEATURE_AUDITORIA: ${{ secrets.FEATURE_AUDITORIA }}
         run: |
-          # Use sed para substituir placeholder no environment.ts
+          # Use sed para substituir placeholders no environment.ts
           sed -i "s|__SHEETS_BASE_URL__|${SHEETS_BASE_URL}|g" src/environments/environment.ts
+          sed -i "s|__FEATURE_AUDITORIA__|${FEATURE_AUDITORIA:-false}|g" src/environments/environment.ts
 
       - name: Build de produção
         run: npm run build:prod
