@@ -493,7 +493,8 @@ export class DashboardComponent implements OnInit {
   }
 
   private getAportesEnapPorAno(): Observable<any[]> {
-    return this.filteredRecebimentos$.pipe(
+    // Usa dados sem filtro de período para incluir aportes previstos futuros (2026-2028)
+    return this.dataService.recebimentos$.pipe(
       map(recs => {
         const mapa = new Map<string, { previsto: number; recebido: number }>();
         recs.forEach(r => {
