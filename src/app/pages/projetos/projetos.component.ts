@@ -239,54 +239,67 @@ export class ProjetosComponent implements OnInit {
       this.saldosOpBasica = saldos;
       this.previstosPorProjeto = previstos;
       this.projetos = p;
-      this.projetosFiltrados = p;
       this.projetosLista = p.map((x) => x.projeto);
       this.statusLista = Array.from(new Set(p.map((x) => x.status || "Ativo"))).sort();
       this.totalSaldosRemanescentes = p.reduce((acc, curr) => acc + (curr.saldoRemanescente || 0), 0);
       this.stats = {
         ativos: p.filter(x => x.status && x.status.toLowerCase() !== "finalizado").length,
-        execucaoMedia: p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length
+        execucaoMedia: p.length > 0 ? p.reduce((acc, curr) => acc + curr.execucao, 0) / p.length : 0,
       };
-      setTimeout(() => {
-        this.isLoading = false;
-      }, 1500);
-      this.buildChart(p);
-      this.aplicarFiltrosDaURL();
+
+      // Aguarda dados chegarem para então ler e aplicar filtros vindos da URL
+      if (p.length > 0) {
+        this.lerFiltrosDaURL();
+        this.aplicarFiltro();
+        setTimeout(() => { this.isLoading = false; }, 1500);
+      }
     });
 
-    // Reage a mudanças manuais na URL (navegação, paste do link)
+    // Reage a mudanças manuais na URL (paste do link, voltar/avançar)
     this.route.queryParamMap.subscribe(() => {
       if (this.projetos.length > 0) {
-        this.aplicarFiltrosDaURL();
+        const mudou = this.lerFiltrosDaURL();
+        if (mudou) this.aplicarFiltro();
       }
     });
   }
 
-  private aplicarFiltrosDaURL(): void {
+  private slugify(texto: string): string {
+    return (texto || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9\s-]+/g, "-")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  private lerFiltrosDaURL(): boolean {
     const params = this.route.snapshot.queryParamMap;
-    const projetoParam = params.get("projeto") || "";
-    const statusParam = params.get("status") || "";
+    const projetoSlug = params.get("projeto") || "";
+    const statusSlug = params.get("status") || "";
 
-    // Só aplica se for um valor válido (evita filtro fantasma de URL inválida)
-    const projetoValido = !projetoParam || this.projetosLista.includes(projetoParam);
-    const statusValido = !statusParam || this.statusLista.includes(statusParam);
+    const novoProjeto = projetoSlug
+      ? (this.projetosLista.find((p) => this.slugify(p) === projetoSlug) || "")
+      : "";
+    const novoStatus = statusSlug
+      ? (this.statusLista.find((s) => this.slugify(s) === statusSlug) || "")
+      : "";
 
-    const novoProjeto = projetoValido ? projetoParam : "";
-    const novoStatus = statusValido ? statusParam : "";
-
-    if (novoProjeto !== this.projetoSelecionado || novoStatus !== this.statusSelecionado) {
-      this.projetoSelecionado = novoProjeto;
-      this.statusSelecionado = novoStatus;
-      this.aplicarFiltro();
-    }
+    const mudou =
+      novoProjeto !== this.projetoSelecionado ||
+      novoStatus !== this.statusSelecionado;
+    this.projetoSelecionado = novoProjeto;
+    this.statusSelecionado = novoStatus;
+    return mudou;
   }
 
   private atualizarURL(): void {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
-        projeto: this.projetoSelecionado || null,
-        status: this.statusSelecionado || null,
+        projeto: this.projetoSelecionado ? this.slugify(this.projetoSelecionado) : null,
+        status: this.statusSelecionado ? this.slugify(this.statusSelecionado) : null,
       },
       queryParamsHandling: "merge",
       replaceUrl: true,
