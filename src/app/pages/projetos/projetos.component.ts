@@ -9,6 +9,7 @@ import { MatTableModule } from "@angular/material/table";
 import { BaseChartDirective } from "ng2-charts";
 import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { combineLatest } from "rxjs";
+import { ActivatedRoute, Router } from "@angular/router";
 import { DataService } from "../../services/data.service";
 import { ThemeService } from "../../services/theme.service";
 import { ProjetoResumo, Lancamento } from "../../models/lancamento.model";
@@ -183,7 +184,12 @@ export class ProjetosComponent implements OnInit {
     },
   };
 
-  constructor(private dataService: DataService, private themeService: ThemeService) {
+  constructor(
+    private dataService: DataService,
+    private themeService: ThemeService,
+    private route: ActivatedRoute,
+    private router: Router,
+  ) {
     // Efeito para ajustar cores do gráfico dinamicamente quando o tema muda
     effect(() => {
       const isDark = this.themeService.isDark();
@@ -245,10 +251,54 @@ export class ProjetosComponent implements OnInit {
         this.isLoading = false;
       }, 1500);
       this.buildChart(p);
+      this.aplicarFiltrosDaURL();
+    });
+
+    // Reage a mudanças manuais na URL (navegação, paste do link)
+    this.route.queryParamMap.subscribe(() => {
+      if (this.projetos.length > 0) {
+        this.aplicarFiltrosDaURL();
+      }
+    });
+  }
+
+  private aplicarFiltrosDaURL(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const projetoParam = params.get("projeto") || "";
+    const statusParam = params.get("status") || "";
+
+    // Só aplica se for um valor válido (evita filtro fantasma de URL inválida)
+    const projetoValido = !projetoParam || this.projetosLista.includes(projetoParam);
+    const statusValido = !statusParam || this.statusLista.includes(statusParam);
+
+    const novoProjeto = projetoValido ? projetoParam : "";
+    const novoStatus = statusValido ? statusParam : "";
+
+    if (novoProjeto !== this.projetoSelecionado || novoStatus !== this.statusSelecionado) {
+      this.projetoSelecionado = novoProjeto;
+      this.statusSelecionado = novoStatus;
+      this.aplicarFiltro();
+    }
+  }
+
+  private atualizarURL(): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        projeto: this.projetoSelecionado || null,
+        status: this.statusSelecionado || null,
+      },
+      queryParamsHandling: "merge",
+      replaceUrl: true,
     });
   }
 
   onFiltroChange(): void {
+    this.aplicarFiltro();
+    this.atualizarURL();
+  }
+
+  private aplicarFiltro(): void {
     this.projetosFiltrados = this.projetos.filter((p) => {
       const matchProjeto = !this.projetoSelecionado || p.projeto === this.projetoSelecionado;
       const matchStatus = !this.statusSelecionado || (p.status || "Ativo") === this.statusSelecionado;
