@@ -30,6 +30,28 @@ interface ProdutoExecucao extends ProdutoAlimenta {
   percentual: number;
 }
 
+interface MetaGrupo {
+  id: string;            // ex: "META 1"
+  titulo: string;        // ex: "Trilha de Implementação"
+  produtos: ProdutoExecucao[];
+  orcamento: number;
+  realizado: number;
+  percentual: number;
+  inicio: string;
+  fim: string;
+  expandido: boolean;
+}
+
+const MES_NUM: Record<string, number> = {
+  JAN: 1, FEV: 2, MAR: 3, ABR: 4, MAIO: 5, MAI: 5, JUN: 6,
+  JUL: 7, AGO: 8, SET: 9, OUT: 10, NOV: 11, DEZ: 12,
+};
+
+function parseMesAno(s: string): number {
+  const [m, a] = (s || "").split("/");
+  return parseInt(a || "0") * 100 + (MES_NUM[(m || "").toUpperCase()] || 0);
+}
+
 const ALIMENTA_PRODUTOS: ProdutoAlimenta[] = [
   { codigo: "1.1", nome: "Configuração da plataforma",                meta: "META 1 — Trilha de Implementação",            orcamento: 106056.80,  inicio: "NOV/2025", fim: "FEV/2026" },
   { codigo: "1.2", nome: "Execução dos módulos",                      meta: "META 1 — Trilha de Implementação",            orcamento: 2645754.65, inicio: "JAN/2026", fim: "OUT/2026" },
@@ -70,6 +92,7 @@ export class ProjetosComponent implements OnInit {
   statusSelecionado = "";
   lancamentosAlimenta: Lancamento[] = [];
   produtosAlimenta: ProdutoExecucao[] = [];
+  metasAlimenta: MetaGrupo[] = [];
   alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
   stats = { ativos: 0, execucaoMedia: 0 };
   saldosOpBasica = 0;
@@ -211,8 +234,13 @@ export class ProjetosComponent implements OnInit {
     } else {
       this.lancamentosAlimenta = [];
       this.produtosAlimenta = [];
+      this.metasAlimenta = [];
       this.alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
     }
+  }
+
+  toggleMeta(meta: MetaGrupo): void {
+    meta.expandido = !meta.expandido;
   }
 
   private calcularExecucaoProdutos(lancs: Lancamento[]): void {
@@ -238,6 +266,43 @@ export class ProjetosComponent implements OnInit {
       realizado: real,
       percentual: orc > 0 ? (real / orc) * 100 : 0,
     };
+
+    // Agrupa por META preservando a ordem natural dos códigos
+    const grupos = new Map<string, MetaGrupo>();
+    this.produtosAlimenta.forEach((p) => {
+      const [idRaw, tituloRaw] = p.meta.split("—");
+      const id = (idRaw || "").trim();
+      const titulo = (tituloRaw || "").trim();
+      if (!grupos.has(id)) {
+        grupos.set(id, {
+          id, titulo, produtos: [], orcamento: 0, realizado: 0, percentual: 0,
+          inicio: p.inicio, fim: p.fim, expandido: false,
+        });
+      }
+      const g = grupos.get(id)!;
+      g.produtos.push(p);
+      g.orcamento += p.orcamento;
+      g.realizado += p.realizado;
+    });
+
+    grupos.forEach((g) => {
+      g.percentual = g.orcamento > 0 ? (g.realizado / g.orcamento) * 100 : 0;
+      g.inicio = g.produtos.reduce(
+        (min, p) => (parseMesAno(p.inicio) < parseMesAno(min) ? p.inicio : min),
+        g.produtos[0].inicio,
+      );
+      g.fim = g.produtos.reduce(
+        (max, p) => (parseMesAno(p.fim) > parseMesAno(max) ? p.fim : max),
+        g.produtos[0].fim,
+      );
+    });
+
+    // Mantém metas previamente expandidas após recálculo
+    const expandidasAntes = new Set(this.metasAlimenta.filter((m) => m.expandido).map((m) => m.id));
+    this.metasAlimenta = Array.from(grupos.values()).map((g) => ({
+      ...g,
+      expandido: expandidasAntes.has(g.id),
+    }));
   }
 
   private buildChart(p: ProjetoResumo[]): void {

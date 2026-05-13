@@ -148,81 +148,78 @@
   <!-- Alimenta +1000 Cidades — visão específica do projeto -->
   @if (projetoSelecionado === "Alimenta +1000 Cidades") {
 
-  <!-- Orçamento x Realizado por Produto -->
+  <!-- Execução por Metas e Produtos (unificado: orçamento + cronograma) -->
   <mat-card class="table-card alimenta-card" appearance="outlined">
     <mat-card-header>
-      <mat-card-title><mat-icon>donut_large</mat-icon> Orçamento x Realizado por Produto</mat-card-title>
+      <mat-card-title>
+        <mat-icon>account_tree</mat-icon>
+        Execução por Metas e Produtos
+      </mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Descrição</th>
-              <th class="num">Orçamento</th>
-              <th class="num">Realizado</th>
-              <th class="num">% Execução</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of produtosAlimenta; track p.codigo) {
-            <tr>
-              <td class="produto-codigo">Produto {{ p.codigo }}</td>
-              <td>{{ p.nome }}</td>
-              <td class="num">{{ p.orcamento | currency: "BRL":"symbol":"1.2-2" }}</td>
-              <td class="num" [class.positive]="p.realizado > 0">{{ p.realizado | currency: "BRL":"symbol":"1.2-2" }}</td>
-              <td class="num">
-                <div class="progress-cell">
-                  <span class="progress-label">{{ p.percentual | number: "1.1-1" }}%</span>
-                  <div class="progress-bar"><div class="progress-fill" [style.width.%]="p.percentual > 100 ? 100 : p.percentual"></div></div>
-                </div>
-              </td>
-            </tr>
-            }
-            <tr class="total-row">
-              <td colspan="2"><strong>Total</strong></td>
-              <td class="num"><strong>{{ alimentaTotais.orcamento | currency: "BRL":"symbol":"1.2-2" }}</strong></td>
-              <td class="num"><strong>{{ alimentaTotais.realizado | currency: "BRL":"symbol":"1.2-2" }}</strong></td>
-              <td class="num"><strong>{{ alimentaTotais.percentual | number: "1.1-1" }}%</strong></td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Resumo total -->
+      <div class="metas-resumo">
+        <div class="resumo-bloco">
+          <span class="resumo-label">Orçamento Total</span>
+          <span class="resumo-valor">{{ alimentaTotais.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
+        </div>
+        <div class="resumo-bloco">
+          <span class="resumo-label">Realizado</span>
+          <span class="resumo-valor positive">{{ alimentaTotais.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
+        </div>
+        <div class="resumo-bloco">
+          <span class="resumo-label">% Execução</span>
+          <span class="resumo-valor">{{ alimentaTotais.percentual | number: "1.1-1" }}%</span>
+        </div>
       </div>
-    </mat-card-content>
-  </mat-card>
 
-  <!-- Cronograma Físico-Financeiro -->
-  <mat-card class="table-card alimenta-card" appearance="outlined">
-    <mat-card-header>
-      <mat-card-title><mat-icon>event_note</mat-icon> Cronograma Físico-Financeiro</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Meta</th>
-              <th>Produto</th>
-              <th>Descrição</th>
-              <th class="num">Valor Total</th>
-              <th>Início</th>
-              <th>Fim</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of produtosAlimenta; track p.codigo) {
-            <tr>
-              <td class="meta-cell">{{ p.meta }}</td>
-              <td class="produto-codigo">Produto {{ p.codigo }}</td>
-              <td>{{ p.nome }}</td>
-              <td class="num">{{ p.orcamento | currency: "BRL":"symbol":"1.2-2" }}</td>
-              <td>{{ p.inicio }}</td>
-              <td>{{ p.fim }}</td>
-            </tr>
+      <!-- Lista de metas (accordion) -->
+      <div class="metas-lista">
+        @for (m of metasAlimenta; track m.id) {
+          <div class="meta-item" [class.expanded]="m.expandido">
+            <button class="meta-header" type="button" (click)="toggleMeta(m)" [attr.aria-expanded]="m.expandido">
+              <div class="meta-chevron">
+                <mat-icon>{{ m.expandido ? 'expand_more' : 'chevron_right' }}</mat-icon>
+              </div>
+              <div class="meta-id">{{ m.id }}</div>
+              <div class="meta-titulo">
+                <span class="titulo-texto">{{ m.titulo }}</span>
+                <span class="meta-sub">{{ m.produtos.length }} produtos</span>
+              </div>
+              <div class="meta-progress">
+                <div class="progress-bar"><div class="progress-fill" [style.width.%]="m.percentual > 100 ? 100 : m.percentual"></div></div>
+                <span class="meta-progress-label">{{ m.percentual | number: "1.1-1" }}%</span>
+              </div>
+              <div class="meta-valores">
+                <span class="valor-realizado positive">{{ m.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
+                <span class="valor-orcamento">de {{ m.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
+              </div>
+            </button>
+
+            @if (m.expandido) {
+            <div class="produtos-lista">
+              @for (p of m.produtos; track p.codigo) {
+                <div class="produto-item">
+                  <div class="produto-head">
+                    <span class="produto-tag">Produto {{ p.codigo }}</span>
+                    <span class="produto-nome">{{ p.nome }}</span>
+                  </div>
+                  <div class="produto-body">
+                    <div class="progress-bar produto-progress"><div class="progress-fill" [style.width.%]="p.percentual > 100 ? 100 : p.percentual"></div></div>
+                    <div class="produto-num">
+                      <span class="produto-percent">{{ p.percentual | number: "1.1-1" }}%</span>
+                      <span class="produto-valores">
+                        <span class="positive">{{ p.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
+                        <span class="muted">/ {{ p.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
             }
-          </tbody>
-        </table>
+          </div>
+        }
       </div>
     </mat-card-content>
   </mat-card>
