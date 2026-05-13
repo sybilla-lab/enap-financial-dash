@@ -214,10 +214,9 @@ mat-sidenav-content {
   color: var(--text-primary) !important;
   overflow: hidden;
   box-shadow: var(--card-shadow) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
-.mat-mdc-card:hover { 
-  transform: translateY(-2px);
+.mat-mdc-card:hover {
   box-shadow: var(--card-shadow), 0 10px 20px -5px rgba(0,0,0,0.1) !important;
 }
 

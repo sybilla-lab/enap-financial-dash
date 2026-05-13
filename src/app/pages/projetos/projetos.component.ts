@@ -16,6 +16,34 @@ import { effect } from "@angular/core";
 
 Chart.register(...registerables);
 
+interface ProdutoAlimenta {
+  codigo: string;
+  nome: string;
+  meta: string;
+  orcamento: number;
+  inicio: string;
+  fim: string;
+}
+
+interface ProdutoExecucao extends ProdutoAlimenta {
+  realizado: number;
+  percentual: number;
+}
+
+const ALIMENTA_PRODUTOS: ProdutoAlimenta[] = [
+  { codigo: "1.1", nome: "Configuração da plataforma",                meta: "META 1 — Trilha de Implementação",            orcamento: 106056.80,  inicio: "NOV/2025", fim: "FEV/2026" },
+  { codigo: "1.2", nome: "Execução dos módulos",                      meta: "META 1 — Trilha de Implementação",            orcamento: 2645754.65, inicio: "JAN/2026", fim: "OUT/2026" },
+  { codigo: "1.3", nome: "Monitoramento e avaliação",                 meta: "META 1 — Trilha de Implementação",            orcamento: 519365.00,  inicio: "SET/2026", fim: "MAR/2027" },
+  { codigo: "2.1", nome: "Preparando o terreno",                      meta: "META 2 — Ciclo de Inovação Aberta",           orcamento: 30287.18,   inicio: "NOV/2025", fim: "JAN/2026" },
+  { codigo: "2.2", nome: "Mapeando problemas",                        meta: "META 2 — Ciclo de Inovação Aberta",           orcamento: 504276.11,  inicio: "FEV/2026", fim: "ABR/2026" },
+  { codigo: "2.3", nome: "Desenhando a competição",                   meta: "META 2 — Ciclo de Inovação Aberta",           orcamento: 327691.98,  inicio: "ABR/2026", fim: "MAIO/2026" },
+  { codigo: "2.4", nome: "Lançando o Desafio",                        meta: "META 2 — Ciclo de Inovação Aberta",           orcamento: 130420.75,  inicio: "JUN/2026", fim: "JUN/2026" },
+  { codigo: "2.5", nome: "Avaliando propostas",                       meta: "META 2 — Ciclo de Inovação Aberta",           orcamento: 112838.88,  inicio: "JUL/2026", fim: "JUL/2026" },
+  { codigo: "2.6", nome: "Acelerando soluções",                       meta: "META 2 — Ciclo de Inovação Aberta",           orcamento: 382799.34,  inicio: "AGO/2026", fim: "OUT/2026" },
+  { codigo: "2.7", nome: "Levando o desafio adiante",                 meta: "META 2 — Ciclo de Inovação Aberta",           orcamento: 55763.40,   inicio: "NOV/2026", fim: "MAR/2027" },
+  { codigo: "3.1", nome: "IV Encontro da Estratégia Alimenta Cidades", meta: "META 3 — Reconhecendo as conquistas",        orcamento: 509059.71,  inicio: "NOV/2026", fim: "DEZ/2026" },
+];
+
 @Component({
   selector: "app-projetos",
   standalone: true,
@@ -41,6 +69,8 @@ export class ProjetosComponent implements OnInit {
   projetoSelecionado = "";
   statusSelecionado = "";
   lancamentosAlimenta: Lancamento[] = [];
+  produtosAlimenta: ProdutoExecucao[] = [];
+  alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
   stats = { ativos: 0, execucaoMedia: 0 };
   saldosOpBasica = 0;
   totalSaldosRemanescentes = 0;
@@ -176,8 +206,38 @@ export class ProjetosComponent implements OnInit {
         .getLancamentosPorProjeto("Alimenta +1000 Cidades")
         .subscribe((l) => {
           this.lancamentosAlimenta = l;
+          this.calcularExecucaoProdutos(l);
         });
+    } else {
+      this.lancamentosAlimenta = [];
+      this.produtosAlimenta = [];
+      this.alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
     }
+  }
+
+  private calcularExecucaoProdutos(lancs: Lancamento[]): void {
+    const realizadoPorCodigo = new Map<string, number>();
+    lancs.forEach((l) => {
+      if (l.valor >= 0) return;
+      const match = (l.observacao || "").match(/^(\d+\.\d+)/);
+      if (!match) return;
+      const codigo = match[1];
+      realizadoPorCodigo.set(codigo, (realizadoPorCodigo.get(codigo) || 0) + Math.abs(l.valor));
+    });
+
+    this.produtosAlimenta = ALIMENTA_PRODUTOS.map((p) => {
+      const realizado = realizadoPorCodigo.get(p.codigo) || 0;
+      const percentual = p.orcamento > 0 ? (realizado / p.orcamento) * 100 : 0;
+      return { ...p, realizado, percentual };
+    });
+
+    const orc = this.produtosAlimenta.reduce((s, p) => s + p.orcamento, 0);
+    const real = this.produtosAlimenta.reduce((s, p) => s + p.realizado, 0);
+    this.alimentaTotais = {
+      orcamento: orc,
+      realizado: real,
+      percentual: orc > 0 ? (real / orc) * 100 : 0,
+    };
   }
 
   private buildChart(p: ProjetoResumo[]): void {
