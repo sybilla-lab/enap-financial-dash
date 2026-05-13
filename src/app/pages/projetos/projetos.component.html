@@ -224,34 +224,46 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Detalhamento dos lançamentos -->
+  <!-- Distribuição por Categoria — Alimenta +1000 Cidades -->
   <mat-card class="table-card alimenta-card" appearance="outlined">
     <mat-card-header>
-      <mat-card-title><mat-icon>info</mat-icon> Detalhamento — Alimenta +1000 Cidades (TED/MDS)</mat-card-title>
+      <mat-card-title><mat-icon>pie_chart</mat-icon> Distribuição por Categoria</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Categoria</th>
-              <th>Produto</th>
-              <th class="num">Valor</th>
-              <th>Mês/Ano</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (l of lancamentosAlimenta; track $index) {
-            <tr>
-              <td>{{ l.categoria }}</td>
-              <td>{{ l.observacao }}</td>
-              <td class="num" [class.positive]="l.valor >= 0" [class.negative]="l.valor < 0">{{ l.valor | currency: "BRL":"symbol":"1.2-2" }}</td>
-              <td>{{ l.mesAno }}</td>
-            </tr>
-            }
-          </tbody>
-        </table>
+      @if (categoriasAlimenta.length === 0) {
+        <div class="empty-categorias">Nenhuma despesa registrada para este projeto.</div>
+      } @else {
+      <div class="categorias-grid">
+        <!-- Donut chart com total no centro -->
+        <div class="donut-wrap">
+          <div class="donut-canvas">
+            <canvas baseChart [data]="donutChartData" [options]="donutChartOptions" [type]="'doughnut'"></canvas>
+            <div class="donut-center">
+              <span class="donut-center-label">Total gasto</span>
+              <span class="donut-center-value">{{ totalGastoAlimenta | currency: "BRL":"symbol":"1.2-2" }}</span>
+              <span class="donut-center-sub">{{ categoriasAlimenta.length }} categorias</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de categorias com barras -->
+        <div class="categorias-lista">
+          @for (c of categoriasAlimenta; track c.nome) {
+            <div class="categoria-row">
+              <span class="cat-dot" [style.background]="c.cor"></span>
+              <div class="cat-info">
+                <div class="cat-head">
+                  <span class="cat-nome">{{ c.nome }}</span>
+                  <span class="cat-valor">{{ c.valor | currency: "BRL":"symbol":"1.2-2" }}</span>
+                </div>
+                <div class="cat-bar"><div class="cat-fill" [style.width.%]="c.percentual" [style.background]="c.cor"></div></div>
+                <span class="cat-percent">{{ c.percentual | number: "1.1-1" }}%</span>
+              </div>
+            </div>
+          }
+        </div>
       </div>
+      }
     </mat-card-content>
   </mat-card>
   }

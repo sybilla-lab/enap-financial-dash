@@ -30,6 +30,13 @@ interface ProdutoExecucao extends ProdutoAlimenta {
   percentual: number;
 }
 
+interface CategoriaAlimenta {
+  nome: string;
+  valor: number;
+  percentual: number;
+  cor: string;
+}
+
 interface MetaGrupo {
   id: string;            // ex: "META 1"
   titulo: string;        // ex: "Trilha de Implementação"
@@ -94,6 +101,32 @@ export class ProjetosComponent implements OnInit {
   produtosAlimenta: ProdutoExecucao[] = [];
   metasAlimenta: MetaGrupo[] = [];
   alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
+  categoriasAlimenta: CategoriaAlimenta[] = [];
+  totalGastoAlimenta = 0;
+  donutChartData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
+  donutChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "68%",
+    plugins: {
+      legend: { display: false },
+      datalabels: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.92)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: (ctx: any) => {
+            const v = ctx.parsed;
+            return ` ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v)}`;
+          },
+        },
+      },
+    },
+  };
   stats = { ativos: 0, execucaoMedia: 0 };
   saldosOpBasica = 0;
   totalSaldosRemanescentes = 0;
@@ -236,6 +269,9 @@ export class ProjetosComponent implements OnInit {
       this.produtosAlimenta = [];
       this.metasAlimenta = [];
       this.alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
+      this.categoriasAlimenta = [];
+      this.totalGastoAlimenta = 0;
+      this.donutChartData = { labels: [], datasets: [] };
     }
   }
 
@@ -303,6 +339,47 @@ export class ProjetosComponent implements OnInit {
       ...g,
       expandido: expandidasAntes.has(g.id),
     }));
+
+    this.calcularCategorias(lancs);
+  }
+
+  private calcularCategorias(lancs: Lancamento[]): void {
+    const porCategoria = new Map<string, number>();
+    lancs.forEach((l) => {
+      if (l.valor >= 0) return;
+      const nome = (l.categoria || "").replace(/^\d+(\.\d+)*\s*/, "").trim();
+      if (!nome) return;
+      porCategoria.set(nome, (porCategoria.get(nome) || 0) + Math.abs(l.valor));
+    });
+
+    const sorted = Array.from(porCategoria.entries()).sort((a, b) => b[1] - a[1]);
+    const total = sorted.reduce((s, [, v]) => s + v, 0);
+    const palette = [
+      "#10b981", "#34d399", "#0ea5e9", "#6366f1", "#8b5cf6",
+      "#f59e0b", "#f97316", "#ef4444", "#ec4899", "#14b8a6",
+      "#84cc16", "#a855f7",
+    ];
+
+    this.categoriasAlimenta = sorted.map(([nome, valor], i) => ({
+      nome,
+      valor,
+      percentual: total > 0 ? (valor / total) * 100 : 0,
+      cor: palette[i % palette.length],
+    }));
+    this.totalGastoAlimenta = total;
+
+    this.donutChartData = {
+      labels: this.categoriasAlimenta.map((c) => c.nome),
+      datasets: [
+        {
+          data: this.categoriasAlimenta.map((c) => c.valor),
+          backgroundColor: this.categoriasAlimenta.map((c) => c.cor),
+          borderColor: "transparent",
+          borderWidth: 2,
+          hoverOffset: 8,
+        } as any,
+      ],
+    };
   }
 
   private buildChart(p: ProjetoResumo[]): void {
