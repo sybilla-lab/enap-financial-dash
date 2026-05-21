@@ -13,6 +13,7 @@ import { ActivatedRoute, Router } from "@angular/router";
 import { DataService } from "../../services/data.service";
 import { ThemeService } from "../../services/theme.service";
 import { ProjetoResumo, Lancamento } from "../../models/lancamento.model";
+import { DragScrollDirective } from "../../directives/drag-scroll.directive";
 import { effect } from "@angular/core";
 
 Chart.register(...registerables);
@@ -86,6 +87,7 @@ const ALIMENTA_PRODUTOS: ProdutoAlimenta[] = [
     FormsModule,
     MatTableModule,
     BaseChartDirective,
+    DragScrollDirective,
   ],
   templateUrl: "./projetos.component.html",
   styleUrl: "./projetos.component.scss",
@@ -309,6 +311,21 @@ export class ProjetosComponent implements OnInit {
   onFiltroChange(): void {
     this.aplicarFiltro();
     this.atualizarURL();
+  }
+
+  setProjeto(p: string): void {
+    this.projetoSelecionado = p;
+    if (p) this.statusSelecionado = "";
+    this.onFiltroChange();
+  }
+
+  setStatus(s: string): void {
+    this.statusSelecionado = s;
+    this.onFiltroChange();
+  }
+
+  get hasFiltro(): boolean {
+    return !!this.projetoSelecionado || !!this.statusSelecionado;
   }
 
   private aplicarFiltro(): void {

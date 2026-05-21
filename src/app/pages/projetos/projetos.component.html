@@ -1,82 +1,136 @@
-<div class="page-container">
-  <h1 class="page-title">
-    <mat-icon>folder_special</mat-icon>
-    Prestação de Contas por Projeto
-  </h1>
-
-  <!-- KPI Cards -->
-  <div class="kpi-grid">
-    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>folder</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Total de Projetos</span>
-          <span class="kpi-value text-blue">{{ projetos.length }}</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>check_circle</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Projetos Ativos</span>
-          <span class="kpi-value text-green">{{ stats.ativos }}</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="kpi-card card-indicator-yellow" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>speed</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Execução Média</span>
-          <span class="kpi-value term-yellow">{{ stats.execucaoMedia | number: "1.1-1" }}%</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="kpi-card card-indicator-teal" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>history</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Saldos Remanescentes</span>
-          <span class="kpi-value text-teal">{{ totalSaldosRemanescentes | currency: "BRL":"symbol":"1.2-2" }}</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
-
-  <!-- Filter -->
-  <mat-card class="filter-card" appearance="outlined">
-    <mat-card-content>
-      <div class="filters-row">
-        <mat-form-field appearance="outline">
-          <mat-label>Filtrar por Projeto</mat-label>
-          <mat-select [(ngModel)]="projetoSelecionado" (selectionChange)="onFiltroChange()">
-            <mat-option value="">Todos os projetos</mat-option>
-            @for (p of projetosLista; track p) {
-            <mat-option [value]="p">{{ p }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Filtrar por Status</mat-label>
-          <mat-select [(ngModel)]="statusSelecionado" (selectionChange)="onFiltroChange()">
-            <mat-option value="">Todos os status</mat-option>
-            @for (s of statusLista; track s) {
-            <mat-option [value]="s">{{ s }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+<div class="page-container projetos-page">
+  <!-- Header da página -->
+  <header class="projetos-header">
+    <div class="title-block">
+      <div class="title-icon"><mat-icon>folder_special</mat-icon></div>
+      <div class="title-text">
+        <h1 class="page-title">Prestação de Contas por Projeto</h1>
+        <p class="page-subtitle">Visão consolidada de orçamento, execução e saldos remanescentes</p>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </div>
+
+    @if (projetoSelecionado || statusSelecionado) {
+      <button class="reset-filters" type="button" (click)="setProjeto('')">
+        <mat-icon>restart_alt</mat-icon>
+        Limpar filtros
+      </button>
+    }
+  </header>
+
+  <!-- Contexto do projeto selecionado (com logo quando aplicável) -->
+  @if (projetoSelecionado) {
+    <div class="project-context" [class.with-logo]="projetoSelecionado === 'Alimenta +1000 Cidades'">
+      @if (projetoSelecionado === "Alimenta +1000 Cidades") {
+        <img src="alimenta-mil-cidades.png" alt="Alimenta +1000 Cidades" class="project-logo" />
+      }
+      <div class="project-context-info">
+        <span class="ctx-label">Projeto em análise</span>
+        <h2 class="ctx-name">{{ projetoSelecionado }}</h2>
+      </div>
+    </div>
+  }
+
+  <!-- KPI Cards (somente quando não há filtros aplicados) -->
+  @if (!projetoSelecionado && !statusSelecionado) {
+    <div class="kpi-grid">
+      <article class="kpi-tile tile-blue">
+        <div class="tile-icon"><mat-icon>folder</mat-icon></div>
+        <div class="tile-info">
+          <span class="tile-label">Total de Projetos</span>
+          <span class="tile-value">{{ projetos.length }}</span>
+        </div>
+        <div class="tile-glow"></div>
+      </article>
+
+      <article class="kpi-tile tile-green">
+        <div class="tile-icon"><mat-icon>check_circle</mat-icon></div>
+        <div class="tile-info">
+          <span class="tile-label">Projetos Ativos</span>
+          <span class="tile-value">{{ stats.ativos }}</span>
+        </div>
+        <div class="tile-glow"></div>
+      </article>
+
+      <article class="kpi-tile tile-yellow">
+        <div class="tile-icon"><mat-icon>speed</mat-icon></div>
+        <div class="tile-info">
+          <span class="tile-label">Execução Média</span>
+          <span class="tile-value">{{ stats.execucaoMedia | number: "1.1-1" }}%</span>
+        </div>
+        <div class="tile-glow"></div>
+      </article>
+
+      <article class="kpi-tile tile-teal">
+        <div class="tile-icon"><mat-icon>history</mat-icon></div>
+        <div class="tile-info">
+          <span class="tile-label">Saldos Remanescentes</span>
+          <span class="tile-value">{{ totalSaldosRemanescentes | currency: "BRL":"symbol":"1.2-2" }}</span>
+        </div>
+        <div class="tile-glow"></div>
+      </article>
+    </div>
+  }
+
+  <!-- Filtros modernos (chip-based) -->
+  <section class="filter-bar">
+    <div class="filter-row">
+      <div class="filter-meta">
+        <mat-icon>tune</mat-icon>
+        <span>Projeto</span>
+      </div>
+      <div class="chip-scroll" appDragScroll>
+        <button class="chip" type="button"
+                [class.active]="!projetoSelecionado"
+                (click)="setProjeto('')">
+          <mat-icon>apps</mat-icon>
+          <span>Todos</span>
+          <span class="chip-count">{{ projetos.length }}</span>
+        </button>
+        @for (p of projetosLista; track p) {
+          <button class="chip" type="button"
+                  [class.active]="projetoSelecionado === p"
+                  (click)="setProjeto(p)">
+            <span class="chip-dot"></span>
+            <span>{{ p }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (!projetoSelecionado) {
+      <div class="filter-row">
+        <div class="filter-meta">
+          <mat-icon>flag</mat-icon>
+          <span>Status</span>
+        </div>
+        <div class="chip-scroll" appDragScroll>
+          <button class="chip chip-status" type="button"
+                  [class.active]="!statusSelecionado"
+                  (click)="setStatus('')">
+            <span>Todos</span>
+          </button>
+          @for (s of statusLista; track s) {
+            <button class="chip chip-status" type="button"
+                    [class.active]="statusSelecionado === s"
+                    [attr.data-status]="s.toLowerCase()"
+                    (click)="setStatus(s)">
+              <span class="chip-dot"></span>
+              <span>{{ s }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </section>
 
   <!-- Chart -->
   <mat-card class="chart-card" appearance="outlined">
-    <mat-card-header><mat-card-title>Balanço Operacional de Receitas e Despesas</mat-card-title></mat-card-header>
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>insights</mat-icon>
+        Balanço Operacional de Receitas e Despesas
+      </mat-card-title>
+    </mat-card-header>
     <mat-card-content>
       <div class="chart-wrapper">
         @if (isLoading) {
