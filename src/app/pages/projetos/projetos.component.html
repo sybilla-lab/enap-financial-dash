@@ -19,9 +19,13 @@
 
   <!-- Contexto do projeto selecionado (com logo quando aplicável) -->
   @if (projetoSelecionado) {
-    <div class="project-context" [class.with-logo]="projetoSelecionado === 'Alimenta +1000 Cidades'">
+    <div class="project-context">
       @if (projetoSelecionado === "Alimenta +1000 Cidades") {
         <img src="alimenta-mil-cidades.png" alt="Alimenta +1000 Cidades" class="project-logo" />
+      } @else {
+        <div class="project-avatar" [style.background]="getProjetoGradient(projetoSelecionado)">
+          <span>{{ getProjetoIniciais(projetoSelecionado) }}</span>
+        </div>
       }
       <div class="project-context-info">
         <span class="ctx-label">Projeto em análise</span>

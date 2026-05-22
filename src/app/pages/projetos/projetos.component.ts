@@ -328,6 +328,33 @@ export class ProjetosComponent implements OnInit {
     return !!this.projetoSelecionado || !!this.statusSelecionado;
   }
 
+  getProjetoIniciais(nome: string): string {
+    if (!nome) return "";
+    const palavras = nome
+      .replace(/[+]/g, "")
+      .split(/\s+/)
+      .filter((p) => p.length > 1 || /[A-ZÀ-Ý]/.test(p));
+    if (palavras.length === 1) return palavras[0].substring(0, 2).toUpperCase();
+    return (palavras[0][0] + palavras[1][0]).toUpperCase();
+  }
+
+  getProjetoGradient(nome: string): string {
+    const paletas = [
+      ["#10b981", "#059669"],
+      ["#3b82f6", "#1d4ed8"],
+      ["#8b5cf6", "#6d28d9"],
+      ["#f59e0b", "#b45309"],
+      ["#ec4899", "#be185d"],
+      ["#14b8a6", "#0f766e"],
+      ["#6366f1", "#4338ca"],
+      ["#f97316", "#c2410c"],
+    ];
+    let hash = 0;
+    for (let i = 0; i < nome.length; i++) hash = (hash * 31 + nome.charCodeAt(i)) >>> 0;
+    const [a, b] = paletas[hash % paletas.length];
+    return `linear-gradient(135deg, ${a}, ${b})`;
+  }
+
   private aplicarFiltro(): void {
     this.projetosFiltrados = this.projetos.filter((p) => {
       const matchProjeto = !this.projetoSelecionado || p.projeto === this.projetoSelecionado;
