@@ -127,6 +127,142 @@
     }
   </section>
 
+  <!-- Alimenta +1000 Cidades — accordions ESPECÍFICOS (antes do gráfico) -->
+  @if (projetoSelecionado === "Alimenta +1000 Cidades") {
+
+    <!-- Accordion: Execução por Metas e Produtos -->
+    <section class="accordion-card alimenta-accordion" [class.expanded]="metasExpandido">
+      <button class="accordion-head" type="button" (click)="metasExpandido = !metasExpandido" [attr.aria-expanded]="metasExpandido">
+        <div class="accordion-title">
+          <mat-icon>account_tree</mat-icon>
+          <span>Execução por Metas e Produtos</span>
+        </div>
+        <div class="accordion-summary">
+          <span class="summary-pill">{{ alimentaTotais.percentual | number: "1.1-1" }}% executado</span>
+          <mat-icon class="accordion-chevron">{{ metasExpandido ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </div>
+      </button>
+
+      @if (metasExpandido) {
+      <div class="accordion-body">
+        <div class="metas-resumo">
+          <div class="resumo-bloco">
+            <span class="resumo-label">Orçamento Total</span>
+            <span class="resumo-valor">{{ alimentaTotais.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
+          </div>
+          <div class="resumo-bloco">
+            <span class="resumo-label">Realizado</span>
+            <span class="resumo-valor positive">{{ alimentaTotais.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
+          </div>
+          <div class="resumo-bloco">
+            <span class="resumo-label">% Execução</span>
+            <span class="resumo-valor">{{ alimentaTotais.percentual | number: "1.1-1" }}%</span>
+          </div>
+        </div>
+
+        <div class="metas-lista">
+          @for (m of metasAlimenta; track m.id) {
+            <div class="meta-item" [class.expanded]="m.expandido">
+              <button class="meta-header" type="button" (click)="toggleMeta(m)" [attr.aria-expanded]="m.expandido">
+                <div class="meta-chevron">
+                  <mat-icon>{{ m.expandido ? 'expand_more' : 'chevron_right' }}</mat-icon>
+                </div>
+                <div class="meta-id">{{ m.id }}</div>
+                <div class="meta-titulo">
+                  <span class="titulo-texto">{{ m.titulo }}</span>
+                  <span class="meta-sub">{{ m.produtos.length }} produtos</span>
+                </div>
+                <div class="meta-progress">
+                  <div class="progress-bar"><div class="progress-fill" [style.width.%]="m.percentual > 100 ? 100 : m.percentual"></div></div>
+                  <span class="meta-progress-label">{{ m.percentual | number: "1.1-1" }}%</span>
+                </div>
+                <div class="meta-valores">
+                  <span class="valor-realizado positive">{{ m.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
+                  <span class="valor-orcamento">de {{ m.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
+                </div>
+              </button>
+
+              @if (m.expandido) {
+              <div class="produtos-lista">
+                @for (p of m.produtos; track p.codigo) {
+                  <div class="produto-item">
+                    <div class="produto-head">
+                      <span class="produto-tag">Produto {{ p.codigo }}</span>
+                      <span class="produto-nome">{{ p.nome }}</span>
+                    </div>
+                    <div class="produto-body">
+                      <div class="progress-bar produto-progress"><div class="progress-fill" [style.width.%]="p.percentual > 100 ? 100 : p.percentual"></div></div>
+                      <div class="produto-num">
+                        <span class="produto-percent">{{ p.percentual | number: "1.1-1" }}%</span>
+                        <span class="produto-valores">
+                          <span class="positive">{{ p.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
+                          <span class="muted">/ {{ p.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      }
+    </section>
+
+    <!-- Accordion: Distribuição por Categoria -->
+    <section class="accordion-card alimenta-accordion" [class.expanded]="categoriasExpandido">
+      <button class="accordion-head" type="button" (click)="categoriasExpandido = !categoriasExpandido" [attr.aria-expanded]="categoriasExpandido">
+        <div class="accordion-title">
+          <mat-icon>pie_chart</mat-icon>
+          <span>Distribuição por Categoria</span>
+        </div>
+        <div class="accordion-summary">
+          <span class="summary-pill">{{ categoriasAlimenta.length }} categorias</span>
+          <mat-icon class="accordion-chevron">{{ categoriasExpandido ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </div>
+      </button>
+
+      @if (categoriasExpandido) {
+      <div class="accordion-body">
+        @if (categoriasAlimenta.length === 0) {
+          <div class="empty-categorias">Nenhuma despesa registrada para este projeto.</div>
+        } @else {
+        <div class="categorias-grid">
+          <div class="donut-wrap">
+            <div class="donut-canvas">
+              <canvas baseChart [data]="donutChartData" [options]="donutChartOptions" [type]="'doughnut'"></canvas>
+              <div class="donut-center">
+                <span class="donut-center-label">Total gasto</span>
+                <span class="donut-center-value">{{ totalGastoAlimenta | currency: "BRL":"symbol":"1.2-2" }}</span>
+                <span class="donut-center-sub">{{ categoriasAlimenta.length }} categorias</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="categorias-lista">
+            @for (c of categoriasAlimenta; track c.nome) {
+              <div class="categoria-row">
+                <span class="cat-dot" [style.background]="c.cor"></span>
+                <div class="cat-info">
+                  <div class="cat-head">
+                    <span class="cat-nome">{{ c.nome }}</span>
+                    <span class="cat-valor">{{ c.valor | currency: "BRL":"symbol":"1.2-2" }}</span>
+                  </div>
+                  <div class="cat-bar"><div class="cat-fill" [style.width.%]="c.percentual" [style.background]="c.cor"></div></div>
+                  <span class="cat-percent">{{ c.percentual | number: "1.1-1" }}%</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
+    </section>
+  }
+
   <!-- Chart -->
   <mat-card class="chart-card" appearance="outlined">
     <mat-card-header>
@@ -203,126 +339,4 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Alimenta +1000 Cidades — visão específica do projeto -->
-  @if (projetoSelecionado === "Alimenta +1000 Cidades") {
-
-  <!-- Execução por Metas e Produtos (unificado: orçamento + cronograma) -->
-  <mat-card class="table-card alimenta-card" appearance="outlined">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>account_tree</mat-icon>
-        Execução por Metas e Produtos
-      </mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <!-- Resumo total -->
-      <div class="metas-resumo">
-        <div class="resumo-bloco">
-          <span class="resumo-label">Orçamento Total</span>
-          <span class="resumo-valor">{{ alimentaTotais.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
-        </div>
-        <div class="resumo-bloco">
-          <span class="resumo-label">Realizado</span>
-          <span class="resumo-valor positive">{{ alimentaTotais.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
-        </div>
-        <div class="resumo-bloco">
-          <span class="resumo-label">% Execução</span>
-          <span class="resumo-valor">{{ alimentaTotais.percentual | number: "1.1-1" }}%</span>
-        </div>
-      </div>
-
-      <!-- Lista de metas (accordion) -->
-      <div class="metas-lista">
-        @for (m of metasAlimenta; track m.id) {
-          <div class="meta-item" [class.expanded]="m.expandido">
-            <button class="meta-header" type="button" (click)="toggleMeta(m)" [attr.aria-expanded]="m.expandido">
-              <div class="meta-chevron">
-                <mat-icon>{{ m.expandido ? 'expand_more' : 'chevron_right' }}</mat-icon>
-              </div>
-              <div class="meta-id">{{ m.id }}</div>
-              <div class="meta-titulo">
-                <span class="titulo-texto">{{ m.titulo }}</span>
-                <span class="meta-sub">{{ m.produtos.length }} produtos</span>
-              </div>
-              <div class="meta-progress">
-                <div class="progress-bar"><div class="progress-fill" [style.width.%]="m.percentual > 100 ? 100 : m.percentual"></div></div>
-                <span class="meta-progress-label">{{ m.percentual | number: "1.1-1" }}%</span>
-              </div>
-              <div class="meta-valores">
-                <span class="valor-realizado positive">{{ m.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
-                <span class="valor-orcamento">de {{ m.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
-              </div>
-            </button>
-
-            @if (m.expandido) {
-            <div class="produtos-lista">
-              @for (p of m.produtos; track p.codigo) {
-                <div class="produto-item">
-                  <div class="produto-head">
-                    <span class="produto-tag">Produto {{ p.codigo }}</span>
-                    <span class="produto-nome">{{ p.nome }}</span>
-                  </div>
-                  <div class="produto-body">
-                    <div class="progress-bar produto-progress"><div class="progress-fill" [style.width.%]="p.percentual > 100 ? 100 : p.percentual"></div></div>
-                    <div class="produto-num">
-                      <span class="produto-percent">{{ p.percentual | number: "1.1-1" }}%</span>
-                      <span class="produto-valores">
-                        <span class="positive">{{ p.realizado | currency: "BRL":"symbol":"1.2-2" }}</span>
-                        <span class="muted">/ {{ p.orcamento | currency: "BRL":"symbol":"1.2-2" }}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-            }
-          </div>
-        }
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Distribuição por Categoria — Alimenta +1000 Cidades -->
-  <mat-card class="table-card alimenta-card" appearance="outlined">
-    <mat-card-header>
-      <mat-card-title><mat-icon>pie_chart</mat-icon> Distribuição por Categoria</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      @if (categoriasAlimenta.length === 0) {
-        <div class="empty-categorias">Nenhuma despesa registrada para este projeto.</div>
-      } @else {
-      <div class="categorias-grid">
-        <!-- Donut chart com total no centro -->
-        <div class="donut-wrap">
-          <div class="donut-canvas">
-            <canvas baseChart [data]="donutChartData" [options]="donutChartOptions" [type]="'doughnut'"></canvas>
-            <div class="donut-center">
-              <span class="donut-center-label">Total gasto</span>
-              <span class="donut-center-value">{{ totalGastoAlimenta | currency: "BRL":"symbol":"1.2-2" }}</span>
-              <span class="donut-center-sub">{{ categoriasAlimenta.length }} categorias</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Lista de categorias com barras -->
-        <div class="categorias-lista">
-          @for (c of categoriasAlimenta; track c.nome) {
-            <div class="categoria-row">
-              <span class="cat-dot" [style.background]="c.cor"></span>
-              <div class="cat-info">
-                <div class="cat-head">
-                  <span class="cat-nome">{{ c.nome }}</span>
-                  <span class="cat-valor">{{ c.valor | currency: "BRL":"symbol":"1.2-2" }}</span>
-                </div>
-                <div class="cat-bar"><div class="cat-fill" [style.width.%]="c.percentual" [style.background]="c.cor"></div></div>
-                <span class="cat-percent">{{ c.percentual | number: "1.1-1" }}%</span>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-      }
-    </mat-card-content>
-  </mat-card>
-  }
 </div>
