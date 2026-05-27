@@ -11,6 +11,7 @@ import { Subject, combineLatest, takeUntil } from "rxjs";
 import { DataService } from "../../services/data.service";
 import { Lancamento, StatusProjeto } from "../../models/lancamento.model";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -93,6 +94,7 @@ interface TransacaoRecente {
     MatButtonModule,
     MatTooltipModule,
     BaseChartDirective,
+    DragDropModule,
   ],
   templateUrl: "./visao-projeto.component.html",
   styleUrl: "./visao-projeto.component.scss",
@@ -164,8 +166,44 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     },
   };
 
+  chartSections = ['categorias', 'fluxo', 'balanco'];
+
   chartCategoriasReady = false;
   chartFluxoReady = false;
+  balancaoChartReady = false;
+
+  balancaoChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
+  balancaoChartOptions: ChartConfiguration<"bar">["options"] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: "y",
+    plugins: {
+      legend: { position: "top", labels: { color: "#94a3b8", font: { weight: "bold" } } },
+      datalabels: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(15,23,42,0.92)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        borderColor: "rgba(255,255,255,0.1)",
+        borderWidth: 1,
+        callbacks: {
+          label: (ctx: any) => {
+            const val = ctx.parsed.x;
+            return " " + new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+          },
+        },
+      },
+    },
+    scales: {
+      x: { stacked: true, ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.04)" } },
+      y: { stacked: true, ticks: { color: "#94a3b8", font: { size: 11 }, autoSkip: false } as any, grid: { display: false } },
+    },
+  };
+
+  get balancaoChartHeight(): number {
+    const count = this.projetoSelecionado === null ? this.projetos.length : 1;
+    return Math.min(640, Math.max(160, count * 46));
+  }
 
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barChartOptions: ChartConfiguration<"bar">["options"] = {
@@ -304,6 +342,10 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     return "chip-active";
   }
 
+  dropChart(event: CdkDragDrop<string[]>): void {
+    moveItemInArray(this.chartSections, event.previousIndex, event.currentIndex);
+  }
+
   getStatusClass(status: string): string {
     const s = (status || "").toLowerCase();
     if (s.includes("encerr")) return "status-warning";
@@ -410,7 +452,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       })
       .slice(0, 25);
 
-    this.renderCharts();
+    this.renderCharts(filtered);
 
     if (this.projetoSelecionado === "Alimenta +1000 Cidades") {
       this.calcularExecucaoProdutos(filtered);
@@ -500,9 +542,10 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     };
   }
 
-  private renderCharts(): void {
+  private renderCharts(filtered: Lancamento[]): void {
     this.chartCategoriasReady = false;
     this.chartFluxoReady = false;
+    this.balancaoChartReady = false;
 
     const colors = this.generateColors(this.categorias.length);
 
@@ -562,6 +605,44 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       };
       this.chartFluxoReady = true;
     }, 50);
+
+    setTimeout(() => {
+      this.buildBalancaoChart(filtered);
+      this.balancaoChartReady = true;
+    }, 70);
+  }
+
+  private buildBalancaoChart(filtered: Lancamento[]): void {
+    const projMap = new Map<string, { entradas: number; saidas: number }>();
+    filtered.forEach((l) => {
+      const key = l.projeto || "Sem projeto";
+      if (!projMap.has(key)) projMap.set(key, { entradas: 0, saidas: 0 });
+      const m = projMap.get(key)!;
+      if (l.valor >= 0) m.entradas += l.valor;
+      else if (l.categoria !== "0.0.0 Recurso") m.saidas += Math.abs(l.valor);
+    });
+
+    const entries = Array.from(projMap.entries()).sort((a, b) => b[1].entradas - a[1].entradas);
+
+    this.balancaoChartData = {
+      labels: entries.map(([label]) => label),
+      datasets: [
+        {
+          label: "Receitas",
+          data: entries.map(([, d]) => d.entradas),
+          backgroundColor: "rgba(16,185,129,0.75)",
+          borderRadius: 4,
+          stack: "Stack 0",
+        },
+        {
+          label: "Despesas",
+          data: entries.map(([, d]) => d.saidas),
+          backgroundColor: "rgba(99,102,241,0.75)",
+          borderRadius: 4,
+          stack: "Stack 1",
+        },
+      ],
+    };
   }
 
   private generateColors(count: number): string[] {

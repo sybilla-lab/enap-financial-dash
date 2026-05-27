@@ -245,118 +245,135 @@
         }
       </section>
 
-      <!-- Distribuição por Categoria -->
-      <section class="vp-accordion" [class.expanded]="categoriasExpandido">
-        <button class="vp-acc-head" type="button" (click)="categoriasExpandido = !categoriasExpandido">
-          <div class="vp-acc-title">
-            <mat-icon>pie_chart</mat-icon>
-            <span>Distribuição por Categoria</span>
-          </div>
-          <div class="vp-acc-summary">
-            <span class="vp-acc-pill">{{ categoriasAlimenta.length }} categorias</span>
-            <mat-icon class="vp-acc-chevron">{{ categoriasExpandido ? 'expand_less' : 'expand_more' }}</mat-icon>
-          </div>
-        </button>
-
-        @if (categoriasExpandido) {
-          <div class="vp-acc-body">
-            @if (categoriasAlimenta.length === 0) {
-              <div class="vp-empty" style="height:80px"><span>Nenhuma despesa registrada.</span></div>
-            } @else {
-              <div class="vp-categorias-grid">
-                <div class="vp-donut-wrap">
-                  <div class="vp-donut-canvas">
-                    <canvas baseChart [data]="donutChartData" [options]="donutChartOptions" [type]="'doughnut'"></canvas>
-                    <div class="vp-donut-center">
-                      <span class="vp-donut-label">Total gasto</span>
-                      <span class="vp-donut-value">{{ totalGastoAlimenta | currency:'BRL':'symbol':'1.2-2' }}</span>
-                      <span class="vp-donut-sub">{{ categoriasAlimenta.length }} categorias</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="vp-categorias-lista">
-                  @for (c of categoriasAlimenta; track c.nome) {
-                    <div class="vp-categoria-row">
-                      <span class="vp-cat-color-dot" [style.background]="c.cor"></span>
-                      <div class="vp-cat-info">
-                        <div class="vp-cat-head">
-                          <span class="vp-cat-nome">{{ c.nome }}</span>
-                          <span class="vp-cat-valor">{{ c.valor | currency:'BRL':'symbol':'1.2-2' }}</span>
-                        </div>
-                        <div class="vp-cat-bar"><div class="vp-cat-fill" [style.width.%]="c.percentual" [style.background]="c.cor"></div></div>
-                        <span class="vp-cat-percent">{{ c.percentual | number:'1.1-1' }}%</span>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </section>
-
     }
 
-    <!-- CHARTS STACK (full-width) -->
-    <div class="vp-charts-stack">
+    <!-- CHARTS STACK — reorderable via drag-and-drop -->
+    <div class="vp-charts-stack" cdkDropList (cdkDropListDropped)="dropChart($event)">
 
-      <!-- CATEGORIAS -->
-      <mat-card class="vp-chart-card" appearance="outlined">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>category</mat-icon>
-            Despesas por Categoria
-          </mat-card-title>
-          <mat-card-subtitle>{{ categorias.length }} categorias · {{ snapshot.saidas | currency:'BRL':'symbol':'1.0-0' }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          @if (categorias.length === 0) {
-            <div class="vp-empty">
-              <mat-icon>info_outline</mat-icon>
-              <span>Nenhuma despesa registrada para este projeto.</span>
-            </div>
-          } @else {
-            <div class="vp-cat-chart-wrap">
-              @if (chartCategoriasReady) {
-                <canvas baseChart
-                  [data]="barChartData"
-                  [options]="barChartOptions"
-                  [type]="'bar'">
-                </canvas>
-              }
-            </div>
-          }
-        </mat-card-content>
-      </mat-card>
+      @for (section of chartSections; track section) {
+        <div cdkDrag class="vp-chart-drag-item">
 
-      <!-- FLUXO DE CAIXA -->
-      <mat-card class="vp-chart-card" appearance="outlined">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>timeline</mat-icon>
-            Fluxo de Caixa Mensal
-          </mat-card-title>
-          <mat-card-subtitle>{{ fluxo.length }} meses com movimentação</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          @if (fluxo.length === 0) {
-            <div class="vp-empty">
-              <mat-icon>info_outline</mat-icon>
-              <span>Sem dados de fluxo para este projeto.</span>
-            </div>
-          } @else {
-            <div class="vp-fluxo-chart-wrap">
-              @if (chartFluxoReady) {
-                <canvas baseChart
-                  [data]="mixedChartData"
-                  [options]="mixedChartOptions"
-                  [type]="'bar'">
-                </canvas>
-              }
-            </div>
+          @switch (section) {
+
+            @case ('categorias') {
+              <mat-card class="vp-chart-card" appearance="outlined">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>{{ projetoSelecionado === 'Alimenta +1000 Cidades' ? 'pie_chart' : 'category' }}</mat-icon>
+                    {{ projetoSelecionado === 'Alimenta +1000 Cidades' ? 'Distribuição por Categoria' : 'Despesas por Categoria' }}
+                    <button cdkDragHandle class="vp-drag-handle" type="button" matTooltip="Arrastar para reordenar">
+                      <mat-icon>drag_indicator</mat-icon>
+                    </button>
+                  </mat-card-title>
+                  <mat-card-subtitle>{{ categorias.length }} categorias · {{ snapshot.saidas | currency:'BRL':'symbol':'1.0-0' }}</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  @if (categorias.length === 0) {
+                    <div class="vp-empty">
+                      <mat-icon>info_outline</mat-icon>
+                      <span>Nenhuma despesa registrada para este projeto.</span>
+                    </div>
+                  } @else if (projetoSelecionado === 'Alimenta +1000 Cidades') {
+                    <!-- Donut chart para Alimenta -->
+                    <div class="vp-categorias-grid">
+                      <div class="vp-donut-wrap">
+                        <div class="vp-donut-canvas">
+                          <canvas baseChart [data]="donutChartData" [options]="donutChartOptions" [type]="'doughnut'"></canvas>
+                          <div class="vp-donut-center">
+                            <span class="vp-donut-label">Total gasto</span>
+                            <span class="vp-donut-value">{{ totalGastoAlimenta | currency:'BRL':'symbol':'1.2-2' }}</span>
+                            <span class="vp-donut-sub">{{ categoriasAlimenta.length }} categorias</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="vp-categorias-lista">
+                        @for (c of categoriasAlimenta; track c.nome) {
+                          <div class="vp-categoria-row">
+                            <span class="vp-cat-color-dot" [style.background]="c.cor"></span>
+                            <div class="vp-cat-info">
+                              <div class="vp-cat-head">
+                                <span class="vp-cat-nome">{{ c.nome }}</span>
+                                <span class="vp-cat-valor">{{ c.valor | currency:'BRL':'symbol':'1.2-2' }}</span>
+                              </div>
+                              <div class="vp-cat-bar"><div class="vp-cat-fill" [style.width.%]="c.percentual" [style.background]="c.cor"></div></div>
+                              <span class="vp-cat-percent">{{ c.percentual | number:'1.1-1' }}%</span>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  } @else {
+                    <!-- Bar chart para demais projetos -->
+                    <div class="vp-cat-chart-wrap">
+                      @if (chartCategoriasReady) {
+                        <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
+                      }
+                    </div>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+
+            @case ('fluxo') {
+              <mat-card class="vp-chart-card" appearance="outlined">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>timeline</mat-icon>
+                    Fluxo de Caixa Mensal
+                    <button cdkDragHandle class="vp-drag-handle" type="button" matTooltip="Arrastar para reordenar">
+                      <mat-icon>drag_indicator</mat-icon>
+                    </button>
+                  </mat-card-title>
+                  <mat-card-subtitle>{{ fluxo.length }} meses com movimentação</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  @if (fluxo.length === 0) {
+                    <div class="vp-empty">
+                      <mat-icon>info_outline</mat-icon>
+                      <span>Sem dados de fluxo para este projeto.</span>
+                    </div>
+                  } @else {
+                    <div class="vp-fluxo-chart-wrap">
+                      @if (chartFluxoReady) {
+                        <canvas baseChart [data]="mixedChartData" [options]="mixedChartOptions" [type]="'bar'"></canvas>
+                      }
+                    </div>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+
+            @case ('balanco') {
+              <mat-card class="vp-chart-card" appearance="outlined">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>insights</mat-icon>
+                    Balanço Operacional de Receitas e Despesas
+                    <button cdkDragHandle class="vp-drag-handle" type="button" matTooltip="Arrastar para reordenar">
+                      <mat-icon>drag_indicator</mat-icon>
+                    </button>
+                  </mat-card-title>
+                  <mat-card-subtitle>Receitas vs despesas{{ projetoSelecionado ? ' — ' + projetoSelecionado : ' por projeto' }}</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  @if (!balancaoChartReady) {
+                    <div class="vp-empty" style="height:120px">
+                      <mat-icon>hourglass_empty</mat-icon>
+                      <span>Carregando…</span>
+                    </div>
+                  } @else {
+                    <div [style.height.px]="balancaoChartHeight">
+                      <canvas baseChart [data]="balancaoChartData" [options]="balancaoChartOptions" [type]="'bar'"></canvas>
+                    </div>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+
           }
-        </mat-card-content>
-      </mat-card>
+
+        </div>
+      }
 
     </div>
 
