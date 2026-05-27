@@ -9,6 +9,20 @@
       </h1>
       <p class="vp-subtitle">Selecione um projeto para ver resumo financeiro, categorias e fluxo de caixa em um só lugar.</p>
     </div>
+    <button
+      mat-stroked-button
+      class="vp-export-btn"
+      (click)="exportPDF()"
+      [disabled]="exportingPDF"
+      matTooltip="Exporta a visão atual como PDF">
+      @if (exportingPDF) {
+        <mat-icon class="spin">hourglass_empty</mat-icon>
+        Gerando…
+      } @else {
+        <mat-icon>picture_as_pdf</mat-icon>
+        Exportar PDF
+      }
+    </button>
   </div>
 
   <!-- ── SELETOR DE PROJETOS ─────────────────────────────────────────── -->

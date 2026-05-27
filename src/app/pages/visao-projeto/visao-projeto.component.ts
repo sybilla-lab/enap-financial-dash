@@ -12,6 +12,8 @@ import { DataService } from "../../services/data.service";
 import { Lancamento, StatusProjeto } from "../../models/lancamento.model";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -167,6 +169,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   };
 
   chartSections = ['categorias', 'fluxo', 'balanco'];
+  exportingPDF = false;
 
   chartCategoriasReady = false;
   chartFluxoReady = false;
@@ -344,6 +347,75 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
   dropChart(event: CdkDragDrop<string[]>): void {
     moveItemInArray(this.chartSections, event.previousIndex, event.currentIndex);
+  }
+
+  async exportPDF(): Promise<void> {
+    if (this.exportingPDF) return;
+    this.exportingPDF = true;
+
+    try {
+      const page = document.querySelector('.vp-page') as HTMLElement;
+      if (!page) return;
+
+      const isDark = document.body.classList.contains('dark-theme');
+      const bgColor = isDark ? '#0f172a' : '#f8fafc';
+
+      const canvas = await html2canvas(page, {
+        scale: 1.8,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: bgColor,
+        logging: false,
+        onclone: (_doc, el) => {
+          // hide interactive-only elements in the cloned DOM
+          el.querySelectorAll<HTMLElement>('.vp-export-btn, .vp-drag-handle').forEach(n => n.style.display = 'none');
+        },
+      });
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const margin = 10;
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW - margin * 2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+      // PDF header bar
+      pdf.setFillColor(isDark ? '#0f172a' : '#f8fafc');
+      const proj = this.projetoSelecionado || 'Todos os projetos';
+      const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(`Visão por Projeto — ${proj}`, margin, 7);
+      pdf.text(dateStr, pageW - margin, 7, { align: 'right' });
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(margin, 9, pageW - margin, 9);
+
+      // Multi-page image split
+      let remaining = imgH;
+      let srcY = 0;
+
+      while (remaining > 0) {
+        const sliceH = Math.min(remaining, pageH - margin - 12);
+        pdf.addImage(imgData, 'JPEG', margin, 12, imgW, imgH, undefined, 'FAST', 0);
+        remaining -= sliceH;
+        srcY += sliceH;
+        if (remaining > 0) {
+          pdf.addPage();
+          pdf.setFontSize(9); pdf.setTextColor(100, 116, 139);
+          pdf.text(`Visão por Projeto — ${proj}`, margin, 7);
+          pdf.text(dateStr, pageW - margin, 7, { align: 'right' });
+          pdf.line(margin, 9, pageW - margin, 9);
+        }
+      }
+
+      const slug = proj.toLowerCase().replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
+      pdf.save(`visao-projeto-${slug}.pdf`);
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err);
+    } finally {
+      this.exportingPDF = false;
+    }
   }
 
   getStatusClass(status: string): string {

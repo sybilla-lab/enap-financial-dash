@@ -19,6 +19,33 @@
 }
 .vp-subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
 
+/* ─── EXPORT BUTTON ──────────────────────────────────────────────────── */
+.vp-export-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover:not(:disabled) {
+    background: rgba(99,102,241,0.08) !important;
+  }
+
+  &:disabled { opacity: 0.6; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin { animation: spin 1.2s linear infinite; display: inline-flex; }
+
 /* ─── PROJECT SELECTOR RAIL ──────────────────────────────────────────── */
 .vp-project-rail {
   display: flex;
