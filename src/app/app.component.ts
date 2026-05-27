@@ -91,7 +91,7 @@ export class AppComponent implements AfterViewInit {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
-      this.sidenavContent.getElementRef().nativeElement.scrollTop = 0;
+      this.contentAreaRef.nativeElement.scrollTop = 0;
     });
   }
 
