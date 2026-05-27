@@ -33,6 +33,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   projetosAtivos = 0;
   projetosTotais = 0;
   projetosDestaque: ProjetoResumo[] = [];
+  execucaoMedia = 0;
 
   ultimaAtualizacao = new Date();
 
@@ -62,9 +63,12 @@ export class HomeComponent implements OnInit, OnDestroy {
       ).length;
 
       this.projetosDestaque = projetos
-        .filter((p) => p.entradas > 0)
-        .sort((a, b) => b.saidas - a.saidas)
-        .slice(0, 4);
+        .filter((p) => p.entradas > 0 && (p.status || "").toLowerCase().includes("ativo"))
+        .sort((a, b) => b.execucao - a.execucao);
+
+      this.execucaoMedia = this.projetosDestaque.length > 0
+        ? this.projetosDestaque.reduce((s, p) => s + p.execucao, 0) / this.projetosDestaque.length
+        : 0;
 
       this.carregando = false;
     });

@@ -84,6 +84,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: "visao-projeto",
+    loadComponent: () =>
+      import("./pages/visao-projeto/visao-projeto.component").then(
+        (m) => m.VisaoProjetoComponent
+      ),
+  },
+  {
     path: "login",
     loadComponent: () =>
       import("./pages/login/login.component").then(

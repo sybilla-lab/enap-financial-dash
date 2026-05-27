@@ -1,18 +1,82 @@
 <div class="home-container">
 
   <header class="home-hero">
-    <div class="hero-logos">
-      <img src="logo-impacthub.png" alt="Impact Hub Brasil" class="hero-logo-hub" />
-      <span class="hero-sep"></span>
-      <img src="enap_40.png" alt="ENAP" class="hero-logo-enap" />
-    </div>
-
     <h1 class="hero-title">Impact Hub - ENAP</h1>
     <p class="hero-subtitle">
       Painel de execução do Termo de Colaboração da
       <strong>Estratégia Nacional de Inovação Aberta</strong>.
     </p>
   </header>
+
+  <!-- ===== Projetos em execução ===== -->
+  <section class="destaque-section">
+    <div class="destaque-header">
+      <div class="destaque-title-block">
+        <span class="eyebrow">Todos os ativos</span>
+        <h2>Projetos em execução</h2>
+        @if (!carregando) {
+        <p class="destaque-summary">
+          {{ projetosDestaque.length }} projetos ·
+          execução média
+          <strong>{{ execucaoMedia | number:'1.0-0' }}%</strong>
+        </p>
+        }
+      </div>
+      <a mat-stroked-button routerLink="/visao-projeto" class="destaque-cta-btn">
+        <mat-icon>layers</mat-icon>
+        Visão consolidada
+      </a>
+    </div>
+
+    <div class="proj-cards-grid">
+      @if (carregando) {
+      @for (i of [1,2,3,4]; track i) {
+      <div class="pc pc-skeleton">
+        <div class="pc-ring-wrap skeleton-box" style="width:72px;height:72px;border-radius:50%;"></div>
+        <div class="pc-body">
+          <div class="skeleton-box" style="width:140px;height:18px;margin-bottom:8px;"></div>
+          <div class="skeleton-box" style="width:100%;height:6px;border-radius:3px;margin-bottom:8px;"></div>
+          <div class="skeleton-box" style="width:180px;height:14px;"></div>
+        </div>
+      </div>
+      }
+      } @else {
+      @for (p of projetosDestaque; track p.projeto) {
+      <a class="pc" [routerLink]="['/visao-projeto']" [queryParams]="{p: p.projeto}"
+        [style.--exec]="p.execucao > 100 ? 100 : p.execucao">
+
+        <div class="pc-ring-wrap">
+          <div class="pc-ring">
+            <div class="pc-ring-inner">
+              <span class="pc-pct">{{ p.execucao | number:'1.0-0' }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pc-body">
+          <div class="pc-head">
+            <span class="pc-name">{{ p.projeto }}</span>
+            <span class="proj-status" [ngClass]="statusClass(p.status)">{{ p.status }}</span>
+          </div>
+          <div class="pc-bar">
+            <div class="pc-bar-fill"></div>
+          </div>
+          <div class="pc-amounts">
+            <span class="pc-spent">{{ p.saidas | currency:'BRL':'symbol':'1.0-0' }}</span>
+            <span class="pc-sep"> / </span>
+            <span class="pc-total">{{ p.entradas | currency:'BRL':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="pc-cta">
+            <span>Ver detalhes</span>
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
+        </div>
+
+      </a>
+      }
+      }
+    </div>
+  </section>
 
   <!-- ===== Pulso Financeiro ===== -->
   <section class="pulso" [class.loading]="carregando">
@@ -24,24 +88,23 @@
       <span class="update-chip">
         <mat-icon>sync</mat-icon>
         @if (carregando) {
-          <div class="skeleton-box" style="width: 100px; height: 16px; margin: 0 4px;"></div>
+        <div class="skeleton-box" style="width: 100px; height: 16px; margin: 0 4px;"></div>
         } @else {
-          Atualizado {{ ultimaAtualizacao | date:'HH:mm' }}
+        Atualizado {{ ultimaAtualizacao | date:'HH:mm' }}
         }
       </span>
     </div>
 
     <div class="pulso-grid">
-      <!-- Ring principal -->
       <div class="ring-big-wrap">
         <div class="ring-big" [style.--pct.%]="percentualExecucao">
           <div class="ring-inner">
             @if (carregando) {
-              <div class="skeleton-box" style="width: 80px; height: 48px; margin-bottom: 8px;"></div>
-              <div class="skeleton-box" style="width: 60px; height: 16px;"></div>
+            <div class="skeleton-box" style="width: 80px; height: 48px; margin-bottom: 8px;"></div>
+            <div class="skeleton-box" style="width: 60px; height: 16px;"></div>
             } @else {
-              <span class="ring-pct">{{ percentualExecucao }}%</span>
-              <span class="ring-label">executado</span>
+            <span class="ring-pct">{{ percentualExecucao }}%</span>
+            <span class="ring-label">executado</span>
             }
           </div>
         </div>
@@ -51,9 +114,9 @@
             <div>
               <span class="mi-label">Recebido</span>
               @if (carregando) {
-                <div class="skeleton-box" style="width: 120px; height: 24px; margin-top: 4px;"></div>
+              <div class="skeleton-box" style="width: 120px; height: 24px; margin-top: 4px;"></div>
               } @else {
-                <span class="mi-value">{{ totalRecebido | currency:'BRL':'symbol':'1.0-0' }}</span>
+              <span class="mi-value">{{ totalRecebido | currency:'BRL':'symbol':'1.0-0' }}</span>
               }
             </div>
           </div>
@@ -62,9 +125,9 @@
             <div>
               <span class="mi-label">Executado</span>
               @if (carregando) {
-                <div class="skeleton-box" style="width: 120px; height: 24px; margin-top: 4px;"></div>
+              <div class="skeleton-box" style="width: 120px; height: 24px; margin-top: 4px;"></div>
               } @else {
-                <span class="mi-value">{{ totalExecutado | currency:'BRL':'symbol':'1.0-0' }}</span>
+              <span class="mi-value">{{ totalExecutado | currency:'BRL':'symbol':'1.0-0' }}</span>
               }
             </div>
           </div>
@@ -73,25 +136,24 @@
             <div>
               <span class="mi-label">Saldo</span>
               @if (carregando) {
-                <div class="skeleton-box" style="width: 120px; height: 24px; margin-top: 4px;"></div>
+              <div class="skeleton-box" style="width: 120px; height: 24px; margin-top: 4px;"></div>
               } @else {
-                <span class="mi-value">{{ saldoDisponivel | currency:'BRL':'symbol':'1.0-0' }}</span>
+              <span class="mi-value">{{ saldoDisponivel | currency:'BRL':'symbol':'1.0-0' }}</span>
               }
             </div>
           </div>
         </div>
       </div>
 
-      <!-- KPI mini cards -->
       <div class="kpis">
         <div class="kpi">
           <mat-icon class="kpi-icon blue">savings</mat-icon>
           <div>
             <span class="kpi-label">Captação + Aporte</span>
             @if (carregando) {
-              <div class="skeleton-box" style="width: 60px; height: 28px; margin-top: 4px;"></div>
+            <div class="skeleton-box" style="width: 60px; height: 28px; margin-top: 4px;"></div>
             } @else {
-              <span class="kpi-value">{{ percentualRecebido }}%</span>
+            <span class="kpi-value">{{ percentualRecebido }}%</span>
             }
             <span class="kpi-sub">da meta total</span>
           </div>
@@ -105,9 +167,9 @@
           <div>
             <span class="kpi-label">Projetos ativos</span>
             @if (carregando) {
-              <div class="skeleton-box" style="width: 80px; height: 28px; margin-top: 4px;"></div>
+            <div class="skeleton-box" style="width: 80px; height: 28px; margin-top: 4px;"></div>
             } @else {
-              <span class="kpi-value">{{ projetosAtivos }}<span class="kpi-of">/{{ projetosTotais }}</span></span>
+            <span class="kpi-value">{{ projetosAtivos }}<span class="kpi-of">/{{ projetosTotais }}</span></span>
             }
             <span class="kpi-sub">em execução</span>
           </div>
@@ -118,9 +180,9 @@
           <div>
             <span class="kpi-label">Meta total</span>
             @if (carregando) {
-              <div class="skeleton-box" style="width: 140px; height: 28px; margin-top: 4px;"></div>
+            <div class="skeleton-box" style="width: 140px; height: 28px; margin-top: 4px;"></div>
             } @else {
-              <span class="kpi-value">{{ metaTotal | currency:'BRL':'symbol':'1.0-0' }}</span>
+            <span class="kpi-value">{{ metaTotal | currency:'BRL':'symbol':'1.0-0' }}</span>
             }
             <span class="kpi-sub">Termo de Colaboração</span>
           </div>
@@ -128,60 +190,6 @@
       </div>
     </div>
   </section>
-
-  <!-- ===== Projetos em destaque ===== -->
-  <section class="destaque">
-    <div class="destaque-header">
-      <div>
-        <span class="eyebrow">Top execução</span>
-        <h2>Projetos em destaque</h2>
-      </div>
-      <a mat-stroked-button routerLink="/projetos">
-        <mat-icon>arrow_forward</mat-icon>
-        Ver todos
-      </a>
-    </div>
-
-    <div class="destaque-grid">
-      @if (carregando) {
-        @for (i of [1,2,3,4]; track i) {
-          <div class="proj-card skeleton">
-            <div class="proj-top">
-              <div class="skeleton-box" style="width: 150px; height: 20px;"></div>
-              <div class="skeleton-box" style="width: 80px; height: 24px; border-radius: 20px;"></div>
-            </div>
-            <div class="proj-bar">
-              <div class="skeleton-box" style="width: 100%; height: 6px;"></div>
-            </div>
-            <div class="proj-nums">
-              <div class="skeleton-box" style="width: 100px; height: 16px;"></div>
-              <div class="skeleton-box" style="width: 180px; height: 16px;"></div>
-            </div>
-          </div>
-        }
-      } @else {
-        @for (p of projetosDestaque; track p.projeto) {
-          <a class="proj-card" [routerLink]="['/projetos']">
-            <div class="proj-top">
-              <span class="proj-name">{{ p.projeto }}</span>
-              <span class="proj-status" [ngClass]="statusClass(p.status)">{{ p.status }}</span>
-            </div>
-
-            <div class="proj-bar">
-              <div class="proj-bar-fill" [style.width.%]="p.execucao > 100 ? 100 : p.execucao"></div>
-            </div>
-
-            <div class="proj-nums">
-              <span><strong>{{ p.execucao | number:'1.0-0' }}%</strong> executado</span>
-              <span class="muted">{{ p.saidas | currency:'BRL':'symbol':'1.0-0' }} / {{ p.entradas |
-                currency:'BRL':'symbol':'1.0-0' }}</span>
-            </div>
-          </a>
-        }
-      }
-    </div>
-  </section>
-
 
   <!-- ===== Atalho contextual ===== -->
   <section class="atalho" *ngIf="featureAuditoria">

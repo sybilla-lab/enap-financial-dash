@@ -1,0 +1,317 @@
+<div class="vp-page">
+
+  <!-- ── CABEÇALHO ─────────────────────────────────────────────────── -->
+  <div class="vp-header">
+    <div class="vp-header-text">
+      <h1 class="vp-title">
+        <mat-icon>layers</mat-icon>
+        Visão por Projeto
+      </h1>
+      <p class="vp-subtitle">Selecione um projeto para ver resumo financeiro, categorias e fluxo de caixa em um só lugar.</p>
+    </div>
+  </div>
+
+  <!-- ── SELETOR DE PROJETOS ─────────────────────────────────────────── -->
+  <div class="vp-project-rail">
+    @if (projetos.length === 0) {
+      <span class="vp-loading">Carregando projetos…</span>
+    } @else {
+      <button
+        class="vp-proj-chip chip-todos"
+        [class.selected]="projetoSelecionado === null"
+        (click)="selectProjeto(null)">
+        <mat-icon>layers</mat-icon>
+        Todos
+      </button>
+
+      @for (proj of projetos; track proj) {
+        <button
+          class="vp-proj-chip"
+          [class.selected]="projetoSelecionado === proj"
+          (click)="selectProjeto(proj)">
+          {{ proj }}
+        </button>
+      }
+    }
+  </div>
+
+  <!-- ── FILTROS DE DATA ───────────────────────────────────────────── -->
+  @if (anosDisponiveis.length > 0) {
+    <div class="vp-filter-panel">
+      <button class="vp-filter-toggle" (click)="filtrosAbertos = !filtrosAbertos">
+        <mat-icon>tune</mat-icon>
+        <span>Filtros</span>
+        @if (totalFiltrosAtivos > 0) {
+          <span class="vp-filter-badge">{{ totalFiltrosAtivos }}</span>
+        }
+        <mat-icon class="vp-chevron" [class.rotated]="filtrosAbertos">expand_more</mat-icon>
+      </button>
+
+      @if (totalFiltrosAtivos > 0) {
+        <button class="vp-filter-clear" (click)="limparFiltrosData()">
+          <mat-icon>filter_list_off</mat-icon>
+          Limpar
+        </button>
+      }
+
+      @if (filtrosAbertos) {
+        <div class="vp-filter-body">
+          <div class="vp-filter-group">
+            <span class="vp-filter-label">ANO</span>
+            <div class="vp-filter-chips">
+              @for (ano of anosDisponiveis; track ano) {
+                <button class="vp-fchip" [class.active]="filtroAnos.includes(ano)" (click)="toggleAno(ano)">
+                  {{ ano }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="vp-filter-group">
+            <span class="vp-filter-label">MÊS</span>
+            <div class="vp-filter-chips">
+              @for (m of meses; track m.valor) {
+                <button class="vp-fchip" [class.active]="filtroMeses.includes(m.valor)" (click)="toggleMes(m.valor)">
+                  {{ m.abrev }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── CONTEÚDO DO PROJETO ────────────────────────────────────────── -->
+  @if (snapshot) {
+
+    <!-- STATUS + BARRA DE EXECUÇÃO -->
+    <div class="vp-status-bar">
+      <span class="vp-status-badge" [ngClass]="getStatusClass(snapshot.status)">
+        <mat-icon>{{ snapshot.status.toLowerCase().includes('finaliz') ? 'check_circle' : snapshot.status.toLowerCase().includes('encerr') ? 'hourglass_bottom' : 'play_circle' }}</mat-icon>
+        {{ snapshot.status }}
+      </span>
+
+      <div class="vp-exec-track">
+        <div class="vp-exec-label">
+          <span>Execução financeira</span>
+          <strong>{{ snapshot.execucao | number:'1.1-1' }}%</strong>
+        </div>
+        <div class="vp-exec-bar">
+          <div class="vp-exec-fill"
+            [style.width.%]="snapshot.execucao > 100 ? 100 : snapshot.execucao"
+            [class.over-budget]="snapshot.execucao > 100">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="vp-kpi-grid">
+
+      <mat-card class="vp-kpi card-green" appearance="outlined">
+        <mat-card-content>
+          <div class="kpi-icon-wrap"><mat-icon>south</mat-icon></div>
+          <div class="kpi-data">
+            <span class="kpi-label">Total Recebido</span>
+            <span class="kpi-value text-green">{{ snapshot.entradas | currency:'BRL':'symbol':'1.2-2' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="vp-kpi card-red" appearance="outlined">
+        <mat-card-content>
+          <div class="kpi-icon-wrap"><mat-icon>north</mat-icon></div>
+          <div class="kpi-data">
+            <span class="kpi-label">Total Executado</span>
+            <span class="kpi-value text-red">{{ snapshot.saidas | currency:'BRL':'symbol':'1.2-2' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="vp-kpi card-blue" appearance="outlined">
+        <mat-card-content>
+          <div class="kpi-icon-wrap"><mat-icon>account_balance_wallet</mat-icon></div>
+          <div class="kpi-data">
+            <span class="kpi-label">Saldo Disponível</span>
+            <span class="kpi-value" [class.text-green]="snapshot.saldo >= 0" [class.text-red]="snapshot.saldo < 0">
+              {{ snapshot.saldo | currency:'BRL':'symbol':'1.2-2' }}
+            </span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="vp-kpi card-orange" appearance="outlined">
+        <mat-card-content>
+          <div class="kpi-icon-wrap"><mat-icon>receipt_long</mat-icon></div>
+          <div class="kpi-data">
+            <span class="kpi-label">Pagamentos</span>
+            <span class="kpi-value text-orange">{{ snapshot.numPagamentos }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="vp-kpi card-purple" appearance="outlined">
+        <mat-card-content>
+          <div class="kpi-icon-wrap"><mat-icon>local_atm</mat-icon></div>
+          <div class="kpi-data">
+            <span class="kpi-label">Ticket Médio</span>
+            <span class="kpi-value text-purple">{{ snapshot.ticketMedio | currency:'BRL':'symbol':'1.2-2' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <!-- CHARTS STACK (full-width) -->
+    <div class="vp-charts-stack">
+
+      <!-- CATEGORIAS -->
+      <mat-card class="vp-chart-card" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>category</mat-icon>
+            Despesas por Categoria
+          </mat-card-title>
+          <mat-card-subtitle>{{ categorias.length }} categorias · {{ snapshot.saidas | currency:'BRL':'symbol':'1.0-0' }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (categorias.length === 0) {
+            <div class="vp-empty">
+              <mat-icon>info_outline</mat-icon>
+              <span>Nenhuma despesa registrada para este projeto.</span>
+            </div>
+          } @else {
+            <div class="vp-cat-chart-wrap">
+              @if (chartCategoriasReady) {
+                <canvas baseChart
+                  [data]="barChartData"
+                  [options]="barChartOptions"
+                  [type]="'bar'">
+                </canvas>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- FLUXO DE CAIXA -->
+      <mat-card class="vp-chart-card" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>timeline</mat-icon>
+            Fluxo de Caixa Mensal
+          </mat-card-title>
+          <mat-card-subtitle>{{ fluxo.length }} meses com movimentação</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (fluxo.length === 0) {
+            <div class="vp-empty">
+              <mat-icon>info_outline</mat-icon>
+              <span>Sem dados de fluxo para este projeto.</span>
+            </div>
+          } @else {
+            <div class="vp-fluxo-chart-wrap">
+              @if (chartFluxoReady) {
+                <canvas baseChart
+                  [data]="mixedChartData"
+                  [options]="mixedChartOptions"
+                  [type]="'bar'">
+                </canvas>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <!-- TABELA DE CATEGORIAS + TRANSAÇÕES RECENTES (mantém lado a lado) -->
+    <div class="vp-tables-row">
+
+      <!-- CATEGORIAS TABELA -->
+      <mat-card class="vp-table-card" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>table_chart</mat-icon>
+            Categorias — Detalhamento
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="vp-table-scroll">
+            <table class="vp-table">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th class="num">Valor</th>
+                  <th class="num">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of categorias; track c.categoria) {
+                  <tr>
+                    <td>
+                      <span class="cat-dot" [style.background]="'rgba(99,102,241,' + (0.4 + c.percentual / 100 * 0.6) + ')'"></span>
+                      {{ c.categoria }}
+                    </td>
+                    <td class="num text-red">{{ c.total | currency:'BRL':'symbol':'1.2-2' }}</td>
+                    <td class="num muted">{{ c.percentual | number:'1.1-1' }}%</td>
+                  </tr>
+                }
+                <tr class="total-row">
+                  <td><strong>TOTAL</strong></td>
+                  <td class="num"><strong>{{ snapshot.saidas | currency:'BRL':'symbol':'1.2-2' }}</strong></td>
+                  <td class="num"><strong>100%</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- LANÇAMENTOS RECENTES -->
+      <mat-card class="vp-table-card" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>receipt</mat-icon>
+            Lançamentos Recentes
+          </mat-card-title>
+          <mat-card-subtitle>Últimos {{ transacoesRecentes.length }} pagamentos</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="vp-table-scroll">
+            <table class="vp-table">
+              <thead>
+                <tr>
+                  <th>Mês/Ano</th>
+                  <th>Categoria</th>
+                  <th>Fornecedor</th>
+                  <th class="num">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (t of transacoesRecentes; track $index) {
+                  <tr>
+                    <td class="muted mono">{{ t.mesAno }}</td>
+                    <td>{{ t.categoria }}</td>
+                    <td class="muted">{{ t.fornecedor }}</td>
+                    <td class="num text-red">{{ t.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+  }
+
+  @if (!snapshot && projetos.length === 0) {
+    <div class="vp-pick-prompt">
+      <mat-icon>hourglass_empty</mat-icon>
+      <p>Carregando dados…</p>
+    </div>
+  }
+
+</div>

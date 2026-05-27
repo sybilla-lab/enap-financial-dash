@@ -52,6 +52,7 @@ export class AppComponent {
     { label: "Projetos",             icon: "folder_special",  route: "/projetos" },
     { label: "Categorias",           icon: "category",        route: "/categorias" },
     { label: "Fluxo de Caixa",       icon: "timeline",        route: "/fluxo-caixa" },
+    { label: "Visão por Projeto",    icon: "layers",          route: "/visao-projeto" },
     { label: "Saldos Remanescentes", icon: "history_edu",     route: "/saldos" },
     { label: "Rendimentos",          icon: "trending_up",     route: "/rendimentos" },
     ...(environment.features?.auditoria
