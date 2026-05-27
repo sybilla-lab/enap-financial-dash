@@ -1,7 +1,7 @@
-import { Component, ViewChild, ElementRef } from "@angular/core";
+import { Component, ViewChild, ElementRef, AfterViewInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterModule, RouterOutlet } from "@angular/router";
-import { MatSidenavModule } from "@angular/material/sidenav";
+import { MatSidenavModule, MatSidenavContent } from "@angular/material/sidenav";
 import { MatToolbarModule } from "@angular/material/toolbar";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
@@ -38,9 +38,10 @@ interface NavItem {
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.scss",
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit {
   @ViewChild("sidenav") sidenav!: any;
   @ViewChild("contentArea", { read: ElementRef }) contentAreaRef!: ElementRef<HTMLDivElement>;
+  @ViewChild(MatSidenavContent) sidenavContent!: MatSidenavContent;
 
   sidenavCollapsed = false;
   isMobile = false;
@@ -83,6 +84,14 @@ export class AppComponent {
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
       this.dialog.closeAll();
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.sidenavContent.getElementRef().nativeElement.scrollTop = 0;
     });
   }
 
