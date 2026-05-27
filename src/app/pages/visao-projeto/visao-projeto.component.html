@@ -16,11 +16,9 @@
       [disabled]="exportingPDF"
       matTooltip="Exporta a visão atual como PDF">
       @if (exportingPDF) {
-        <mat-icon class="spin">hourglass_empty</mat-icon>
-        Gerando…
+        <span class="vp-btn-inner"><mat-icon class="spin">hourglass_empty</mat-icon> Gerando…</span>
       } @else {
-        <mat-icon>picture_as_pdf</mat-icon>
-        Exportar PDF
+        <span class="vp-btn-inner"><mat-icon>picture_as_pdf</mat-icon> Exportar PDF</span>
       }
     </button>
   </div>
@@ -171,6 +169,16 @@
           <div class="kpi-data">
             <span class="kpi-label">Ticket Médio</span>
             <span class="kpi-value text-purple">{{ snapshot.ticketMedio | currency:'BRL':'symbol':'1.2-2' }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="vp-kpi card-teal" appearance="outlined">
+        <mat-card-content>
+          <div class="kpi-icon-wrap"><mat-icon>savings</mat-icon></div>
+          <div class="kpi-data">
+            <span class="kpi-label">Saldo Remanescente</span>
+            <span class="kpi-value text-teal">{{ snapshot.saldoRemanescente | currency:'BRL':'symbol':'1.2-2' }}</span>
           </div>
         </mat-card-content>
       </mat-card>

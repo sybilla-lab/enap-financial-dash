@@ -9,11 +9,9 @@ import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { ActivatedRoute } from "@angular/router";
 import { Subject, combineLatest, takeUntil } from "rxjs";
 import { DataService } from "../../services/data.service";
-import { Lancamento, StatusProjeto } from "../../models/lancamento.model";
+import { Lancamento, StatusProjeto, ProjetoResumo } from "../../models/lancamento.model";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -59,6 +57,7 @@ interface ProjetoSnapshot {
   entradas: number;
   saidas: number;
   saldo: number;
+  saldoRemanescente: number;
   execucao: number;
   numPagamentos: number;
   ticketMedio: number;
@@ -168,6 +167,9 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     },
   };
 
+  resumosMap = new Map<string, ProjetoResumo>();
+  previstosPorProjeto = new Map<string, number>();
+
   chartSections = ['categorias', 'fluxo', 'balanco'];
   exportingPDF = false;
 
@@ -181,7 +183,22 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     maintainAspectRatio: false,
     indexAxis: "y",
     plugins: {
-      legend: { position: "top", labels: { color: "#94a3b8", font: { weight: "bold" } } },
+      legend: {
+        position: "top",
+        labels: {
+          color: "#94a3b8",
+          font: { weight: "bold" },
+          filter: (item: any, data: any) => {
+            const firstIdx = data.datasets.findIndex((d: any) => d.label === item.text);
+            if (firstIdx !== item.datasetIndex) return false;
+            if (item.text === "Previsto") {
+              const ds = data.datasets[item.datasetIndex];
+              return (ds.data as number[]).some((v: number) => v > 0);
+            }
+            return true;
+          },
+        },
+      },
       datalabels: { display: false },
       tooltip: {
         backgroundColor: "rgba(15,23,42,0.92)",
@@ -289,22 +306,29 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     combineLatest({
       lancs: this.dataService.lancamentos$,
       status: this.dataService.status$,
+      resumos: this.dataService.getProjetoResumos(),
+      previstos: this.dataService.getPrevistosPorProjeto(),
     })
       .pipe(takeUntil(this.destroy$))
-      .subscribe(({ lancs, status }) => {
+      .subscribe(({ lancs, status, resumos, previstos }) => {
         this.allLancamentos = lancs;
         this.statusMap = new Map(status.map((s: StatusProjeto) => [s.projeto, s.status]));
+        this.resumosMap = new Map(resumos.map((r: ProjetoResumo) => [r.projeto, r]));
+        this.previstosPorProjeto = previstos;
 
         const projetosSet = [...new Set(lancs.map((l) => l.projeto).filter(Boolean))];
         this.projetos = projetosSet.sort();
         this.anosDisponiveis = [...new Set(lancs.map((l) => l.mesAno?.split("/")[1]).filter(Boolean))].sort();
 
-        if (this.inicializado) return;
-        this.inicializado = true;
-        if (projetoFromUrl && this.projetos.includes(projetoFromUrl)) {
-          this.projetoSelecionado = projetoFromUrl;
+        // Apply URL param selection once — but only after real data has arrived
+        if (!this.inicializado && this.projetos.length > 0) {
+          this.inicializado = true;
+          if (projetoFromUrl && this.projetos.includes(projetoFromUrl)) {
+            this.projetoSelecionado = projetoFromUrl;
+          }
         }
-        // null = Todos (padrão quando não há ?p=)
+
+        // Always re-process so the view reflects the latest data on every emission
         this.processData();
       });
   }
@@ -356,6 +380,12 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     try {
       const page = document.querySelector('.vp-page') as HTMLElement;
       if (!page) return;
+
+      // Dynamic imports keep html2canvas + jsPDF out of the SSR bundle
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
 
       const isDark = document.body.classList.contains('dark-theme');
       const bgColor = isDark ? '#0f172a' : '#f8fafc';
@@ -459,11 +489,16 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       ? this.projetos.filter((p) => (this.statusMap.get(p) || "Ativo").toLowerCase().includes("ativo")).length
       : 0;
 
+    const saldoRemanescente = isTodos
+      ? Array.from(this.resumosMap.values()).reduce((s, r) => s + (r.saldoRemanescente || 0), 0)
+      : (this.resumosMap.get(this.projetoSelecionado!)?.saldoRemanescente || 0);
+
     this.snapshot = {
       projeto: isTodos ? `Todos os ${this.projetos.length} projetos` : this.projetoSelecionado!,
       entradas,
       saidas,
       saldo: entradas - saidas,
+      saldoRemanescente,
       execucao: entradas > 0 ? (saidas / entradas) * 100 : 0,
       numPagamentos: despesas.length,
       ticketMedio: despesas.length > 0 ? saidas / despesas.length : 0,
@@ -694,7 +729,19 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       else if (l.categoria !== "0.0.0 Recurso") m.saidas += Math.abs(l.valor);
     });
 
-    const entries = Array.from(projMap.entries()).sort((a, b) => b[1].entradas - a[1].entradas);
+    const isAtivo = (proj: string) => {
+      const s = (this.statusMap.get(proj) || "Ativo").toLowerCase();
+      return !s.includes("finaliz") && !s.includes("encerr");
+    };
+    const all = Array.from(projMap.entries());
+    const entries = [
+      ...all.filter(([p]) => isAtivo(p)).sort((a, b) => b[1].entradas - a[1].entradas),
+      ...all.filter(([p]) => !isAtivo(p)).sort((a, b) => b[1].entradas - a[1].entradas),
+    ];
+
+    const totalSaldosParaOpBasica = Array.from(this.resumosMap.values())
+      .filter(r => r.projeto !== "Operação Básica")
+      .reduce((acc, r) => acc + (r.saldoRemanescente || 0), 0);
 
     this.balancaoChartData = {
       labels: entries.map(([label]) => label),
@@ -702,14 +749,37 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         {
           label: "Receitas",
           data: entries.map(([, d]) => d.entradas),
-          backgroundColor: "rgba(16,185,129,0.75)",
+          backgroundColor: "#10b981",
           borderRadius: 4,
           stack: "Stack 0",
         },
         {
+          label: "Saldo Remanescente",
+          data: entries.map(([proj]) => proj === "Operação Básica" ? totalSaldosParaOpBasica : 0),
+          backgroundColor: "#065f46",
+          borderRadius: 4,
+          stack: "Stack 0",
+        },
+        {
+          label: "Previsto",
+          data: entries.map(([proj]) => this.previstosPorProjeto.get(proj) || 0),
+          backgroundColor: "rgba(16,185,129,0.25)",
+          borderColor: "#10b981",
+          borderWidth: 1,
+          borderRadius: 4,
+          stack: "Stack 0",
+        } as any,
+        {
           label: "Despesas",
           data: entries.map(([, d]) => d.saidas),
-          backgroundColor: "rgba(99,102,241,0.75)",
+          backgroundColor: "#6366f1",
+          borderRadius: 4,
+          stack: "Stack 1",
+        },
+        {
+          label: "Saldo Remanescente",
+          data: entries.map(([proj]) => proj === "Operação Básica" ? 0 : (this.resumosMap.get(proj)?.saldoRemanescente || 0)),
+          backgroundColor: "#065f46",
           borderRadius: 4,
           stack: "Stack 1",
         },
