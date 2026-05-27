@@ -167,82 +167,79 @@
     @if (projetoSelecionado === "Alimenta +1000 Cidades") {
 
       <!-- Execução por Metas e Produtos -->
-      <section class="vp-accordion" [class.expanded]="metasExpandido">
-        <button class="vp-acc-head" type="button" (click)="metasExpandido = !metasExpandido">
+      <section class="vp-accordion expanded">
+        <div class="vp-acc-head vp-acc-head-static">
           <div class="vp-acc-title">
             <mat-icon>account_tree</mat-icon>
             <span>Execução por Metas e Produtos</span>
           </div>
           <div class="vp-acc-summary">
             <span class="vp-acc-pill">{{ alimentaTotais.percentual | number:'1.1-1' }}% executado</span>
-            <mat-icon class="vp-acc-chevron">{{ metasExpandido ? 'expand_less' : 'expand_more' }}</mat-icon>
           </div>
-        </button>
+        </div>
 
-        @if (metasExpandido) {
-          <div class="vp-acc-body">
-            <div class="vp-metas-resumo">
-              <div class="vp-resumo-bloco">
-                <span class="vp-resumo-label">Orçamento Total</span>
-                <span class="vp-resumo-valor">{{ alimentaTotais.orcamento | currency:'BRL':'symbol':'1.2-2' }}</span>
-              </div>
-              <div class="vp-resumo-bloco">
-                <span class="vp-resumo-label">Realizado</span>
-                <span class="vp-resumo-valor text-green">{{ alimentaTotais.realizado | currency:'BRL':'symbol':'1.2-2' }}</span>
-              </div>
-              <div class="vp-resumo-bloco">
-                <span class="vp-resumo-label">% Execução</span>
-                <span class="vp-resumo-valor">{{ alimentaTotais.percentual | number:'1.1-1' }}%</span>
-              </div>
+        <div class="vp-acc-body">
+          <div class="vp-metas-resumo">
+            <div class="vp-resumo-bloco">
+              <span class="vp-resumo-label">Orçamento Total</span>
+              <span class="vp-resumo-valor">{{ alimentaTotais.orcamento | currency:'BRL':'symbol':'1.2-2' }}</span>
             </div>
+            <div class="vp-resumo-bloco">
+              <span class="vp-resumo-label">Realizado</span>
+              <span class="vp-resumo-valor text-green">{{ alimentaTotais.realizado | currency:'BRL':'symbol':'1.2-2' }}</span>
+            </div>
+            <div class="vp-resumo-bloco">
+              <span class="vp-resumo-label">% Execução</span>
+              <span class="vp-resumo-valor">{{ alimentaTotais.percentual | number:'1.1-1' }}%</span>
+            </div>
+          </div>
 
-            <div class="vp-metas-lista">
-              @for (m of metasAlimenta; track m.id) {
-                <div class="vp-meta-item" [class.expanded]="m.expandido">
-                  <button class="vp-meta-header" type="button" (click)="toggleMeta(m)">
-                    <div class="vp-meta-chevron"><mat-icon>{{ m.expandido ? 'expand_more' : 'chevron_right' }}</mat-icon></div>
-                    <div class="vp-meta-id">{{ m.id }}</div>
-                    <div class="vp-meta-titulo">
-                      <span class="vp-titulo-texto">{{ m.titulo }}</span>
-                      <span class="vp-meta-sub">{{ m.produtos.length }} produtos</span>
-                    </div>
-                    <div class="vp-meta-progress">
-                      <div class="vp-progress-bar"><div class="vp-progress-fill" [style.width.%]="m.percentual > 100 ? 100 : m.percentual"></div></div>
-                      <span class="vp-meta-progress-label">{{ m.percentual | number:'1.1-1' }}%</span>
-                    </div>
-                    <div class="vp-meta-valores">
-                      <span class="vp-valor-realizado text-green">{{ m.realizado | currency:'BRL':'symbol':'1.2-2' }}</span>
-                      <span class="vp-valor-orcamento">de {{ m.orcamento | currency:'BRL':'symbol':'1.2-2' }}</span>
-                    </div>
-                  </button>
+          <div class="vp-metas-lista">
+            @for (m of metasAlimenta; track m.id) {
+              <div class="vp-meta-item" [class.expanded]="m.expandido">
+                <button class="vp-meta-header" type="button" (click)="toggleMeta(m)">
+                  <div class="vp-meta-chevron"><mat-icon>{{ m.expandido ? 'expand_more' : 'chevron_right' }}</mat-icon></div>
+                  <div class="vp-meta-id">{{ m.id }}</div>
+                  <div class="vp-meta-titulo">
+                    <span class="vp-titulo-texto">{{ m.titulo }}</span>
+                    <span class="vp-meta-sub">{{ m.produtos.length }} produtos</span>
+                  </div>
+                  <div class="vp-meta-progress">
+                    <div class="vp-progress-bar"><div class="vp-progress-fill" [style.width.%]="m.percentual > 100 ? 100 : m.percentual"></div></div>
+                    <span class="vp-meta-progress-label">{{ m.percentual | number:'1.1-1' }}%</span>
+                  </div>
+                  <div class="vp-meta-valores">
+                    <span class="vp-valor-realizado text-green">{{ m.realizado | currency:'BRL':'symbol':'1.2-2' }}</span>
+                    <span class="vp-valor-orcamento">de {{ m.orcamento | currency:'BRL':'symbol':'1.2-2' }}</span>
+                  </div>
+                </button>
 
-                  @if (m.expandido) {
-                    <div class="vp-produtos-lista">
-                      @for (p of m.produtos; track p.codigo) {
-                        <div class="vp-produto-item">
-                          <div class="vp-produto-head">
-                            <span class="vp-produto-tag">Produto {{ p.codigo }}</span>
-                            <span class="vp-produto-nome">{{ p.nome }}</span>
-                          </div>
-                          <div class="vp-produto-body">
-                            <div class="vp-progress-bar vp-produto-progress"><div class="vp-progress-fill" [style.width.%]="p.percentual > 100 ? 100 : p.percentual"></div></div>
-                            <div class="vp-produto-num">
-                              <span class="vp-produto-percent">{{ p.percentual | number:'1.1-1' }}%</span>
-                              <span class="vp-produto-valores">
-                                <span class="text-green">{{ p.realizado | currency:'BRL':'symbol':'1.2-2' }}</span>
-                                <span class="muted">/ {{ p.orcamento | currency:'BRL':'symbol':'1.2-2' }}</span>
-                              </span>
-                            </div>
+                @if (m.expandido) {
+                  <div class="vp-produtos-lista">
+                    @for (p of m.produtos; track p.codigo) {
+                      <div class="vp-produto-item">
+                        <div class="vp-produto-head">
+                          <span class="vp-produto-tag">Produto {{ p.codigo }}</span>
+                          <span class="vp-produto-nome">{{ p.nome }}</span>
+                        </div>
+                        <div class="vp-produto-body">
+                          <div class="vp-progress-bar vp-produto-progress"><div class="vp-progress-fill" [style.width.%]="p.percentual > 100 ? 100 : p.percentual"></div></div>
+                          <div class="vp-produto-num">
+                            <span class="vp-produto-percent">{{ p.percentual | number:'1.1-1' }}%</span>
+                            <span class="vp-produto-valores">
+                              <span class="text-green">{{ p.realizado | currency:'BRL':'symbol':'1.2-2' }}</span>
+                              <span class="muted">/ {{ p.orcamento | currency:'BRL':'symbol':'1.2-2' }}</span>
+                            </span>
                           </div>
                         </div>
-                      }
-                    </div>
-                  }
-                </div>
-              }
-            </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
           </div>
-        }
+        </div>
       </section>
 
     }

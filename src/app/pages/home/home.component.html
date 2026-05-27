@@ -8,6 +8,73 @@
     </p>
   </header>
 
+  <!-- ===== Sobre a Estratégia ===== -->
+  <section class="sobre-section">
+
+    <div class="sobre-glow sobre-glow-tr"></div>
+    <div class="sobre-glow sobre-glow-bl"></div>
+
+    <div class="sobre-top">
+      <div class="sobre-badge">
+        <mat-icon>handshake</mat-icon>
+        ENAP × Impact Hub Brasil
+      </div>
+      <h2 class="sobre-title">Estratégia Nacional de Inovação Aberta</h2>
+      <p class="sobre-lead">
+        Conectando governo, ecossistema de inovação e sociedade para desenvolver
+        soluções colaborativas para desafios públicos.
+      </p>
+    </div>
+
+    <div class="pilares">
+      <div class="pilar pilar-1">
+        <div class="pilar-icon-wrap">
+          <mat-icon>hub</mat-icon>
+        </div>
+        <h3>Conectar</h3>
+        <p>Governo, ecossistema de inovação e sociedade em torno de desafios públicos reais</p>
+      </div>
+      <div class="pilar pilar-2">
+        <div class="pilar-icon-wrap">
+          <mat-icon>lightbulb</mat-icon>
+        </div>
+        <h3>Colaborar</h3>
+        <p>Programas, desafios, acelerações e iniciativas de inovação aberta</p>
+      </div>
+      <div class="pilar pilar-3">
+        <div class="pilar-icon-wrap">
+          <mat-icon>rocket_launch</mat-icon>
+        </div>
+        <h3>Transformar</h3>
+        <p>Setor público, govtechs e novas formas de construção de políticas de impacto</p>
+      </div>
+    </div>
+
+    @if (sobreExpandido) {
+      <div class="sobre-body">
+        <p>A Estratégia Nacional de Inovação Aberta, realizada em parceria entre a ENAP e o Impact Hub Brasil, tem como objetivo conectar governo, ecossistema de inovação e sociedade para desenvolver soluções colaborativas para desafios públicos.</p>
+        <p>Por meio de programas, desafios, acelerações e iniciativas de inovação aberta, a estratégia fortalece a transformação do setor público, impulsiona govtechs e promove novas formas de construção de políticas públicas e serviços de impacto.</p>
+        <p>Este painel apresenta a execução financeira e operacional do Termo de Colaboração, consolidando informações sobre projetos, aportes, captação, fluxo de caixa e indicadores estratégicos em tempo real.</p>
+      </div>
+    }
+
+    <div class="sobre-footer">
+      <button class="sobre-toggle" type="button" (click)="sobreExpandido = !sobreExpandido">
+        <mat-icon>{{ sobreExpandido ? 'unfold_less' : 'unfold_more' }}</mat-icon>
+        {{ sobreExpandido ? 'Recolher' : 'Ler mais sobre a estratégia' }}
+      </button>
+
+      <div class="sobre-tags">
+        <span class="sobre-tag">Inovação Aberta</span>
+        <span class="sobre-tag">GovTech</span>
+        <span class="sobre-tag">Políticas Públicas</span>
+        <span class="sobre-tag">Transformação Pública</span>
+        <span class="sobre-tag">Termo de Colaboração</span>
+      </div>
+    </div>
+
+  </section>
+
   <!-- ===== Projetos em execução ===== -->
   <section class="destaque-section">
     <div class="destaque-header">

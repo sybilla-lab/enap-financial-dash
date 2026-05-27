@@ -36,6 +36,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   execucaoMedia = 0;
 
   ultimaAtualizacao = new Date();
+  sobreExpandido = false;
 
   constructor(private data: DataService) { }
 

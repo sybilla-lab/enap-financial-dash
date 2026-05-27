@@ -446,6 +446,11 @@
   &:hover { background: var(--hover-bg); }
 }
 
+.vp-acc-head-static {
+  cursor: default;
+  &:hover { background: transparent; }
+}
+
 .vp-acc-title {
   display: inline-flex; align-items: center; gap: 10px;
   font-size: 15px; font-weight: 600;
