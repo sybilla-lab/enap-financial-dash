@@ -14,6 +14,43 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 
 Chart.register(...registerables, ChartDataLabels);
 
+// ── Alimenta +1000 Cidades ──────────────────────────────────────────────────
+interface ProdutoAlimenta {
+  codigo: string; nome: string; meta: string;
+  orcamento: number; inicio: string; fim: string;
+}
+interface ProdutoExecucao extends ProdutoAlimenta { realizado: number; percentual: number; }
+interface CategoriaAlimenta { nome: string; valor: number; percentual: number; cor: string; }
+interface MetaGrupo {
+  id: string; titulo: string; produtos: ProdutoExecucao[];
+  orcamento: number; realizado: number; percentual: number;
+  inicio: string; fim: string; expandido: boolean;
+}
+
+const MES_NUM: Record<string, number> = {
+  JAN: 1, FEV: 2, MAR: 3, ABR: 4, MAIO: 5, MAI: 5, JUN: 6,
+  JUL: 7, AGO: 8, SET: 9, OUT: 10, NOV: 11, DEZ: 12,
+};
+function parseMesAno(s: string): number {
+  const [m, a] = (s || "").split("/");
+  return parseInt(a || "0") * 100 + (MES_NUM[(m || "").toUpperCase()] || 0);
+}
+
+const ALIMENTA_PRODUTOS: ProdutoAlimenta[] = [
+  { codigo: "1.1", nome: "Configuração da plataforma", meta: "META 1 — Trilha de Implementação", orcamento: 106056.80, inicio: "NOV/2025", fim: "FEV/2026" },
+  { codigo: "1.2", nome: "Execução dos módulos", meta: "META 1 — Trilha de Implementação", orcamento: 2645754.65, inicio: "JAN/2026", fim: "OUT/2026" },
+  { codigo: "1.3", nome: "Monitoramento e avaliação", meta: "META 1 — Trilha de Implementação", orcamento: 519365.00, inicio: "SET/2026", fim: "MAR/2027" },
+  { codigo: "2.1", nome: "Preparando o terreno", meta: "META 2 — Ciclo de Inovação Aberta", orcamento: 30287.18, inicio: "NOV/2025", fim: "JAN/2026" },
+  { codigo: "2.2", nome: "Mapeando problemas", meta: "META 2 — Ciclo de Inovação Aberta", orcamento: 504276.11, inicio: "FEV/2026", fim: "ABR/2026" },
+  { codigo: "2.3", nome: "Desenhando a competição", meta: "META 2 — Ciclo de Inovação Aberta", orcamento: 327691.98, inicio: "ABR/2026", fim: "MAIO/2026" },
+  { codigo: "2.4", nome: "Lançando o Desafio", meta: "META 2 — Ciclo de Inovação Aberta", orcamento: 130420.75, inicio: "JUN/2026", fim: "JUN/2026" },
+  { codigo: "2.5", nome: "Avaliando propostas", meta: "META 2 — Ciclo de Inovação Aberta", orcamento: 112838.88, inicio: "JUL/2026", fim: "JUL/2026" },
+  { codigo: "2.6", nome: "Acelerando soluções", meta: "META 2 — Ciclo de Inovação Aberta", orcamento: 382799.34, inicio: "AGO/2026", fim: "OUT/2026" },
+  { codigo: "2.7", nome: "Levando o desafio adiante", meta: "META 2 — Ciclo de Inovação Aberta", orcamento: 55763.40, inicio: "NOV/2026", fim: "MAR/2027" },
+  { codigo: "3.1", nome: "IV Encontro da Estratégia Alimenta Cidades", meta: "META 3 — Reconhecendo as conquistas", orcamento: 509059.71, inicio: "NOV/2026", fim: "DEZ/2026" },
+];
+// ────────────────────────────────────────────────────────────────────────────
+
 interface ProjetoSnapshot {
   projeto: string;
   entradas: number;
@@ -94,6 +131,38 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   categorias: CategoriaLocal[] = [];
   fluxo: FluxoLocal[] = [];
   transacoesRecentes: TransacaoRecente[] = [];
+
+  // Alimenta +1000 Cidades
+  metasAlimenta: MetaGrupo[] = [];
+  alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
+  categoriasAlimenta: CategoriaAlimenta[] = [];
+  totalGastoAlimenta = 0;
+  metasExpandido = false;
+  categoriasExpandido = false;
+  donutChartData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
+  donutChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "68%",
+    plugins: {
+      legend: { display: false },
+      datalabels: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.92)",
+        titleColor: "#f8fafc",
+        bodyColor: "#f8fafc",
+        borderColor: "rgba(255,255,255,0.1)",
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: (ctx: any) => {
+            const v = ctx.parsed;
+            return ` ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v)}`;
+          },
+        },
+      },
+    },
+  };
 
   chartCategoriasReady = false;
   chartFluxoReady = false;
@@ -229,6 +298,12 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     this.processData();
   }
 
+  getChipStatusClass(proj: string): string {
+    const s = (this.statusMap.get(proj) || "Ativo").toLowerCase();
+    if (s.includes("encerr") || s.includes("finaliz")) return "chip-inactive";
+    return "chip-active";
+  }
+
   getStatusClass(status: string): string {
     const s = (status || "").toLowerCase();
     if (s.includes("encerr")) return "status-warning";
@@ -336,6 +411,93 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       .slice(0, 25);
 
     this.renderCharts();
+
+    if (this.projetoSelecionado === "Alimenta +1000 Cidades") {
+      this.calcularExecucaoProdutos(filtered);
+    } else {
+      this.metasAlimenta = [];
+      this.alimentaTotais = { orcamento: 0, realizado: 0, percentual: 0 };
+      this.categoriasAlimenta = [];
+      this.totalGastoAlimenta = 0;
+      this.donutChartData = { labels: [], datasets: [] };
+    }
+  }
+
+  toggleMeta(meta: MetaGrupo): void { meta.expandido = !meta.expandido; }
+
+  private calcularExecucaoProdutos(lancs: Lancamento[]): void {
+    const realizadoPorCodigo = new Map<string, number>();
+    lancs.forEach((l) => {
+      if (l.valor >= 0) return;
+      const match = (l.observacao || "").match(/^(\d+\.\d+)/);
+      if (!match) return;
+      const codigo = match[1];
+      realizadoPorCodigo.set(codigo, (realizadoPorCodigo.get(codigo) || 0) + Math.abs(l.valor));
+    });
+
+    const produtos: ProdutoExecucao[] = ALIMENTA_PRODUTOS.map((p) => {
+      const realizado = realizadoPorCodigo.get(p.codigo) || 0;
+      return { ...p, realizado, percentual: p.orcamento > 0 ? (realizado / p.orcamento) * 100 : 0 };
+    });
+
+    const orc = produtos.reduce((s, p) => s + p.orcamento, 0);
+    const real = produtos.reduce((s, p) => s + p.realizado, 0);
+    this.alimentaTotais = { orcamento: orc, realizado: real, percentual: orc > 0 ? (real / orc) * 100 : 0 };
+
+    const grupos = new Map<string, MetaGrupo>();
+    produtos.forEach((p) => {
+      const [idRaw, tituloRaw] = p.meta.split("—");
+      const id = (idRaw || "").trim();
+      const titulo = (tituloRaw || "").trim();
+      if (!grupos.has(id)) {
+        grupos.set(id, { id, titulo, produtos: [], orcamento: 0, realizado: 0, percentual: 0, inicio: p.inicio, fim: p.fim, expandido: false });
+      }
+      const g = grupos.get(id)!;
+      g.produtos.push(p);
+      g.orcamento += p.orcamento;
+      g.realizado += p.realizado;
+    });
+
+    grupos.forEach((g) => {
+      g.percentual = g.orcamento > 0 ? (g.realizado / g.orcamento) * 100 : 0;
+      g.inicio = g.produtos.reduce((min, p) => parseMesAno(p.inicio) < parseMesAno(min) ? p.inicio : min, g.produtos[0].inicio);
+      g.fim = g.produtos.reduce((max, p) => parseMesAno(p.fim) > parseMesAno(max) ? p.fim : max, g.produtos[0].fim);
+    });
+
+    const expandidasAntes = new Set(this.metasAlimenta.filter((m) => m.expandido).map((m) => m.id));
+    this.metasAlimenta = Array.from(grupos.values()).map((g) => ({ ...g, expandido: expandidasAntes.has(g.id) }));
+
+    this.calcularCategorias(lancs);
+  }
+
+  private calcularCategorias(lancs: Lancamento[]): void {
+    const porCategoria = new Map<string, number>();
+    lancs.forEach((l) => {
+      if (l.valor >= 0) return;
+      const nome = (l.categoria || "").replace(/^\d+(\.\d+)*\s*/, "").trim();
+      if (!nome) return;
+      porCategoria.set(nome, (porCategoria.get(nome) || 0) + Math.abs(l.valor));
+    });
+
+    const sorted = Array.from(porCategoria.entries()).sort((a, b) => b[1] - a[1]);
+    const total = sorted.reduce((s, [, v]) => s + v, 0);
+    const palette = ["#10b981","#34d399","#0ea5e9","#6366f1","#8b5cf6","#f59e0b","#f97316","#ef4444","#ec4899","#14b8a6","#84cc16","#a855f7"];
+
+    this.categoriasAlimenta = sorted.map(([nome, valor], i) => ({
+      nome, valor, percentual: total > 0 ? (valor / total) * 100 : 0, cor: palette[i % palette.length],
+    }));
+    this.totalGastoAlimenta = total;
+
+    this.donutChartData = {
+      labels: this.categoriasAlimenta.map((c) => c.nome),
+      datasets: [{
+        data: this.categoriasAlimenta.map((c) => c.valor),
+        backgroundColor: this.categoriasAlimenta.map((c) => c.cor),
+        borderColor: "transparent",
+        borderWidth: 2,
+        hoverOffset: 8,
+      } as any],
+    };
   }
 
   private renderCharts(): void {
