@@ -18,6 +18,16 @@ const PROJETO_COLORS = [
   { bg: "rgba(20,184,166,0.18)",  border: "#14b8a6", text: "#5eead4" },
 ];
 
+interface DetalheProj {
+  projeto: string;
+  entradasMes: number;
+  saidasMes: number;
+  saldoAcumulado: number;
+  pctEntradas: number;
+  pctSaidas: number;
+  cor: string;
+}
+
 @Component({
   selector: "app-fluxo-caixa",
   standalone: true,
@@ -37,6 +47,16 @@ export class FluxoCaixaComponent implements OnInit {
   filtroProjetos: string[] = [];
   filtroMeses: string[] = [];
   filtrosAbertos = false;
+
+  tabelaAberta = false;
+  mesAnoSelecionado: string | null = null;
+  detalhesProjetos: DetalheProj[] = [];
+
+  get detalheTotalEntradas(): number { return this.detalhesProjetos.reduce((s, d) => s + d.entradasMes, 0); }
+  get detalheTotalSaidas(): number { return this.detalhesProjetos.reduce((s, d) => s + d.saidasMes, 0); }
+  get detalheSaldoAcumulado(): number {
+    return this.fluxo.find(f => f.mesAno === this.mesAnoSelecionado)?.saldoAcumulado ?? 0;
+  }
 
   get totalFiltrosAtivos(): number {
     return this.filtroAnos.length + this.filtroProjetos.length + this.filtroMeses.length;
@@ -174,6 +194,55 @@ export class FluxoCaixaComponent implements OnInit {
 
     this.renderizarGrafico();
   }
+
+  abrirDetalhe(mesAno: string): void {
+    const [mesStr, anoStr] = mesAno.split('/');
+    const cutoff = parseInt(anoStr) * 100 + parseInt(mesStr);
+
+    // Todos os lançamentos ATÉ o mês clicado (histórico acumulado)
+    const lancsAte = this.lancamentosOriginais.filter(l => {
+      if (!l.mesAno) return false;
+      if (this.filtroProjetos.length > 0 && !this.filtroProjetos.includes(l.projeto)) return false;
+      const [m, a] = l.mesAno.split('/');
+      return parseInt(a) * 100 + parseInt(m) <= cutoff;
+    });
+
+    const projMap = new Map<string, { entradasMes: number; saidasMes: number; totalEntradas: number; totalSaidas: number }>();
+    lancsAte.forEach(l => {
+      const key = l.projeto || 'Sem projeto';
+      if (!projMap.has(key)) projMap.set(key, { entradasMes: 0, saidasMes: 0, totalEntradas: 0, totalSaidas: 0 });
+      const m = projMap.get(key)!;
+      const isMes = l.mesAno === mesAno;
+      if (l.valor >= 0) {
+        m.totalEntradas += l.valor;
+        if (isMes) m.entradasMes += l.valor;
+      } else if (l.categoria !== '0.0.0 Recurso') {
+        m.totalSaidas += Math.abs(l.valor);
+        if (isMes) m.saidasMes += Math.abs(l.valor);
+      }
+    });
+
+    const maxE = Math.max(...Array.from(projMap.values()).map(d => d.entradasMes), 1);
+    const maxS = Math.max(...Array.from(projMap.values()).map(d => d.saidasMes), 1);
+    const palette = ['#6366f1','#10b981','#f59e0b','#ec4899','#06b6d4','#8b5cf6','#ef4444','#14b8a6','#f97316','#84cc16'];
+
+    this.detalhesProjetos = Array.from(projMap.entries())
+      .map(([projeto, d], i) => ({
+        projeto,
+        entradasMes: d.entradasMes,
+        saidasMes: d.saidasMes,
+        saldoAcumulado: d.totalEntradas - d.totalSaidas,
+        pctEntradas: (d.entradasMes / maxE) * 100,
+        pctSaidas: (d.saidasMes / maxS) * 100,
+        cor: palette[i % palette.length],
+      }))
+      .filter(d => d.entradasMes > 0 || d.saidasMes > 0)
+      .sort((a, b) => b.saldoAcumulado - a.saldoAcumulado);
+
+    this.mesAnoSelecionado = mesAno;
+  }
+
+  fecharDetalhe(): void { this.mesAnoSelecionado = null; }
 
   private renderizarGrafico(): void {
     this.chartReady = false;

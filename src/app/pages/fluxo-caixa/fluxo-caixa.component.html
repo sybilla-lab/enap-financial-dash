@@ -8,7 +8,7 @@
     </h1>
   </div>
 
-  <!-- KPIs primeiro -->
+  <!-- KPIs -->
   <div class="kpi-grid">
     <mat-card class="kpi-card card-indicator-green" appearance="outlined">
       <mat-card-content>
@@ -16,14 +16,12 @@
         <div class="kpi-value text-green">{{ totais.entradas | currency: "BRL":"symbol":"1.2-2" }}</div>
       </mat-card-content>
     </mat-card>
-
     <mat-card class="kpi-card card-indicator-red" appearance="outlined">
       <mat-card-content>
         <div class="kpi-label">Total Saídas</div>
         <div class="kpi-value text-red">{{ totais.saidas | currency: "BRL":"symbol":"1.2-2" }}</div>
       </mat-card-content>
     </mat-card>
-
     <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
       <mat-card-content>
         <div class="kpi-label">Saldo Atual</div>
@@ -32,9 +30,53 @@
     </mat-card>
   </div>
 
-  <!-- Gráfico com accordion de filtros acima -->
-  <mat-card class="chart-card" appearance="outlined">
+  <!-- ── Detalhamento Mensal (accordion, colapsado por padrão) ── -->
+  <mat-card class="table-card" appearance="outlined">
+    <button class="acc-toggle" (click)="tabelaAberta = !tabelaAberta">
+      <div class="acc-toggle-left">
+        <mat-icon>table_chart</mat-icon>
+        <span>Detalhamento Mensal</span>
+        <span class="acc-hint">clique numa linha para ver por projeto</span>
+      </div>
+      <mat-icon class="acc-chevron" [class.open]="tabelaAberta">expand_more</mat-icon>
+    </button>
 
+    <div class="acc-body" [class.open]="tabelaAberta">
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mês/Ano</th>
+              <th class="num">Entradas</th>
+              <th class="num">Saídas</th>
+              <th class="num">Resultado</th>
+              <th class="num">Saldo Acumulado</th>
+              <th class="num"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of fluxo; track f.mesAno) {
+              <tr class="row-clickable" (click)="abrirDetalhe(f.mesAno)">
+                <td><span class="mes-label">{{ f.mesAno }}</span></td>
+                <td class="num positive">{{ f.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                <td class="num negative">{{ f.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
+                <td class="num" [class.positive]="f.entradas - f.saidas >= 0" [class.negative]="f.entradas - f.saidas < 0">
+                  {{ f.entradas - f.saidas | currency: "BRL":"symbol":"1.2-2" }}
+                </td>
+                <td class="num" [class.positive]="f.saldoAcumulado >= 0" [class.negative]="f.saldoAcumulado < 0">
+                  {{ f.saldoAcumulado | currency: "BRL":"symbol":"1.2-2" }}
+                </td>
+                <td class="num"><mat-icon class="row-arrow">chevron_right</mat-icon></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- ── Gráfico ── -->
+  <mat-card class="chart-card" appearance="outlined">
     <!-- Accordion de filtros -->
     <div class="accordion" [class.open]="filtrosAbertos">
       <button class="accordion-header" (click)="filtrosAbertos = !filtrosAbertos">
@@ -57,36 +99,24 @@
 
       <div class="accordion-body">
         <div class="filters-inner">
-
-          <!-- Ano -->
           <div class="filter-group">
             <span class="filter-label">Ano</span>
             <div class="year-segment">
               @for (a of anos; track a) {
-                <button class="year-btn" [class.active]="filtroAnos.includes(a)" (click)="toggleAno(a)">
-                  {{ a }}
-                </button>
+                <button class="year-btn" [class.active]="filtroAnos.includes(a)" (click)="toggleAno(a)">{{ a }}</button>
               }
             </div>
           </div>
-
           <div class="filter-divider"></div>
-
-          <!-- Mês -->
           <div class="filter-group">
             <span class="filter-label">Mês</span>
             <div class="month-grid">
               @for (m of meses; track m.valor) {
-                <button class="month-btn" [class.active]="filtroMeses.includes(m.valor)" (click)="toggleMes(m.valor)">
-                  {{ m.abrev }}
-                </button>
+                <button class="month-btn" [class.active]="filtroMeses.includes(m.valor)" (click)="toggleMes(m.valor)">{{ m.abrev }}</button>
               }
             </div>
           </div>
-
           <div class="filter-divider"></div>
-
-          <!-- Projeto -->
           @if (projetos.length > 0) {
             <div class="filter-group filter-group--wide">
               <span class="filter-label">Projeto</span>
@@ -106,12 +136,10 @@
               </div>
             </div>
           }
-
         </div>
       </div>
     </div>
 
-    <!-- Gráfico -->
     <mat-card-header><mat-card-title>Entradas, Saídas e Saldo Acumulado</mat-card-title></mat-card-header>
     <mat-card-content>
       <div class="chart-wrapper">
@@ -122,39 +150,83 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Tabela -->
-  <mat-card class="table-card" appearance="outlined">
-    <mat-card-header><mat-card-title><mat-icon>table_chart</mat-icon> Detalhamento Mensal</mat-card-title></mat-card-header>
-    <mat-card-content>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Mês/Ano</th>
-              <th class="num">Entradas</th>
-              <th class="num">Saídas</th>
-              <th class="num">Resultado</th>
-              <th class="num">Saldo Acumulado</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (f of fluxo; track f.mesAno) {
-              <tr>
-                <td>{{ f.mesAno }}</td>
-                <td class="num positive">{{ f.entradas | currency: "BRL":"symbol":"1.2-2" }}</td>
-                <td class="num negative">{{ f.saidas | currency: "BRL":"symbol":"1.2-2" }}</td>
-                <td class="num" [class.positive]="f.entradas - f.saidas >= 0" [class.negative]="f.entradas - f.saidas < 0">
-                  {{ f.entradas - f.saidas | currency: "BRL":"symbol":"1.2-2" }}
-                </td>
-                <td class="num" [class.positive]="f.saldoAcumulado >= 0" [class.negative]="f.saldoAcumulado < 0">
-                  {{ f.saldoAcumulado | currency: "BRL":"symbol":"1.2-2" }}
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
 </div>
+
+<!-- ── Modal: Detalhamento por Projeto ── -->
+@if (mesAnoSelecionado) {
+  <div class="modal-overlay" (click)="fecharDetalhe()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-month-badge">
+            <mat-icon>calendar_month</mat-icon>
+          </div>
+          <div>
+            <h2 class="modal-title">{{ mesAnoSelecionado }}</h2>
+            <p class="modal-subtitle">Distribuição por projeto</p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="fecharDetalhe()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Totais do mês -->
+      <div class="modal-totais">
+        <div class="modal-total-item">
+          <span class="mt-label">Entradas no mês</span>
+          <span class="mt-value text-green">{{ detalheTotalEntradas | currency:'BRL':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="mt-sep"></div>
+        <div class="modal-total-item">
+          <span class="mt-label">Saídas no mês</span>
+          <span class="mt-value text-red">{{ detalheTotalSaidas | currency:'BRL':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="mt-sep"></div>
+        <div class="modal-total-item">
+          <span class="mt-label">Saldo Acumulado</span>
+          <span class="mt-value" [class.text-green]="detalheSaldoAcumulado >= 0" [class.text-red]="detalheSaldoAcumulado < 0">
+            {{ detalheSaldoAcumulado | currency:'BRL':'symbol':'1.2-2' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Lista de projetos -->
+      <div class="modal-proj-list">
+        @for (d of detalhesProjetos; track d.projeto) {
+          <div class="modal-proj-item">
+            <div class="proj-item-head">
+              <div class="proj-color-dot" [style.background]="d.cor"></div>
+              <span class="proj-name">{{ d.projeto }}</span>
+              <span class="proj-resultado" [class.text-green]="d.saldoAcumulado >= 0" [class.text-red]="d.saldoAcumulado < 0">
+                {{ d.saldoAcumulado >= 0 ? '+' : '' }}{{ d.saldoAcumulado | currency:'BRL':'symbol':'1.0-0' }}
+              </span>
+            </div>
+
+            @if (d.entradasMes > 0) {
+              <div class="proj-bar-row">
+                <span class="bar-label">Entradas</span>
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-in" [style.width.%]="d.pctEntradas" [style.background]="d.cor"></div>
+                </div>
+                <span class="bar-value text-green">{{ d.entradasMes | currency:'BRL':'symbol':'1.0-0' }}</span>
+              </div>
+            }
+
+            @if (d.saidasMes > 0) {
+              <div class="proj-bar-row">
+                <span class="bar-label">Saídas</span>
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-out" [style.width.%]="d.pctSaidas"></div>
+                </div>
+                <span class="bar-value text-red">{{ d.saidasMes | currency:'BRL':'symbol':'1.0-0' }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+  </div>
+}
