@@ -142,6 +142,7 @@
               <th class="num">Impostos</th>
               <th class="num">Líquido</th>
               <th class="num">Acumulado</th>
+              <th>Utilização</th>
               <th class="num"></th>
             </tr>
           </thead>
@@ -154,6 +155,7 @@
                   <td><div class="skeleton-box" style="width:80px;height:14px;border-radius:3px;margin-left:auto;"></div></td>
                   <td><div class="skeleton-box" style="width:80px;height:14px;border-radius:3px;margin-left:auto;"></div></td>
                   <td><div class="skeleton-box" style="width:100px;height:14px;border-radius:3px;margin-left:auto;"></div></td>
+                  <td><div class="skeleton-box" style="width:70px;height:14px;border-radius:3px;"></div></td>
                   <td></td>
                 </tr>
               }
@@ -162,12 +164,29 @@
                 <tr class="row-clickable" (click)="abrirDetalhe(m.mesAno)">
                   <td><span class="mes-label">{{ m.mesAno }}</span></td>
                   <td class="num positive">{{ m.bruto | currency:"BRL":"symbol":"1.2-2" }}</td>
-                  <td class="num negative">{{ m.imposto | currency:"BRL":"symbol":"1.2-2" }}</td>
+                  <td class="num" [class.negative]="m.imposto !== 0">{{ m.imposto | currency:"BRL":"symbol":"1.2-2" }}</td>
                   <td class="num" [class.positive]="m.liquido >= 0" [class.negative]="m.liquido < 0">
                     {{ m.liquido | currency:"BRL":"symbol":"1.2-2" }}
                   </td>
-                  <td class="num" [class.positive]="m.acumulado >= 0" [class.negative]="m.acumulado < 0">
-                    {{ m.acumulado | currency:"BRL":"symbol":"1.2-2" }}
+                  <td class="num cell-acumulado">
+                    <div class="acum-wrap">
+                      <span [class.positive]="m.acumulado >= 0" [class.negative]="m.acumulado < 0">
+                        {{ m.acumulado | currency:"BRL":"symbol":"1.2-2" }}
+                      </span>
+                      <div class="acum-bar-track">
+                        <div class="acum-bar-fill"
+                          [style.width.%]="pctAcumulado(m.acumulado)"
+                          [style.background]="m.acumulado >= 0 ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,#ef4444,#f87171)'">
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    @if (isUtilizado(m.mesAno)) {
+                      <span class="badge-used">utilizado</span>
+                    } @else {
+                      <span class="badge-disponivel">disponível</span>
+                    }
                   </td>
                   <td class="num"><mat-icon class="row-arrow">chevron_right</mat-icon></td>
                 </tr>

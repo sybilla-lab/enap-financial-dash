@@ -283,6 +283,28 @@
   white-space: nowrap;
 }
 
+// ─── Acumulado com mini-barra ─────────────────────────────────────────────────
+.cell-acumulado { min-width: 160px; }
+.acum-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.acum-bar-track { width: 80px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.acum-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+// ─── Badges de utilização ─────────────────────────────────────────────────────
+.badge-used {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+  background: rgba(249,115,22,0.13); color: #f97316; white-space: nowrap;
+  &::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #f97316; }
+}
+.badge-disponivel {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+  background: rgba(20,184,166,0.13); color: #14b8a6; white-space: nowrap;
+  &::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #14b8a6; }
+}
+
 .empty-msg { color: var(--text-secondary); font-size: 13px; text-align: center; padding: 16px 0; }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────

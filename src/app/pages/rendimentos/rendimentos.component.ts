@@ -7,6 +7,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
+import { Rendimento } from "../../models/lancamento.model";
 
 interface DetalheRend {
   projeto: string;
@@ -50,6 +51,17 @@ export class RendimentosComponent implements OnInit {
   tabelaAberta = false;
   mesAnoSelecionado: string | null = null;
   detalhesRend: DetalheRend[] = [];
+  utilizacaoPorMes = new Map<string, string>();
+
+  get maxAcumulado(): number {
+    return Math.max(...this.resumo.porMes.map(m => Math.abs(m.acumulado)), 1);
+  }
+  pctAcumulado(acumulado: number): number {
+    return (Math.abs(acumulado) / this.maxAcumulado) * 100;
+  }
+  isUtilizado(mesAno: string): boolean {
+    return (this.utilizacaoPorMes.get(mesAno) ?? '').toLowerCase().trim() === 'utilizado';
+  }
   // projeto → numeric mesAno do encerramento (ex: 202505 para 31/05/2025)
   private projetosEncerrados = new Map<string, number>();
 
@@ -107,6 +119,15 @@ export class RendimentosComponent implements OnInit {
 
     this.dataService.lancamentos$.subscribe((lancs) => {
       this.lancamentosOriginais = lancs;
+    });
+
+    this.dataService.getRendimentos().subscribe((rends: Rendimento[]) => {
+      this.utilizacaoPorMes.clear();
+      rends.forEach(r => {
+        if (r.valor > 0 && !this.utilizacaoPorMes.has(r.mesAno)) {
+          this.utilizacaoPorMes.set(r.mesAno, r.utilizacao);
+        }
+      });
     });
 
     this.dataService.getSaldos().subscribe(saldos => {
