@@ -52,9 +52,10 @@ export class RendimentosComponent implements OnInit {
   mesAnoSelecionado: string | null = null;
   detalhesRend: DetalheRend[] = [];
   utilizacaoPorMes = new Map<string, string>();
+  porMesCorrigido: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] = [];
 
   get maxAcumulado(): number {
-    return Math.max(...this.resumo.porMes.map(m => Math.abs(m.acumulado)), 1);
+    return Math.max(...this.porMesCorrigido.map(m => Math.abs(m.acumulado)), 1);
   }
   pctAcumulado(acumulado: number): number {
     return (Math.abs(acumulado) / this.maxAcumulado) * 100;
@@ -66,7 +67,7 @@ export class RendimentosComponent implements OnInit {
   private projetosEncerrados = new Map<string, number>();
 
   get detalheInfo() {
-    return this.resumo.porMes.find(m => m.mesAno === this.mesAnoSelecionado);
+    return this.porMesCorrigido.find(m => m.mesAno === this.mesAnoSelecionado);
   }
   get detalheBrutoMes(): number { return this.detalheInfo?.bruto ?? 0; }
   get detalheImpMes(): number { return this.detalheInfo?.imposto ?? 0; }
@@ -114,6 +115,7 @@ export class RendimentosComponent implements OnInit {
     this.dataService.getRendimentoResumo().subscribe((r) => {
       this.resumo = r;
       this.buildChart(r.porMes);
+      this.computarPorMesCorrigido();
       setTimeout(() => (this.isLoading = false), 1200);
     });
 
@@ -128,6 +130,7 @@ export class RendimentosComponent implements OnInit {
           this.utilizacaoPorMes.set(r.mesAno, r.utilizacao);
         }
       });
+      this.computarPorMesCorrigido();
     });
 
     this.dataService.getSaldos().subscribe(saldos => {
@@ -230,6 +233,21 @@ export class RendimentosComponent implements OnInit {
   }
 
   fecharDetalhe(): void { this.mesAnoSelecionado = null; }
+
+  private computarPorMesCorrigido(): void {
+    if (this.resumo.porMes.length === 0) return;
+    let acc = 0;
+    let resetado = false;
+    this.porMesCorrigido = this.resumo.porMes.map(m => {
+      const isDisponivel = (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
+      if (isDisponivel && !resetado) {
+        acc = 0;
+        resetado = true;
+      }
+      acc += m.liquido;
+      return { ...m, acumulado: acc };
+    });
+  }
 
   pctBarRend(valor: number): number {
     return (valor / this.maxRendAcum) * 100;

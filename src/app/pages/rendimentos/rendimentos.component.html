@@ -160,7 +160,7 @@
                 </tr>
               }
             } @else {
-              @for (m of resumo.porMes; track m.mesAno) {
+              @for (m of porMesCorrigido; track m.mesAno) {
                 <tr class="row-clickable" (click)="abrirDetalhe(m.mesAno)">
                   <td><span class="mes-label">{{ m.mesAno }}</span></td>
                   <td class="num positive">{{ m.bruto | currency:"BRL":"symbol":"1.2-2" }}</td>
