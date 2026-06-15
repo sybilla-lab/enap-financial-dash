@@ -50,6 +50,8 @@ export class RendimentosComponent implements OnInit {
   tabelaAberta = false;
   mesAnoSelecionado: string | null = null;
   detalhesRend: DetalheRend[] = [];
+  // projeto → numeric mesAno do encerramento (ex: 202505 para 31/05/2025)
+  private projetosEncerrados = new Map<string, number>();
 
   get detalheInfo() {
     return this.resumo.porMes.find(m => m.mesAno === this.mesAnoSelecionado);
@@ -106,6 +108,18 @@ export class RendimentosComponent implements OnInit {
     this.dataService.lancamentos$.subscribe((lancs) => {
       this.lancamentosOriginais = lancs;
     });
+
+    this.dataService.getSaldos().subscribe(saldos => {
+      this.projetosEncerrados.clear();
+      saldos.forEach(s => {
+        // data no formato "DD/MM/YYYY"
+        const parts = s.data.split('/');
+        if (parts.length === 3) {
+          const mc = parseInt(parts[2]) * 100 + parseInt(parts[1]);
+          this.projetosEncerrados.set(s.projeto, mc);
+        }
+      });
+    });
   }
 
   /**
@@ -146,6 +160,11 @@ export class RendimentosComponent implements OnInit {
         runningBalance.set(key, (runningBalance.get(key) ?? 0) + l.valor);
       }
 
+      // Zera projetos encerrados antes deste mês (saldo transferido para Operação Básica)
+      this.projetosEncerrados.forEach((closedMc, proj) => {
+        if (mc > closedMc) runningBalance.set(proj, 0);
+      });
+
       // Distribui o rendimento líquido do mês proporcionalmente aos saldos positivos
       const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
       if (totalPos > 0 && mes.liquido > 0) {
@@ -162,6 +181,9 @@ export class RendimentosComponent implements OnInit {
     this.lancamentosOriginais.forEach(l => {
       if (!l.mesAno || mesKey(l.mesAno) > cutoff) return;
       const key = l.projeto || 'Sem projeto';
+      // Ignora projetos encerrados antes do mês clicado
+      const closedMc = this.projetosEncerrados.get(key);
+      if (closedMc && cutoff > closedMc) return;
       saldoBase.set(key, (saldoBase.get(key) ?? 0) + l.valor);
     });
     const totalBase = Array.from(saldoBase.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
