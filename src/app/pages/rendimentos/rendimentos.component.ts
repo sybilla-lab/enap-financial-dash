@@ -158,14 +158,31 @@ export class RendimentosComponent implements OnInit {
   abrirDetalhe(mesAno: string): void {
     const cutoff = mesKey(mesAno);
 
+    // Determina se o mês clicado é "disponível" ou "utilizado"
+    const isClickedDisponivel = (this.utilizacaoPorMes.get(mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
+
+    // Encontra o primeiro mês "disponível" (ponto de reset do acumulado)
+    const allMonthsSorted = [...this.resumo.porMes].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
+    const firstDispMc = allMonthsSorted.reduce((acc, m) => {
+      const isDisp = (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
+      return isDisp && acc === Infinity ? mesKey(m.mesAno) : acc;
+    }, Infinity);
+
     // Ordena lancamentos cronologicamente uma vez
     const lancsSorted = [...this.lancamentosOriginais]
       .filter(l => l.mesAno)
       .sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
 
-    // Meses de rendimento até o mês clicado, em ordem
+    // Filtra os meses de rendimento pelo mesmo período que porMesCorrigido:
+    // - se clicado é "disponível": só meses a partir do primeiro disponível
+    // - se clicado é "utilizado": só meses "utilizado"
     const sortedMonths = this.resumo.porMes
-      .filter(m => mesKey(m.mesAno) <= cutoff)
+      .filter(m => {
+        const mc = mesKey(m.mesAno);
+        if (mc > cutoff) return false;
+        const isDisp = (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
+        return isClickedDisponivel ? mc >= firstDispMc : !isDisp;
+      })
       .sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
 
     // Saldo corrente por projeto (avança mês a mês)
