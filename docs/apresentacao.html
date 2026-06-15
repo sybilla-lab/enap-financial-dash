@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel de Gestão Financeira — ENAP</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:        #0f172a;
+    --bg2:       #1e293b;
+    --border:    rgba(255,255,255,0.08);
+    --text:      #f1f5f9;
+    --muted:     #94a3b8;
+    --green:     #10b981;
+    --green-dim: rgba(16,185,129,0.15);
+    --indigo:    #6366f1;
+    --indigo-dim:rgba(99,102,241,0.15);
+    --teal:      #06b6d4;
+    --orange:    #f59e0b;
+    --red:       #ef4444;
+  }
+
+  html, body { width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+
+  /* ── SLIDE ENGINE ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 64px 80px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    transform: translateX(40px);
+  }
+  .slide.active {
+    opacity: 1; pointer-events: all;
+    transform: translateX(0);
+  }
+  .slide.out {
+    opacity: 0; transform: translateX(-40px);
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--indigo), var(--green));
+    transition: width 0.4s ease; z-index: 100;
+  }
+
+  /* ── COUNTER ── */
+  #counter {
+    position: fixed; bottom: 24px; right: 32px;
+    font-size: 12px; color: var(--muted); letter-spacing: 1px;
+    z-index: 100;
+  }
+
+  /* ── NAV HINTS ── */
+  #nav-hint {
+    position: fixed; bottom: 24px; left: 32px;
+    font-size: 11px; color: rgba(148,163,184,0.4);
+    z-index: 100;
+  }
+
+  /* ── COMMON ELEMENTS ── */
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--indigo); margin-bottom: 16px;
+  }
+  .slide-title {
+    font-size: 42px; font-weight: 800; line-height: 1.15;
+    color: var(--text); margin-bottom: 12px;
+  }
+  .slide-title em { font-style: normal; color: var(--green); }
+  .slide-subtitle {
+    font-size: 18px; color: var(--muted); line-height: 1.6; max-width: 700px;
+  }
+  .divider {
+    width: 56px; height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--indigo), var(--green));
+    margin: 24px 0;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 32px;
+  }
+  .card-green  { border-left: 3px solid var(--green); }
+  .card-indigo { border-left: 3px solid var(--indigo); }
+  .card-teal   { border-left: 3px solid var(--teal); }
+  .card-orange { border-left: 3px solid var(--orange); }
+
+  /* ── KPI ── */
+  .kpi-grid { display: grid; gap: 20px; margin-top: 40px; }
+  .kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .kpi { text-align: center; padding: 32px 24px; }
+  .kpi-num {
+    font-size: 38px; font-weight: 800; font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .kpi-num.green  { color: var(--green); }
+  .kpi-num.indigo { color: var(--indigo); }
+  .kpi-num.teal   { color: var(--teal); }
+  .kpi-num.orange { color: var(--orange); }
+  .kpi-label { font-size: 13px; color: var(--muted); margin-top: 10px; font-weight: 500; }
+
+  /* ── TWO-COL ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 40px; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 40px; }
+
+  /* ── FEATURE ITEM ── */
+  .feat { display: flex; gap: 18px; align-items: flex-start; }
+  .feat-icon {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .feat-icon.green  { background: var(--green-dim); }
+  .feat-icon.indigo { background: var(--indigo-dim); }
+  .feat-icon.teal   { background: rgba(6,182,212,0.12); }
+  .feat-icon.orange { background: rgba(245,158,11,0.12); }
+  .feat-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .feat-desc  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* ── BULLET LIST ── */
+  .bullets { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+  .bullets li {
+    display: flex; align-items: flex-start; gap: 14px;
+    font-size: 16px; color: var(--muted); line-height: 1.5;
+  }
+  .bullets li::before {
+    content: '▸'; color: var(--green); font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+  .bullets li strong { color: var(--text); }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .badge-green  { background: var(--green-dim);  color: var(--green); }
+  .badge-indigo { background: var(--indigo-dim); color: var(--indigo); }
+  .badge-teal   { background: rgba(6,182,212,0.12); color: var(--teal); }
+
+  /* ── TAG ROW ── */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+  .tag {
+    padding: 6px 16px; border-radius: 24px;
+    border: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    background: var(--bg2);
+  }
+
+  /* ── FORMULA BOX ── */
+  .formula {
+    background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 12px; padding: 20px 28px;
+    font-family: 'Courier New', monospace; font-size: 15px; color: var(--indigo);
+    margin-top: 24px; line-height: 2;
+  }
+
+  /* ── TIMELINE ── */
+  .timeline { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+  .tl-item { display: flex; gap: 20px; padding-bottom: 28px; position: relative; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+    background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,0.2);
+  }
+  .tl-item::before {
+    content: ''; position: absolute; left: 6px; top: 18px;
+    width: 2px; height: calc(100% - 14px);
+    background: var(--border);
+  }
+  .tl-item:last-child::before { display: none; }
+  .tl-text { font-size: 15px; color: var(--muted); line-height: 1.6; }
+  .tl-text strong { color: var(--text); display: block; font-size: 16px; margin-bottom: 2px; }
+
+  /* ── COVER SPECIFIC ── */
+  #slide-1 { justify-content: center; gap: 0; }
+  .cover-logo {
+    width: 64px; height: 64px; border-radius: 18px;
+    background: linear-gradient(135deg, var(--indigo), var(--green));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; margin-bottom: 40px;
+  }
+  .cover-title {
+    font-size: 58px; font-weight: 900; line-height: 1.1;
+    margin-bottom: 20px;
+  }
+  .cover-title em { font-style: normal; color: var(--green); }
+  .cover-org { font-size: 16px; color: var(--muted); margin-top: 8px; }
+  .cover-tag-row { display: flex; gap: 12px; margin-top: 40px; }
+
+  /* ── END SPECIFIC ── */
+  #slide-8 { justify-content: center; align-items: center; text-align: center; }
+  .end-icon {
+    font-size: 56px; margin-bottom: 32px;
+    background: linear-gradient(135deg, var(--indigo), var(--green));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .end-url {
+    display: inline-block; margin-top: 24px;
+    padding: 12px 28px; border-radius: 32px;
+    background: var(--green-dim); border: 1px solid rgba(16,185,129,0.3);
+    font-size: 15px; font-weight: 600; color: var(--green);
+    letter-spacing: 0.5px;
+  }
+
+  /* ── STACKED BAR ── */
+  .sbar-wrap { margin-top: 28px; }
+  .sbar-track {
+    height: 14px; border-radius: 7px; overflow: hidden;
+    background: var(--bg2); display: flex; margin-bottom: 12px;
+  }
+  .sbar-seg-a { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+  .sbar-seg-b { background: linear-gradient(90deg, #10b981, #34d399); }
+  .sbar-seg-c { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
+  .sbar-seg-d { background: linear-gradient(90deg, #06b6d4, #67e8f9); }
+  .sbar-legend { display: flex; gap: 20px; flex-wrap: wrap; }
+  .sbar-leg-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .sbar-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="counter"></div>
+<div id="nav-hint">← → para navegar · F para tela cheia</div>
+
+<div class="deck">
+
+  <!-- ─────────────────────────────────────────────── SLIDE 1 — CAPA -->
+  <div class="slide active" id="slide-1">
+    <div class="cover-logo">📊</div>
+    <div class="eyebrow">Parceria ENAP · Sybilla Labs</div>
+    <div class="cover-title">Painel de <em>Gestão</em><br>Financeira</div>
+    <div class="slide-subtitle">Controle, transparência e visibilidade em tempo real<br>sobre os recursos da parceria.</div>
+    <div class="cover-tag-row">
+      <span class="badge badge-green">Tempo Real</span>
+      <span class="badge badge-indigo">Multi-Projeto</span>
+      <span class="badge badge-teal">Web · Sem Instalação</span>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── SLIDE 2 — CONTEXTO -->
+  <div class="slide" id="slide-2">
+    <div class="eyebrow">O desafio</div>
+    <div class="slide-title">Múltiplos projetos,<br><em>muitas informações</em></div>
+    <div class="divider"></div>
+
+    <div class="two-col" style="margin-top:32px;">
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <div class="card card-orange">
+          <div class="feat-title">Dispersão dos dados</div>
+          <div class="feat-desc">Planilhas descentralizadas dificultam a visão consolidada dos recursos de cada projeto.</div>
+        </div>
+        <div class="card card-orange">
+          <div class="feat-title">Múltiplos projetos simultâneos</div>
+          <div class="feat-desc">Alimenta +1000 Cidades, CAR DPG, Co.NE, Operação Básica e outros — cada um com seu próprio fluxo e status.</div>
+        </div>
+        <div class="card card-orange">
+          <div class="feat-title">Rendimentos sem atribuição</div>
+          <div class="feat-desc">Os rendimentos financeiros são gerados na conta global, sem discriminação por projeto nos extratos.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <div class="card card-green" style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px;">
+          <div>
+            <div class="kpi-num green">7+</div>
+            <div class="kpi-label">Projetos ativos e encerrados<br>na parceria</div>
+          </div>
+        </div>
+        <div class="card card-green" style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px;">
+          <div>
+            <div class="kpi-num green">2</div>
+            <div class="kpi-label">Períodos de aplicação<br>dos rendimentos (utilizado / disponível)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── SLIDE 3 — SOLUÇÃO -->
+  <div class="slide" id="slide-3">
+    <div class="eyebrow">A solução</div>
+    <div class="slide-title">Um painel único,<br><em>dados em tempo real</em></div>
+    <div class="divider"></div>
+
+    <div class="three-col" style="margin-top:28px;">
+      <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="feat">
+          <div class="feat-icon green">📊</div>
+          <div>
+            <div class="feat-title">Fonte única de verdade</div>
+            <div class="feat-desc">Os dados vêm diretamente das planilhas Google Sheets — a equipe edita onde já trabalha e o painel reflete instantaneamente.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="feat">
+          <div class="feat-icon indigo">🔗</div>
+          <div>
+            <div class="feat-title">Acesso por qualquer navegador</div>
+            <div class="feat-desc">Nenhuma instalação necessária. Acessível de qualquer dispositivo, de qualquer lugar, com o link da parceria.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="feat">
+          <div class="feat-icon teal">📁</div>
+          <div>
+            <div class="feat-title">Exportação em PDF</div>
+            <div class="feat-desc">Visão por projeto exportável em PDF para relatórios, prestações de contas e reuniões com parceiros.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-grid kpi-grid-4" style="margin-top:28px;">
+      <div class="card kpi">
+        <div class="kpi-num green">3</div>
+        <div class="kpi-label">Módulos principais</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-num indigo">100%</div>
+        <div class="kpi-label">Web · sem instalação</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-num teal">⚡</div>
+        <div class="kpi-label">Atualização em tempo real</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-num orange">PDF</div>
+        <div class="kpi-label">Exportação por projeto</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── SLIDE 4 — MÓDULOS -->
+  <div class="slide" id="slide-4">
+    <div class="eyebrow">Funcionalidades</div>
+    <div class="slide-title">Três módulos,<br><em>visão completa</em></div>
+    <div class="divider"></div>
+
+    <div class="three-col" style="margin-top:28px;align-items:stretch;">
+
+      <div class="card card-green" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="feat-icon green" style="width:48px;height:48px;font-size:22px;">💸</div>
+        <div class="feat-title" style="font-size:18px;">Fluxo de Caixa</div>
+        <ul class="bullets">
+          <li>Entradas e saídas por mês</li>
+          <li>Saldo acumulado histórico</li>
+          <li>Filtros por ano, mês e projeto</li>
+          <li><strong>Clique no mês → detalhamento por projeto</strong></li>
+        </ul>
+      </div>
+
+      <div class="card card-indigo" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="feat-icon indigo" style="width:48px;height:48px;font-size:22px;">📈</div>
+        <div class="feat-title" style="font-size:18px;">Rendimentos Financeiros</div>
+        <ul class="bullets">
+          <li>Rendimento bruto, IOF/IR e líquido</li>
+          <li>Histórico mês a mês</li>
+          <li>Composição: utilizado vs disponível</li>
+          <li><strong>Atribuição proporcional por projeto</strong></li>
+        </ul>
+      </div>
+
+      <div class="card card-teal" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="feat-icon teal" style="width:48px;height:48px;font-size:22px;">🔍</div>
+        <div class="feat-title" style="font-size:18px;">Visão por Projeto</div>
+        <ul class="bullets">
+          <li>KPIs de cada projeto individualmente</li>
+          <li>Execução financeira por metas e produtos</li>
+          <li>Categorias de gasto e fluxo mensal</li>
+          <li><strong>Rendimentos proporcionais do projeto</strong></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── SLIDE 5 — RENDIMENTOS -->
+  <div class="slide" id="slide-5">
+    <div class="eyebrow">Destaque técnico</div>
+    <div class="slide-title">Rendimentos<br><em>por projeto</em></div>
+    <div class="divider"></div>
+
+    <div class="two-col" style="margin-top:28px;">
+      <div>
+        <div class="slide-subtitle" style="font-size:15px;max-width:100%;">
+          Os extratos bancários registram rendimentos no nível da conta, sem discriminação por projeto.
+          O sistema calcula automaticamente a atribuição proporcional usando o <strong style="color:var(--text);">saldo corrente de cada projeto</strong> como base.
+        </div>
+
+        <div class="formula">
+          pct = saldo_projeto ÷ total_positivo_conta<br>
+          rendimento_atribuído = líquido_mês × pct
+        </div>
+
+        <ul class="bullets" style="margin-top:24px;">
+          <li><strong>Rendimento do último dia do mês</strong> → lançamentos do mês são incluídos</li>
+          <li><strong>Projetos encerrados</strong> saem da base após a transferência do saldo</li>
+          <li><strong>Reset de período</strong> na transição utilizado → disponível</li>
+        </ul>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-green" style="text-align:center;padding:28px;">
+          <div class="kpi-num green" style="font-size:32px;">75,3%</div>
+          <div class="kpi-label">Participação do Alimenta +1000 Cidades<br>em jan/2026</div>
+        </div>
+        <div class="card card-indigo" style="text-align:center;padding:28px;">
+          <div class="kpi-num indigo" style="font-size:32px;">+R$ 104.089</div>
+          <div class="kpi-label">Rendimento acumulado atribuído<br>ao projeto Alimenta (até jan/2026)</div>
+        </div>
+        <div class="card" style="padding:20px;">
+          <div class="feat-title" style="font-size:13px;color:var(--muted);margin-bottom:6px;">DISTRIBUIÇÃO EM JAN/2026 (R$ 73.848)</div>
+          <div class="sbar-track">
+            <div class="sbar-seg-a" style="width:75.3%"></div>
+            <div class="sbar-seg-b" style="width:13.9%"></div>
+            <div class="sbar-seg-c" style="width:5.0%"></div>
+            <div class="sbar-seg-d" style="width:5.8%"></div>
+          </div>
+          <div class="sbar-legend">
+            <div class="sbar-leg-item"><div class="sbar-dot" style="background:#6366f1"></div>Alimenta 75,3%</div>
+            <div class="sbar-leg-item"><div class="sbar-dot" style="background:#10b981"></div>CAR DPG 13,9%</div>
+            <div class="sbar-leg-item"><div class="sbar-dot" style="background:#f59e0b"></div>Co.NE 5,0%</div>
+            <div class="sbar-leg-item"><div class="sbar-dot" style="background:#06b6d4"></div>Outros 5,8%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── SLIDE 6 — ALIMENTA -->
+  <div class="slide" id="slide-6">
+    <div class="eyebrow">Destaque de projeto</div>
+    <div class="slide-title">Alimenta <em>+1000 Cidades</em></div>
+    <div class="divider"></div>
+
+    <div class="two-col" style="margin-top:28px;">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-green" style="padding:24px 28px;">
+          <div class="feat-title" style="margin-bottom:12px;">Execução por Metas e Produtos</div>
+          <ul class="bullets">
+            <li><strong>3 metas</strong>: Trilha de Implementação, Ciclo de Inovação Aberta, Reconhecendo as Conquistas</li>
+            <li><strong>11 produtos</strong> com orçamento e realizado individuais</li>
+            <li>Barra de progresso por produto e por meta</li>
+          </ul>
+        </div>
+        <div class="card card-indigo" style="padding:24px 28px;">
+          <div class="feat-title" style="margin-bottom:12px;">Orçamento Total do Projeto</div>
+          <div class="kpi-num indigo" style="font-size:34px;">R$ 4.724.313</div>
+          <div class="kpi-label" style="text-align:left;margin-top:8px;">Distribuídos entre 3 metas até mar/2027</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="padding:24px 28px;">
+          <div class="feat-title" style="margin-bottom:16px;">O que a Visão por Projeto mostra</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>KPIs financeiros</strong> Total recebido, executado, saldo, pagamentos</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Execução por produto</strong> % de cada entrega em relação ao orçamento</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Distribuição de gastos</strong> Donut chart por categoria</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Rendimentos proporcionais</strong> Mês a mês com acumulado</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── SLIDE 7 — TECNOLOGIA -->
+  <div class="slide" id="slide-7">
+    <div class="eyebrow">Arquitetura</div>
+    <div class="slide-title">Simples de manter,<br><em>seguro e escalável</em></div>
+    <div class="divider"></div>
+
+    <div class="two-col" style="margin-top:28px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="padding:24px 28px;">
+          <div class="feat-title" style="margin-bottom:14px;">Como funciona</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-dot" style="background:var(--green)"></div>
+              <div class="tl-text"><strong>Google Sheets</strong> Equipe edita as planilhas normalmente</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot" style="background:var(--indigo)"></div>
+              <div class="tl-text"><strong>API pública</strong> Painel lê os dados em tempo real via JSON</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot" style="background:var(--teal)"></div>
+              <div class="tl-text"><strong>Angular 18</strong> Interface moderna, responsiva e sem instalação</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot" style="background:var(--orange)"></div>
+              <div class="tl-text"><strong>AWS + Route53</strong> Hospedagem com domínio próprio da parceria</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card card-green">
+          <div class="feat-title" style="margin-bottom:8px;">✅ Vantagens do modelo</div>
+          <ul class="bullets">
+            <li><strong>Zero custo adicional</strong> de infraestrutura de dados</li>
+            <li><strong>Sem migração</strong> — equipe mantém o fluxo atual de planilhas</li>
+            <li><strong>Atualização automática</strong> — salvar a planilha reflete no painel</li>
+            <li><strong>Escalável</strong> para novos projetos e módulos</li>
+          </ul>
+        </div>
+
+        <div class="tag-row">
+          <span class="tag">Angular 18</span>
+          <span class="tag">TypeScript</span>
+          <span class="tag">Google Sheets API</span>
+          <span class="tag">Chart.js</span>
+          <span class="tag">AWS S3 + CloudFront</span>
+          <span class="tag">Route53</span>
+          <span class="tag">GitHub</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── SLIDE 8 — ENCERRAMENTO -->
+  <div class="slide" id="slide-8">
+    <div class="end-icon">📊</div>
+    <div class="eyebrow">Acesse agora</div>
+    <div class="slide-title" style="font-size:48px;margin-bottom:12px;">Transparência e controle<br><em>em um só lugar</em></div>
+    <div class="slide-subtitle" style="text-align:center;max-width:560px;">
+      Painel de Gestão Financeira da Parceria ENAP<br>disponível em tempo real, em qualquer navegador.
+    </div>
+    <div class="end-url">ih-enap.sybillalabs.com.br</div>
+
+    <div class="kpi-grid kpi-grid-3" style="margin-top:48px;max-width:640px;">
+      <div class="card kpi">
+        <div class="kpi-num green" style="font-size:28px;">3</div>
+        <div class="kpi-label">Módulos</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-num indigo" style="font-size:28px;">7+</div>
+        <div class="kpi-label">Projetos</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-num teal" style="font-size:28px;">100%</div>
+        <div class="kpi-label">Web</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.deck -->
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+
+  const bar = document.getElementById('progress-bar');
+  const counter = document.getElementById('counter');
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('out');
+    setTimeout(() => slides[current].classList.remove('out'), 400);
+    current = n;
+    slides[current].classList.add('active');
+    bar.style.width = ((current + 1) / total * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + total;
+  }
+
+  goTo(0);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ')  { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'f' || e.key === 'F') { document.documentElement.requestFullscreen?.(); }
+    if (e.key === 'Escape') { document.exitFullscreen?.(); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End')  goTo(total - 1);
+  });
+
+  // Touch / swipe
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) goTo(dx < 0 ? current + 1 : current - 1);
+  });
+</script>
+</body>
+</html>
