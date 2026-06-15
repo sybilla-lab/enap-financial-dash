@@ -138,8 +138,9 @@ export class RendimentosComponent implements OnInit {
     for (const mes of sortedMonths) {
       const mc = mesKey(mes.mesAno);
 
-      // Incorpora todos os lançamentos de meses ANTERIORES a este mês de rendimento
-      while (lIdx < lancsSorted.length && mesKey(lancsSorted[lIdx].mesAno) < mc) {
+      // Incorpora todos os lançamentos até o final deste mês de rendimento
+      // (inclui o próprio mês pois o rendimento é apurado no último dia do mês)
+      while (lIdx < lancsSorted.length && mesKey(lancsSorted[lIdx].mesAno) <= mc) {
         const l = lancsSorted[lIdx++];
         const key = l.projeto || 'Sem projeto';
         runningBalance.set(key, (runningBalance.get(key) ?? 0) + l.valor);
@@ -159,7 +160,7 @@ export class RendimentosComponent implements OnInit {
     // Saldo de cada projeto ao início do mês clicado (para exibir % de participação atual)
     const saldoBase = new Map<string, number>();
     this.lancamentosOriginais.forEach(l => {
-      if (!l.mesAno || mesKey(l.mesAno) >= cutoff) return;
+      if (!l.mesAno || mesKey(l.mesAno) > cutoff) return;
       const key = l.projeto || 'Sem projeto';
       saldoBase.set(key, (saldoBase.get(key) ?? 0) + l.valor);
     });
