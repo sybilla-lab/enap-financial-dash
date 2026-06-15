@@ -202,7 +202,7 @@ export class RendimentosComponent implements OnInit {
           cor: PALETTE[i % PALETTE.length],
         };
       })
-      .filter(d => d.rendimentoAcumulado > 0.01 && d.pctParticipacao > 0)
+      .filter(d => d.rendimentoAcumulado > 0.01 && d.pctParticipacao > 0.01)
       .sort((a, b) => b.rendimentoAcumulado - a.rendimentoAcumulado);
 
     this.mesAnoSelecionado = mesAno;
