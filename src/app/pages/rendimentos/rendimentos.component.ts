@@ -187,7 +187,7 @@ export class RendimentosComponent implements OnInit {
       saldoBase.set(key, (saldoBase.get(key) ?? 0) + l.valor);
     });
     const totalBase = Array.from(saldoBase.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
-    const mesLiquido = this.detalheInfo?.liquido ?? 0;
+    const mesLiquido = this.resumo.porMes.find(m => m.mesAno === mesAno)?.liquido ?? 0;
 
     this.detalhesRend = Array.from(projRendAcum.keys())
       .map((projeto, i) => {
