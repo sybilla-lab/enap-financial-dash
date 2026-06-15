@@ -9,7 +9,7 @@ import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { ActivatedRoute } from "@angular/router";
 import { Subject, combineLatest, takeUntil } from "rxjs";
 import { DataService } from "../../services/data.service";
-import { Lancamento, StatusProjeto, ProjetoResumo } from "../../models/lancamento.model";
+import { Lancamento, StatusProjeto, ProjetoResumo, Rendimento, SaldoRemanescente } from "../../models/lancamento.model";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 
@@ -36,6 +36,9 @@ function parseMesAno(s: string): number {
   const [m, a] = (s || "").split("/");
   return parseInt(a || "0") * 100 + (MES_NUM[(m || "").toUpperCase()] || 0);
 }
+
+// For MM/YYYY numeric key (rendimentos format)
+const mesKeyNum = (s: string) => { const [m, y] = s.split('/'); return parseInt(y) * 100 + parseInt(m); };
 
 const ALIMENTA_PRODUTOS: ProdutoAlimenta[] = [
   { codigo: "1.1", nome: "Configuração da plataforma", meta: "META 1 — Trilha de Implementação", orcamento: 106056.80, inicio: "NOV/2025", fim: "FEV/2026" },
@@ -83,6 +86,14 @@ interface TransacaoRecente {
   fornecedor: string;
   observacao: string;
   valor: number;
+}
+
+interface RendAtribuido {
+  mesAno: string;
+  pctParticipacao: number;
+  rendimentoMes: number;
+  rendimentoAcumulado: number;
+  saldoProjeto: number;
 }
 
 @Component({
@@ -172,6 +183,14 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
   chartSections = ['categorias', 'fluxo', 'balanco'];
   exportingPDF = false;
+
+  // Rendimentos proporcionais
+  private rendResumoData: { porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] } | null = null;
+  private rendUtilizacaoPorMes = new Map<string, string>();
+  private rendProjetosEncerrados = new Map<string, number>();
+  rendimentosAtribuidos: RendAtribuido[] = [];
+  totalRendimentoAtribuido = 0;
+  rendAccAberto = false;
 
   chartCategoriasReady = false;
   chartFluxoReady = false;
@@ -331,6 +350,34 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         // Always re-process so the view reflects the latest data on every emission
         this.processData();
       });
+
+    // Rendimentos proporcionais — subscriptions independentes do combineLatest
+    this.dataService.getRendimentoResumo().subscribe(r => {
+      this.rendResumoData = r;
+      this.computarRendimentosAtribuidos();
+    });
+
+    this.dataService.getRendimentos().subscribe((rends: Rendimento[]) => {
+      this.rendUtilizacaoPorMes.clear();
+      rends.forEach(r => {
+        if (r.valor > 0 && !this.rendUtilizacaoPorMes.has(r.mesAno)) {
+          this.rendUtilizacaoPorMes.set(r.mesAno, r.utilizacao);
+        }
+      });
+      this.computarRendimentosAtribuidos();
+    });
+
+    this.dataService.getSaldos().subscribe((saldos: SaldoRemanescente[]) => {
+      this.rendProjetosEncerrados.clear();
+      saldos.forEach(s => {
+        const parts = s.data.split('/');
+        if (parts.length === 3) {
+          const mc = parseInt(parts[2]) * 100 + parseInt(parts[1]);
+          this.rendProjetosEncerrados.set(s.projeto, mc);
+        }
+      });
+      this.computarRendimentosAtribuidos();
+    });
   }
 
   ngOnDestroy(): void {
@@ -570,6 +617,72 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       this.totalGastoAlimenta = 0;
       this.donutChartData = { labels: [], datasets: [] };
     }
+
+    this.computarRendimentosAtribuidos();
+  }
+
+  private computarRendimentosAtribuidos(): void {
+    const proj = this.projetoSelecionado;
+    if (!proj || !this.rendResumoData || this.rendResumoData.porMes.length === 0 || this.allLancamentos.length === 0) {
+      this.rendimentosAtribuidos = [];
+      this.totalRendimentoAtribuido = 0;
+      return;
+    }
+
+    const closedMc = this.rendProjetosEncerrados.get(proj);
+
+    const lancsSorted = [...this.allLancamentos]
+      .filter(l => l.mesAno)
+      .sort((a, b) => mesKeyNum(a.mesAno) - mesKeyNum(b.mesAno));
+
+    const allMonthsSorted = [...this.rendResumoData.porMes]
+      .sort((a, b) => mesKeyNum(a.mesAno) - mesKeyNum(b.mesAno));
+
+    const runningBalance = new Map<string, number>();
+    let lIdx = 0;
+    let accumProject = 0;
+    let resetado = false;
+    const result: RendAtribuido[] = [];
+
+    for (const mes of allMonthsSorted) {
+      const mc = mesKeyNum(mes.mesAno);
+      if (closedMc && mc > closedMc) break;
+
+      // Include lancamentos up to and including this month
+      // (rendimento is apurado on last day of the month)
+      while (lIdx < lancsSorted.length && mesKeyNum(lancsSorted[lIdx].mesAno) <= mc) {
+        const l = lancsSorted[lIdx++];
+        const key = l.projeto || 'Sem projeto';
+        runningBalance.set(key, (runningBalance.get(key) ?? 0) + l.valor);
+      }
+
+      // Zero out projects that closed before this month
+      this.rendProjetosEncerrados.forEach((cMc, p) => {
+        if (mc > cMc) runningBalance.set(p, 0);
+      });
+
+      const saldoProjeto = runningBalance.get(proj) ?? 0;
+      if (saldoProjeto <= 0 || mes.liquido <= 0) continue;
+
+      const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+      if (totalPos <= 0) continue;
+
+      const pct = saldoProjeto / totalPos;
+      const rendimentoMes = mes.liquido * pct;
+
+      // Reset accumulation at first "disponível" period boundary
+      const isDisponivel = (this.rendUtilizacaoPorMes.get(mes.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
+      if (isDisponivel && !resetado) {
+        accumProject = 0;
+        resetado = true;
+      }
+      accumProject += rendimentoMes;
+
+      result.push({ mesAno: mes.mesAno, pctParticipacao: pct * 100, rendimentoMes, rendimentoAcumulado: accumProject, saldoProjeto });
+    }
+
+    this.rendimentosAtribuidos = result;
+    this.totalRendimentoAtribuido = result.reduce((s, r) => s + r.rendimentoMes, 0);
   }
 
   toggleMeta(meta: MetaGrupo): void { meta.expandido = !meta.expandido; }

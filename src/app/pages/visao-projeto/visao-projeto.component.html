@@ -264,6 +264,63 @@
 
     }
 
+    <!-- ── RENDIMENTOS PROPORCIONAIS ── -->
+    @if (rendimentosAtribuidos.length > 0) {
+      <mat-card class="vp-rend-card" appearance="outlined">
+        <button class="vp-rend-toggle" (click)="rendAccAberto = !rendAccAberto">
+          <div class="vp-rend-toggle-left">
+            <mat-icon>savings</mat-icon>
+            <span>Rendimentos Proporcionais Atribuídos</span>
+            <span class="vp-acc-pill vp-pill-info">exclusivamente informativo</span>
+          </div>
+          <div class="vp-rend-toggle-right">
+            <span class="vp-rend-total">+{{ totalRendimentoAtribuido | currency:'BRL':'symbol':'1.0-0' }}</span>
+            <mat-icon class="vp-rend-chevron" [class.open]="rendAccAberto">expand_more</mat-icon>
+          </div>
+        </button>
+
+        <div class="vp-rend-body" [class.open]="rendAccAberto">
+          <div class="vp-rend-inner">
+            <div class="vp-rend-nota">
+              <mat-icon>info_outline</mat-icon>
+              <span>Cálculo <strong>exclusivamente informativo</strong> — proporcional ao saldo do projeto no início de cada mês em relação ao total positivo da conta. Não altera a classificação contábil histórica dos rendimentos.</span>
+            </div>
+            <div class="vp-rend-table-wrap">
+              <table class="vp-rend-table">
+                <thead>
+                  <tr>
+                    <th>Mês/Ano</th>
+                    <th class="num">% Participação</th>
+                    <th class="num">Saldo na Conta</th>
+                    <th class="num">Rendimento do Mês</th>
+                    <th class="num">Acumulado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of rendimentosAtribuidos; track r.mesAno) {
+                    <tr>
+                      <td><span class="mes-label">{{ r.mesAno }}</span></td>
+                      <td class="num">
+                        <div class="vp-pct-row">
+                          <div class="vp-pct-bar-track">
+                            <div class="vp-pct-bar-fill" [style.width.%]="r.pctParticipacao"></div>
+                          </div>
+                          <span class="vp-pct-label">{{ r.pctParticipacao | number:'1.1-1' }}%</span>
+                        </div>
+                      </td>
+                      <td class="num positive">{{ r.saldoProjeto | currency:'BRL':'symbol':'1.0-0' }}</td>
+                      <td class="num text-green">+{{ r.rendimentoMes | currency:'BRL':'symbol':'1.0-0' }}</td>
+                      <td class="num text-green">+{{ r.rendimentoAcumulado | currency:'BRL':'symbol':'1.0-0' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    }
+
     <!-- CHARTS STACK — reorderable via drag-and-drop -->
     <div class="vp-charts-stack" cdkDropList (cdkDropListDropped)="dropChart($event)">
 
