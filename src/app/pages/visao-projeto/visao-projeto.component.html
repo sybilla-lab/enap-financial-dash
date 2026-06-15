@@ -271,7 +271,6 @@
           <div class="vp-rend-toggle-left">
             <mat-icon>savings</mat-icon>
             <span>Rendimentos Proporcionais Atribuídos</span>
-            <span class="vp-acc-pill vp-pill-info">exclusivamente informativo</span>
           </div>
           <div class="vp-rend-toggle-right">
             <span class="vp-rend-total">+{{ totalRendimentoAtribuido | currency:'BRL':'symbol':'1.0-0' }}</span>
@@ -281,10 +280,6 @@
 
         <div class="vp-rend-body" [class.open]="rendAccAberto">
           <div class="vp-rend-inner">
-            <div class="vp-rend-nota">
-              <mat-icon>info_outline</mat-icon>
-              <span>Cálculo <strong>exclusivamente informativo</strong> — proporcional ao saldo do projeto no início de cada mês em relação ao total positivo da conta. Não altera a classificação contábil histórica dos rendimentos.</span>
-            </div>
             <div class="vp-rend-table-wrap">
               <table class="vp-rend-table">
                 <thead>
