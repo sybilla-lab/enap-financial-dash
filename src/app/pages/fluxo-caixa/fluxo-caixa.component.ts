@@ -5,7 +5,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
-import { FluxoMensal } from "../../models/lancamento.model";
+import { FluxoMensal, ProjetoResumo } from "../../models/lancamento.model";
 
 const PROJETO_COLORS = [
   { bg: "rgba(99,102,241,0.18)",  border: "#6366f1", text: "#a5b4fc" },
@@ -42,6 +42,7 @@ export class FluxoCaixaComponent implements OnInit {
   anos: string[] = [];
   chartReady = false;
   totais = { entradas: 0, saidas: 0, saldoAtual: 0 };
+  private srOutrosProjetos = 0;
 
   filtroAnos: string[] = [];
   filtroProjetos: string[] = [];
@@ -110,6 +111,13 @@ export class FluxoCaixaComponent implements OnInit {
     this.dataService.lancamentos$.subscribe((lancs) => {
       this.lancamentosOriginais = lancs;
       this.anos = [...new Set(lancs.map(l => l.mesAno?.split("/")[1]).filter(Boolean))].sort();
+      this.aplicarFiltros();
+    });
+
+    this.dataService.getProjetoResumos().subscribe((resumos: ProjetoResumo[]) => {
+      this.srOutrosProjetos = resumos
+        .filter(r => r.projeto !== "Operação Básica")
+        .reduce((acc, r) => acc + (r.saldoRemanescente || 0), 0);
       this.aplicarFiltros();
     });
 
@@ -186,10 +194,13 @@ export class FluxoCaixaComponent implements OnInit {
       return { mesAno, entradas: data.entradas, saidas: data.saidas, saldoAcumulado: acumulado };
     });
 
+    const saldoAtualBruto = this.fluxo[this.fluxo.length - 1]?.saldoAcumulado || 0;
+    const apenasOpBasica = this.filtroProjetos.length === 1 && this.filtroProjetos[0] === "Operação Básica";
+
     this.totais = {
       entradas: this.fluxo.reduce((acc, curr) => acc + curr.entradas, 0),
       saidas: this.fluxo.reduce((acc, curr) => acc + curr.saidas, 0),
-      saldoAtual: this.fluxo[this.fluxo.length - 1]?.saldoAcumulado || 0,
+      saldoAtual: apenasOpBasica ? saldoAtualBruto + this.srOutrosProjetos : saldoAtualBruto,
     };
 
     this.renderizarGrafico();
