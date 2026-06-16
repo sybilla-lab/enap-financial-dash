@@ -185,7 +185,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   exportingPDF = false;
 
   // Rendimentos proporcionais
-  private rendResumoData: { porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] } | null = null;
+  private rendResumoData: { totalUtilizado: number; porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] } | null = null;
   private rendUtilizacaoPorMes = new Map<string, string>();
   private rendProjetosEncerrados = new Map<string, number>();
   rendimentosAtribuidos: RendAtribuido[] = [];
@@ -354,7 +354,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     // Rendimentos proporcionais — subscriptions independentes do combineLatest
     this.dataService.getRendimentoResumo().subscribe(r => {
       this.rendResumoData = r;
-      this.computarRendimentosAtribuidos();
+      this.processData();
     });
 
     this.dataService.getRendimentos().subscribe((rends: Rendimento[]) => {
@@ -540,11 +540,22 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       ? Array.from(this.resumosMap.values()).reduce((s, r) => s + (r.saldoRemanescente || 0), 0)
       : (this.resumosMap.get(this.projetoSelecionado!)?.saldoRemanescente || 0);
 
+    // Para Operação Básica: o saldo dos lançamentos já inclui os rendimentos utilizados
+    // (ainda na aba principal). Adiciona apenas o saldo remanescente dos outros projetos
+    // que foi formalmente transferido para Op. Básica.
+    let saldo = entradas - saidas;
+    if (!isTodos && this.projetoSelecionado === "Operação Básica") {
+      const srOutrosProjetos = Array.from(this.resumosMap.values())
+        .filter(r => r.projeto !== "Operação Básica")
+        .reduce((acc, r) => acc + (r.saldoRemanescente || 0), 0);
+      saldo += srOutrosProjetos;
+    }
+
     this.snapshot = {
       projeto: isTodos ? `Todos os ${this.projetos.length} projetos` : this.projetoSelecionado!,
       entradas,
       saidas,
-      saldo: entradas - saidas,
+      saldo,
       saldoRemanescente,
       execucao: entradas > 0 ? (saidas / entradas) * 100 : 0,
       numPagamentos: despesas.length,

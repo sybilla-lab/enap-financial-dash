@@ -81,7 +81,13 @@ export class DataService {
       const categoria = (row[8] || "").trim();
       const observacao = (row[9] || "").trim();
       const projeto = (row[10] || "").trim();
-      const mesAno = (row[11] || "").trim();
+      let mesAno = (row[11] || "").trim();
+      // Column 11 is a formula in Sheets that can produce errors (#VALOR!) → empty in CSV export.
+      // Fall back to deriving MM/YYYY from the raw date column (col 2, format DD/MM/YYYY).
+      if (!mesAno || !mesAno.includes('/') || mesAno.startsWith('#')) {
+        const parts = (row[2] || "").trim().split('/');
+        if (parts.length === 3) mesAno = `${parts[1]}/${parts[2]}`;
+      }
       const valorStr = (row[12] || row[4] || "").trim(); // Tenta coluna 12, se não, usa a 4
       const valor = this.parseValor(valorStr);
 
