@@ -509,14 +509,22 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       ? this.allLancamentos
       : this.allLancamentos.filter((l) => l.projeto === this.projetoSelecionado);
 
-    // Aplicar filtros de data
-    if (this.filtroAnos.length > 0) {
+    // Aplicar filtros de data (acumulativo: anos anteriores ao último mostram todos os meses)
+    if (this.filtroAnos.length > 0 && this.filtroMeses.length > 0) {
+      const maxAno = [...this.filtroAnos].sort().at(-1)!;
+      filtered = filtered.filter((l) => {
+        const parts = l.mesAno?.split("/");
+        if (!parts || parts.length !== 2) return false;
+        const [mes, ano] = parts;
+        if (!this.filtroAnos.includes(ano)) return false;
+        return ano < maxAno || this.filtroMeses.includes(mes);
+      });
+    } else if (this.filtroAnos.length > 0) {
       filtered = filtered.filter((l) => {
         const ano = l.mesAno?.split("/")[1];
         return ano && this.filtroAnos.includes(ano);
       });
-    }
-    if (this.filtroMeses.length > 0) {
+    } else if (this.filtroMeses.length > 0) {
       filtered = filtered.filter((l) => {
         const mes = l.mesAno?.split("/")[0];
         return mes && this.filtroMeses.includes(mes);

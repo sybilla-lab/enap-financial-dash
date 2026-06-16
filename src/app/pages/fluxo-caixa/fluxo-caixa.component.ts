@@ -155,22 +155,30 @@ export class FluxoCaixaComponent implements OnInit {
   aplicarFiltros(): void {
     let filtrados = this.lancamentosOriginais;
 
-    if (this.filtroAnos.length > 0) {
+    // Filtro de data acumulativo: anos anteriores ao último mostram todos os meses
+    if (this.filtroAnos.length > 0 && this.filtroMeses.length > 0) {
+      const maxAno = [...this.filtroAnos].sort().at(-1)!;
+      filtrados = filtrados.filter(l => {
+        const parts = l.mesAno?.split("/");
+        if (!parts || parts.length !== 2) return false;
+        const [mes, ano] = parts;
+        if (!this.filtroAnos.includes(ano)) return false;
+        return ano < maxAno || this.filtroMeses.includes(mes);
+      });
+    } else if (this.filtroAnos.length > 0) {
       filtrados = filtrados.filter(l => {
         const ano = l.mesAno?.split("/")[1];
         return this.filtroAnos.includes(ano);
+      });
+    } else if (this.filtroMeses.length > 0) {
+      filtrados = filtrados.filter(l => {
+        const mes = l.mesAno?.split("/")[0];
+        return this.filtroMeses.includes(mes);
       });
     }
 
     if (this.filtroProjetos.length > 0) {
       filtrados = filtrados.filter(l => this.filtroProjetos.includes(l.projeto));
-    }
-
-    if (this.filtroMeses.length > 0) {
-      filtrados = filtrados.filter(l => {
-        const mes = l.mesAno?.split("/")[0];
-        return this.filtroMeses.includes(mes);
-      });
     }
 
     const porMes = new Map<string, { entradas: number; saidas: number }>();
