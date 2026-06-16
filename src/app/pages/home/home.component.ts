@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
-import { CommonModule, CurrencyPipe } from "@angular/common";
+import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { MatIconModule } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
@@ -43,20 +43,18 @@ export class HomeComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
 
     this.sub = combineLatest({
-      recurso: this.data.getRecursoDetalhado(),
+      indicadores: this.data.getIndicadoresOperacionais(),
       projetos: this.data.getProjetoResumos(),
-    }).subscribe(({ recurso, projetos }) => {
-      this.totalRecebido = recurso.totalRecebido;
+    }).subscribe(({ indicadores, projetos }) => {
+      this.totalRecebido = indicadores.totalRecebido;
       this.metaTotal = this.data.META_TOTAL;
       this.percentualRecebido = this.metaTotal
         ? Math.min(100, Math.round((this.totalRecebido / this.metaTotal) * 100))
         : 0;
 
-      this.totalExecutado = projetos.reduce((sum, p) => sum + p.saidas, 0);
-      this.saldoDisponivel = this.totalRecebido - this.totalExecutado;
-      this.percentualExecucao = this.totalRecebido > 0
-        ? Math.min(100, Math.round((this.totalExecutado / this.totalRecebido) * 100))
-        : 0;
+      this.totalExecutado = indicadores.totalExecutado;
+      this.saldoDisponivel = indicadores.saldoDisponivel;
+      this.percentualExecucao = Math.min(100, Math.round(indicadores.percentualExecucao));
 
       this.projetosTotais = projetos.length;
       this.projetosAtivos = projetos.filter(
