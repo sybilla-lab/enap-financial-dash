@@ -373,7 +373,7 @@
                     </div>
                   } @else {
                     <!-- Bar chart para demais projetos -->
-                    <div class="vp-cat-chart-wrap">
+                    <div class="vp-cat-chart-wrap" [style.height.px]="catChartHeight">
                       @if (chartCategoriasReady) {
                         <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
                       }

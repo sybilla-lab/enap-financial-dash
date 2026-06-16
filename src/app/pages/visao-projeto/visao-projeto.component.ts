@@ -188,6 +188,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   private rendResumoData: { totalUtilizado: number; porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] } | null = null;
   private rendUtilizacaoPorMes = new Map<string, string>();
   private rendProjetosEncerrados = new Map<string, number>();
+  private srOpBasicaEvents: { mc: number; valor: number }[] = [];
   rendimentosAtribuidos: RendAtribuido[] = [];
   totalRendimentoAtribuido = 0;
   rendAccAberto = false;
@@ -244,6 +245,10 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     return Math.min(640, Math.max(160, count * 46));
   }
 
+  get catChartHeight(): number {
+    return Math.max(320, this.categorias.length * 28);
+  }
+
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barChartOptions: ChartConfiguration<"bar">["options"] = {
     responsive: true,
@@ -280,7 +285,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     layout: { padding: { right: 60 } },
     scales: {
       x: { ticks: { color: "#64748b" }, grid: { color: "rgba(255,255,255,0.04)" } },
-      y: { ticks: { color: "#94a3b8", font: { size: 11 } }, grid: { display: false } },
+      y: { ticks: { color: "#94a3b8", font: { size: 11 }, autoSkip: false } as any, grid: { display: false } },
     },
   };
 
@@ -369,13 +374,16 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
     this.dataService.getSaldos().subscribe((saldos: SaldoRemanescente[]) => {
       this.rendProjetosEncerrados.clear();
+      this.srOpBasicaEvents = [];
       saldos.forEach(s => {
         const parts = s.data.split('/');
         if (parts.length === 3) {
           const mc = parseInt(parts[2]) * 100 + parseInt(parts[1]);
           this.rendProjetosEncerrados.set(s.projeto, mc);
+          this.srOpBasicaEvents.push({ mc, valor: s.valorTransferido });
         }
       });
+      this.srOpBasicaEvents.sort((a, b) => a.mc - b.mc);
       this.computarRendimentosAtribuidos();
     });
   }
@@ -680,10 +688,18 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         if (mc > cMc) runningBalance.set(p, 0);
       });
 
-      const saldoProjeto = runningBalance.get(proj) ?? 0;
+      // SR transferido para Op. Básica acumulado até este mês
+      const srCum = this.srOpBasicaEvents
+        .filter(e => e.mc <= mc)
+        .reduce((sum, e) => sum + e.valor, 0);
+
+      const saldoProjeto = (runningBalance.get(proj) ?? 0) + (proj === 'Operação Básica' ? srCum : 0);
       if (saldoProjeto <= 0 || mes.liquido <= 0) continue;
 
-      const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+      const totalPos = Array.from(runningBalance.entries()).reduce((s, [key, v]) => {
+        const effective = key === 'Operação Básica' ? v + srCum : v;
+        return s + (effective > 0 ? effective : 0);
+      }, 0);
       if (totalPos <= 0) continue;
 
       const pct = saldoProjeto / totalPos;

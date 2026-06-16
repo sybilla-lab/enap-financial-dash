@@ -360,7 +360,7 @@
   mat-card-content { padding: 16px 20px 20px !important; }
 }
 
-.vp-cat-chart-wrap   { height: 480px; }
+.vp-cat-chart-wrap   { min-height: 320px; }
 .vp-fluxo-chart-wrap { height: 400px; }
 
 .vp-empty {
