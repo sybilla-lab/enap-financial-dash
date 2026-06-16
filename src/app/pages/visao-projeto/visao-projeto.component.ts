@@ -400,15 +400,25 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
   toggleAno(ano: string): void {
     const idx = this.filtroAnos.indexOf(ano);
-    if (idx >= 0) this.filtroAnos.splice(idx, 1);
-    else this.filtroAnos.push(ano);
+    if (idx >= 0) {
+      this.filtroAnos.splice(idx, 1);
+    } else {
+      [...this.anosDisponiveis].sort().filter(a => a <= ano).forEach(a => {
+        if (!this.filtroAnos.includes(a)) this.filtroAnos.push(a);
+      });
+    }
     this.processData();
   }
 
   toggleMes(mes: string): void {
     const idx = this.filtroMeses.indexOf(mes);
-    if (idx >= 0) this.filtroMeses.splice(idx, 1);
-    else this.filtroMeses.push(mes);
+    if (idx >= 0) {
+      this.filtroMeses.splice(idx, 1);
+    } else {
+      ['01','02','03','04','05','06','07','08','09','10','11','12']
+        .filter(m => m <= mes)
+        .forEach(m => { if (!this.filtroMeses.includes(m)) this.filtroMeses.push(m); });
+    }
     this.processData();
   }
 

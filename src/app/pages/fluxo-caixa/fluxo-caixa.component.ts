@@ -133,8 +133,13 @@ export class FluxoCaixaComponent implements OnInit {
 
   toggleAno(ano: string): void {
     const idx = this.filtroAnos.indexOf(ano);
-    if (idx >= 0) this.filtroAnos.splice(idx, 1);
-    else this.filtroAnos.push(ano);
+    if (idx >= 0) {
+      this.filtroAnos.splice(idx, 1);
+    } else {
+      [...this.anos].sort().filter(a => a <= ano).forEach(a => {
+        if (!this.filtroAnos.includes(a)) this.filtroAnos.push(a);
+      });
+    }
     this.aplicarFiltros();
   }
 
@@ -147,8 +152,13 @@ export class FluxoCaixaComponent implements OnInit {
 
   toggleMes(valor: string): void {
     const idx = this.filtroMeses.indexOf(valor);
-    if (idx >= 0) this.filtroMeses.splice(idx, 1);
-    else this.filtroMeses.push(valor);
+    if (idx >= 0) {
+      this.filtroMeses.splice(idx, 1);
+    } else {
+      ['01','02','03','04','05','06','07','08','09','10','11','12']
+        .filter(m => m <= valor)
+        .forEach(m => { if (!this.filtroMeses.includes(m)) this.filtroMeses.push(m); });
+    }
     this.aplicarFiltros();
   }
 

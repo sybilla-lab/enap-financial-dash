@@ -86,7 +86,8 @@ export class DashboardComponent implements OnInit {
       tooltip: {
         callbacks: {
           label: (ctx: any) => {
-            const total = (ctx.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
+            const total = this.indicadores.totalRecebido ||
+              (ctx.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
             const pct = ((ctx.parsed / total) * 100).toFixed(1);
             const val = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ctx.parsed);
             return `  ${val}  (${pct}%)`;
