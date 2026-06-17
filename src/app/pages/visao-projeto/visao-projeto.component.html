@@ -127,6 +127,9 @@
           <div class="kpi-data">
             <span class="kpi-label">Total Recebido</span>
             <span class="kpi-value text-green">{{ snapshot.entradas | currency:'BRL':'symbol':'1.2-2' }}</span>
+            @if (snapshot.srOpBasica > 0) {
+              <span class="kpi-sublabel text-teal">+ {{ snapshot.srOpBasica | currency:'BRL':'symbol':'1.2-2' }} SR de outros projetos</span>
+            }
           </div>
         </mat-card-content>
       </mat-card>

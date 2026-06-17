@@ -65,6 +65,7 @@ interface ProjetoSnapshot {
   numPagamentos: number;
   ticketMedio: number;
   status: string;
+  srOpBasica: number;
 }
 
 interface CategoriaLocal {
@@ -566,27 +567,29 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       ? Array.from(this.resumosMap.values()).reduce((s, r) => s + (r.saldoRemanescente || 0), 0)
       : (this.resumosMap.get(this.projetoSelecionado!)?.saldoRemanescente || 0);
 
-    // Para Operação Básica: o saldo dos lançamentos já inclui os rendimentos utilizados
-    // (ainda na aba principal). Adiciona apenas o saldo remanescente dos outros projetos
-    // que foi formalmente transferido para Op. Básica.
+    // Para Operação Básica: adiciona o saldo remanescente dos outros projetos
+    // transferido formalmente para Op. Básica, tanto no saldo quanto na base de execução.
     let saldo = entradas - saidas;
+    let srOpBasica = 0;
     if (!isTodos && this.projetoSelecionado === "Operação Básica") {
-      const srOutrosProjetos = Array.from(this.resumosMap.values())
+      srOpBasica = Array.from(this.resumosMap.values())
         .filter(r => r.projeto !== "Operação Básica")
         .reduce((acc, r) => acc + (r.saldoRemanescente || 0), 0);
-      saldo += srOutrosProjetos;
+      saldo += srOpBasica;
     }
 
+    const baseExecucao = entradas + srOpBasica;
     this.snapshot = {
       projeto: isTodos ? `Todos os ${this.projetos.length} projetos` : this.projetoSelecionado!,
       entradas,
       saidas,
       saldo,
       saldoRemanescente,
-      execucao: entradas > 0 ? (saidas / entradas) * 100 : 0,
+      execucao: baseExecucao > 0 ? (saidas / baseExecucao) * 100 : 0,
       numPagamentos: despesas.length,
       ticketMedio: despesas.length > 0 ? saidas / despesas.length : 0,
       status: isTodos ? `${ativos} ativos` : (this.statusMap.get(this.projetoSelecionado!) || "Ativo"),
+      srOpBasica,
     };
 
     // Categorias

@@ -214,6 +214,7 @@
 .kpi-data { display: flex; flex-direction: column; min-width: 0; }
 .kpi-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; letter-spacing: 0.4px; white-space: nowrap; }
 .kpi-value { font-size: 18px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-sublabel { font-size: 10px; font-weight: 500; margin-top: 2px; white-space: nowrap; }
 
 .text-green  { color: var(--accent-green)  !important; }
 .text-red    { color: var(--accent-red)    !important; }
