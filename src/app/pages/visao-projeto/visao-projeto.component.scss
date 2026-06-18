@@ -8,6 +8,12 @@
   gap: 24px;
 }
 
+.vp-report-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 /* ─── HEADER ─────────────────────────────────────────────────────────── */
 .vp-header { display: flex; align-items: flex-start; justify-content: space-between; }
 .vp-title {
