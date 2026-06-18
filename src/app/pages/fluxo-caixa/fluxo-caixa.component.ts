@@ -238,7 +238,8 @@ export class FluxoCaixaComponent implements OnInit {
 
     const projMap = new Map<string, { entradasMes: number; saidasMes: number; totalEntradas: number; totalSaidas: number }>();
     lancsAte.forEach(l => {
-      const key = l.projeto || 'Sem projeto';
+      if (!l.projeto) return; // ignora lançamentos sem projeto (ex: créditos de rendimento)
+      const key = l.projeto;
       if (!projMap.has(key)) projMap.set(key, { entradasMes: 0, saidasMes: 0, totalEntradas: 0, totalSaidas: 0 });
       const m = projMap.get(key)!;
       const isMes = l.mesAno === mesAno;
