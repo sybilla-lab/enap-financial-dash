@@ -65,6 +65,7 @@ export class RendimentosComponent implements OnInit {
   }
   // projeto → numeric mesAno do encerramento (ex: 202505 para 31/05/2025)
   private projetosEncerrados = new Map<string, number>();
+  private srOutrosProjetos = 0;
 
   get detalheInfo() {
     return this.porMesCorrigido.find(m => m.mesAno === this.mesAnoSelecionado);
@@ -144,6 +145,12 @@ export class RendimentosComponent implements OnInit {
         }
       });
     });
+
+    this.dataService.getProjetoResumos().subscribe((resumos: any[]) => {
+      this.srOutrosProjetos = resumos
+        .filter(r => r.projeto !== 'Operação Básica')
+        .reduce((acc, r) => acc + (r.saldoRemanescente || 0), 0);
+    });
   }
 
   /**
@@ -201,9 +208,13 @@ export class RendimentosComponent implements OnInit {
         runningBalance.set(key, (runningBalance.get(key) ?? 0) + l.valor);
       }
 
-      // Zera projetos encerrados antes deste mês (saldo transferido para Operação Básica)
+      // Zera projetos encerrados e transfere saldo positivo para Operação Básica
       this.projetosEncerrados.forEach((closedMc, proj) => {
-        if (mc > closedMc) runningBalance.set(proj, 0);
+        if (mc > closedMc) {
+          const bal = runningBalance.get(proj) ?? 0;
+          if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
+          runningBalance.set(proj, 0);
+        }
       });
 
       // Distribui o rendimento líquido do mês proporcionalmente aos saldos positivos
@@ -227,6 +238,8 @@ export class RendimentosComponent implements OnInit {
       if (closedMc && cutoff > closedMc) return;
       saldoBase.set(key, (saldoBase.get(key) ?? 0) + l.valor);
     });
+    if (this.srOutrosProjetos > 0)
+      saldoBase.set('Operação Básica', (saldoBase.get('Operação Básica') ?? 0) + this.srOutrosProjetos);
     const totalBase = Array.from(saldoBase.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
     const mesLiquido = this.resumo.porMes.find(m => m.mesAno === mesAno)?.liquido ?? 0;
 

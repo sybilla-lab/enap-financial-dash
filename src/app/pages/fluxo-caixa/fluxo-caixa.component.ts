@@ -260,7 +260,7 @@ export class FluxoCaixaComponent implements OnInit {
         projeto,
         entradasMes: d.entradasMes,
         saidasMes: d.saidasMes,
-        saldoAcumulado: d.totalEntradas - d.totalSaidas,
+        saldoAcumulado: d.totalEntradas - d.totalSaidas + (projeto === 'Operação Básica' ? this.srOutrosProjetos : 0),
         pctEntradas: (d.entradasMes / maxE) * 100,
         pctSaidas: (d.saidasMes / maxS) * 100,
         cor: palette[i % palette.length],
