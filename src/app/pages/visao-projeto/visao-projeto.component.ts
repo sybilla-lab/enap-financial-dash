@@ -190,6 +190,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
   chartSections = ['categorias', 'fluxo', 'balanco'];
   exportingPDF = false;
+  exportingRelatorio = false;
 
   // Rendimentos proporcionais
   private rendResumoData: { totalUtilizado: number; porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] } | null = null;
@@ -634,6 +635,237 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       console.error('Erro ao gerar PDF:', err);
     } finally {
       this.exportingPDF = false;
+    }
+  }
+
+  async exportRelatorio(): Promise<void> {
+    if (this.exportingRelatorio || !this.snapshot) return;
+    this.exportingRelatorio = true;
+    try {
+      const { jsPDF } = await import('jspdf');
+      const loadImg = (src: string) => new Promise<{data:string;w:number;h:number}>(res => {
+        const img = new Image();
+        img.onload = () => { const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d')!.drawImage(img,0,0); res({data:c.toDataURL('image/png'),w:img.naturalWidth,h:img.naturalHeight}); };
+        img.onerror = () => res({data:'',w:0,h:0});
+        img.src = src;
+      });
+      const [logoEnap, logoIH] = await Promise.all([loadImg('/logo-enap.png'), loadImg('/logo-impacthub.png')]);
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const PW=210, PH=297, ML=18, MR=18, MT=20, MB=18, CW=PW-ML-MR;
+      type RGB = [number,number,number];
+      const A:RGB=[16,185,129], DARK:RGB=[15,23,42], BODY:RGB=[30,41,59], MUTED:RGB=[100,116,139];
+      const BORDER:RGB=[226,232,240], BG:RGB=[248,250,252], RED:RGB=[239,68,68], WHITE:RGB=[255,255,255];
+      const tc=(r:RGB)=>pdf.setTextColor(r[0],r[1],r[2]);
+      const fc=(r:RGB)=>pdf.setFillColor(r[0],r[1],r[2]);
+      const dc=(r:RGB)=>pdf.setDrawColor(r[0],r[1],r[2]);
+      const fmt=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0,maximumFractionDigits:0}).format(v);
+      const fmtFull=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+      const fmtP=(v:number)=>v.toFixed(1).replace('.',',')+' %';
+      const clip=(s:string,maxW:number)=>{ while(pdf.getTextWidth(s)>maxW&&s.length>3) s=s.slice(0,-2)+'…'; return s; };
+
+      let y=0, pn=0;
+      const newPage=()=>{ if(pn>0) pdf.addPage(); pn++; y=MT; fc(A); pdf.rect(0,0,5,PH,'F'); };
+      const chk=(h:number)=>{ if(y+h>PH-MB) { footer(); newPage(); } };
+      const footer=()=>{
+        dc(BORDER); pdf.setLineWidth(0.2); pdf.line(ML,PH-MB+2,PW-MR,PH-MB+2);
+        tc(MUTED); pdf.setFontSize(7); pdf.setFont('helvetica','normal');
+        const snap=this.snapshot!;
+        pdf.text(`Visão por Projeto — ${snap.projeto}  ·  ${periodStr}`,ML,PH-MB+6);
+        pdf.text(`Pág. ${pn}`,PW-MR,PH-MB+6,{align:'right'});
+      };
+      const secHeader=(title:string,sub='')=>{
+        chk(14);
+        fc(DARK); pdf.rect(ML,y,CW,8,'F');
+        fc(A); pdf.rect(ML,y,3,8,'F');
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5); tc(WHITE);
+        pdf.text(title.toUpperCase(),ML+7,y+5.5);
+        if(sub){ pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5); tc([180,190,200] as RGB); pdf.text(sub,PW-MR,y+5.5,{align:'right'}); }
+        y+=12;
+      };
+
+      const snap = this.snapshot;
+      const proj = snap.projeto;
+      const periodStr = this.inicioLabel&&this.fimLabel ? `${this.inicioLabel} → ${this.fimLabel}` : this.inicioLabel||this.fimLabel||'Todo o período';
+      const dateStr = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+      // ══════════════════════════════════════════════════
+      // CAPA
+      // ══════════════════════════════════════════════════
+      newPage();
+      // Logos
+      const LH=11;
+      if(logoEnap.data){ const lw=(logoEnap.w/logoEnap.h)*LH; pdf.addImage(logoEnap.data,'PNG',ML,y,lw,LH); }
+      if(logoIH.data){ const lw=(logoIH.w/logoIH.h)*LH; pdf.addImage(logoIH.data,'PNG',PW-MR-lw,y,lw,LH); }
+      y+=LH+7;
+      dc(BORDER); pdf.setLineWidth(0.3); pdf.line(ML,y,PW-MR,y); y+=8;
+
+      // Título
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(24); tc(DARK);
+      pdf.text('RELATÓRIO FINANCEIRO',ML,y); y+=10;
+      pdf.setFontSize(14); tc(A);
+      pdf.text(proj,ML,y); y+=7;
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(9); tc(MUTED);
+      pdf.text(`Período: ${periodStr}`,ML,y); y+=5;
+      pdf.text(`Gerado em: ${dateStr}`,ML,y); y+=14;
+
+      // KPI Cards (4)
+      const cW4=CW/4-3, cH=22, gap=4;
+      const kpis=[
+        {label:'Total Recebido', val:fmt(snap.entradas), c:A},
+        {label:'Total Executado', val:fmt(snap.saidas), c:RED},
+        {label:'Saldo Disponível', val:fmt(snap.saldo), c:snap.saldo>=0?A:RED},
+        {label:'Execução', val:fmtP(snap.execucao), c:snap.execucao>100?RED:A},
+      ];
+      kpis.forEach((k,i)=>{
+        const cx=ML+i*(cW4+gap);
+        fc(BG); dc(BORDER); pdf.setLineWidth(0.2); pdf.roundedRect(cx,y,cW4,cH,2,2,'FD');
+        fc(k.c); pdf.roundedRect(cx,y,cW4,2,1,1,'F');
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(7); tc(MUTED); pdf.text(k.label,cx+cW4/2,y+9,{align:'center'});
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(10); tc(k.c); pdf.text(k.val,cx+cW4/2,y+18,{align:'center'});
+      });
+      y+=cH+8;
+
+      // Barra de execução
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(9); tc(BODY); pdf.text('Execução Financeira',ML,y);
+      const execColor=snap.execucao>100?RED:A;
+      pdf.setFont('helvetica','bold'); tc(execColor); pdf.text(fmtP(snap.execucao),PW-MR,y,{align:'right'});
+      y+=4;
+      fc(BORDER); pdf.roundedRect(ML,y,CW,4,1,1,'F');
+      fc(execColor); pdf.roundedRect(ML,y,CW*Math.min(snap.execucao/100,1),4,1,1,'F');
+      y+=10;
+
+      // Row secundária
+      const sec=[
+        {l:'Pagamentos',v:snap.numPagamentos.toString()},
+        {l:'Ticket Médio',v:fmtFull(snap.ticketMedio)},
+        {l:'Saldo Remanescente',v:fmt(snap.saldoRemanescente)},
+        ...(snap.srOpBasica>0?[{l:'SR Outros Projetos',v:fmt(snap.srOpBasica)}]:[]),
+      ];
+      const secSW=CW/sec.length;
+      fc(BG); dc(BORDER); pdf.setLineWidth(0.2); pdf.roundedRect(ML,y,CW,14,2,2,'FD');
+      sec.forEach((s,i)=>{
+        const cx=ML+i*secSW+secSW/2;
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(7); tc(MUTED); pdf.text(s.l,cx,y+5,{align:'center'});
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(9); tc(BODY); pdf.text(s.v,cx,y+11,{align:'center'});
+        if(i<sec.length-1){ dc(BORDER); pdf.setLineWidth(0.15); pdf.line(ML+(i+1)*secSW,y+2,ML+(i+1)*secSW,y+12); }
+      });
+      y+=18;
+
+      // Status badge
+      fc(A); pdf.setFontSize(8); pdf.setFont('helvetica','bold'); tc(WHITE);
+      const sw=pdf.getTextWidth(snap.status)+10; pdf.roundedRect(ML,y,sw,7,1.5,1.5,'F');
+      pdf.text(snap.status,ML+sw/2,y+5,{align:'center'});
+      footer();
+
+      // ══════════════════════════════════════════════════
+      // DESPESAS POR CATEGORIA
+      // ══════════════════════════════════════════════════
+      newPage();
+      secHeader('Despesas por Categoria',`${this.categorias.length} categorias  ·  ${fmt(snap.saidas)}`);
+      if(this.categorias.length>0){
+        const maxV=this.categorias[0].total;
+        const nW=CW-28-22-46, vW=28, pW=22, bW=46;
+        // Cabeçalho
+        fc(DARK); pdf.rect(ML,y,CW,7,'F');
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5); tc(WHITE);
+        pdf.text('CATEGORIA',ML+3,y+5);
+        pdf.text('VALOR',ML+nW+vW,y+5,{align:'right'});
+        pdf.text('%',ML+nW+vW+pW,y+5,{align:'right'});
+        pdf.text('DISTRIBUIÇÃO',ML+CW-bW/2,y+5,{align:'center'});
+        y+=8;
+        this.categorias.forEach((c,i)=>{
+          chk(8);
+          if(i%2===0){fc(BG);pdf.rect(ML,y,CW,7,'F');}
+          pdf.setFont('helvetica','normal'); pdf.setFontSize(8); tc(BODY);
+          pdf.text(clip(c.categoria,nW-5),ML+3,y+5);
+          pdf.setFont('helvetica','bold'); tc(BODY);
+          pdf.text(fmt(c.total),ML+nW+vW,y+5,{align:'right'});
+          pdf.setFont('helvetica','normal'); tc(MUTED);
+          pdf.text(fmtP(c.percentual),ML+nW+vW+pW,y+5,{align:'right'});
+          const bx=ML+CW-bW+2, bMaxW=bW-8, bFill=bMaxW*(c.total/maxV);
+          fc(BORDER); pdf.roundedRect(bx,y+2,bMaxW,3,0.5,0.5,'F');
+          fc(A); pdf.roundedRect(bx,y+2,bFill,3,0.5,0.5,'F');
+          dc(BORDER); pdf.setLineWidth(0.1); pdf.line(ML,y+7,ML+CW,y+7);
+          y+=7;
+        });
+        // Total
+        chk(9); fc(DARK); pdf.rect(ML,y,CW,8,'F');
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5); tc(WHITE);
+        pdf.text('TOTAL',ML+3,y+5.5); pdf.text(fmt(snap.saidas),ML+nW+vW,y+5.5,{align:'right'}); pdf.text('100%',ML+nW+vW+pW,y+5.5,{align:'right'});
+        y+=12;
+      }
+      footer();
+
+      // ══════════════════════════════════════════════════
+      // FLUXO DE CAIXA
+      // ══════════════════════════════════════════════════
+      if(this.fluxo.length>0){
+        chk(60); if(y>MT+10) { footer(); newPage(); }
+        secHeader('Fluxo de Caixa Mensal',`${this.fluxo.length} meses`);
+        // Mini bar chart
+        const chartH=28, chartX=ML, chartY=y;
+        const maxF=Math.max(...this.fluxo.flatMap(f=>[f.entradas,f.saidas,Math.abs(f.saldoAcumulado)]),1);
+        const bGrpW=Math.min(CW/this.fluxo.length,16);
+        this.fluxo.forEach((f,i)=>{
+          const cx=chartX+i*bGrpW, bw=bGrpW*0.38;
+          const eH=(f.entradas/maxF)*chartH, sH=(f.saidas/maxF)*chartH;
+          fc(A); pdf.rect(cx+1,chartY+chartH-eH,bw,eH,'F');
+          fc(RED); pdf.rect(cx+1+bw+1,chartY+chartH-sH,bw,sH,'F');
+          pdf.setFontSize(5); tc(MUTED); pdf.text(f.mesAno,cx+bGrpW/2,chartY+chartH+3.5,{align:'center'});
+        });
+        // Legenda
+        y=chartY+chartH+8;
+        fc(A); pdf.rect(ML,y,6,3,'F'); pdf.setFontSize(7); tc(MUTED); pdf.text('Entradas',ML+8,y+2.5);
+        fc(RED); pdf.rect(ML+28,y,6,3,'F'); pdf.text('Saídas',ML+36,y+2.5);
+        y+=8;
+
+        // Tabela fluxo compacta
+        const mW=22,eW=34,sW=34,aW=CW-22-34-34;
+        fc(DARK); pdf.rect(ML,y,CW,7,'F'); pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5); tc(WHITE);
+        pdf.text('MÊS/ANO',ML+3,y+5); pdf.text('ENTRADAS',ML+mW+eW,y+5,{align:'right'});
+        pdf.text('SAÍDAS',ML+mW+eW+sW,y+5,{align:'right'}); pdf.text('SALDO ACUMULADO',PW-MR,y+5,{align:'right'}); y+=8;
+        this.fluxo.forEach((f,i)=>{
+          chk(6);
+          if(i%2===0){fc(BG);pdf.rect(ML,y,CW,6,'F');}
+          pdf.setFont('helvetica','normal'); pdf.setFontSize(8); tc(MUTED); pdf.text(f.mesAno,ML+3,y+4.5);
+          tc(A); pdf.setFont('helvetica','bold'); pdf.text(fmt(f.entradas),ML+mW+eW,y+4.5,{align:'right'});
+          tc(RED); pdf.text(fmt(f.saidas),ML+mW+eW+sW,y+4.5,{align:'right'});
+          const sc=f.saldoAcumulado>=0?A:RED; tc(sc); pdf.text(fmt(f.saldoAcumulado),PW-MR,y+4.5,{align:'right'});
+          dc(BORDER); pdf.setLineWidth(0.1); pdf.line(ML,y+6,ML+CW,y+6); y+=6;
+        });
+        y+=6;
+      }
+
+      // ══════════════════════════════════════════════════
+      // LANÇAMENTOS RECENTES
+      // ══════════════════════════════════════════════════
+      if(this.transacoesRecentes.length>0){
+        chk(20); if(y>PH-MB-30){ footer(); newPage(); }
+        secHeader('Lançamentos Recentes',`Últimos ${this.transacoesRecentes.length} pagamentos`);
+        const m2=20, c2=52, f2=62, v2=CW-20-52-62;
+        fc(DARK); pdf.rect(ML,y,CW,7,'F'); pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5); tc(WHITE);
+        pdf.text('MÊS/ANO',ML+3,y+5); pdf.text('CATEGORIA',ML+m2+3,y+5);
+        pdf.text('FORNECEDOR',ML+m2+c2+3,y+5); pdf.text('VALOR',PW-MR,y+5,{align:'right'}); y+=8;
+        this.transacoesRecentes.forEach((t,i)=>{
+          chk(6);
+          if(i%2===0){fc(BG);pdf.rect(ML,y,CW,6,'F');}
+          pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5);
+          tc(MUTED); pdf.text(t.mesAno,ML+3,y+4.5);
+          tc(BODY); pdf.text(clip(t.categoria,c2-4),ML+m2+3,y+4.5);
+          tc(MUTED); pdf.text(clip(t.fornecedor,f2-4),ML+m2+c2+3,y+4.5);
+          tc(RED); pdf.setFont('helvetica','bold'); pdf.text(fmtFull(t.valor),PW-MR,y+4.5,{align:'right'});
+          dc(BORDER); pdf.setLineWidth(0.1); pdf.line(ML,y+6,ML+CW,y+6); y+=6;
+        });
+      }
+      footer();
+
+      const slug=proj.toLowerCase().replace(/[^a-z0-9]/gi,'-').replace(/-+/g,'-');
+      pdf.save(`relatorio-${slug}.pdf`);
+    } catch(err) {
+      console.error('Erro ao gerar relatório:',err);
+    } finally {
+      this.exportingRelatorio = false;
     }
   }
 
