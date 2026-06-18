@@ -19,7 +19,21 @@
 }
 .vp-subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
 
-/* ─── EXPORT BUTTON ──────────────────────────────────────────────────── */
+/* ─── EXPORT CONTROLS ────────────────────────────────────────────────── */
+.vp-export-wrap {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+
+.vp-orient-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid var(--border-color); background: transparent;
+  color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+  &.active { background: rgba(99,102,241,0.15); border-color: var(--accent-primary); color: var(--accent-primary); }
+}
+
 .vp-export-btn {
   display: inline-flex !important;
   align-items: center;

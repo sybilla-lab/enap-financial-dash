@@ -513,15 +513,16 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     moveItemInArray(this.chartSections, event.previousIndex, event.currentIndex);
   }
 
+  pdfOrientation: 'portrait' | 'landscape' = 'portrait';
+
   async exportPDF(): Promise<void> {
     if (this.exportingPDF) return;
     this.exportingPDF = true;
 
     try {
-      const page = document.querySelector('.vp-page') as HTMLElement;
-      if (!page) return;
+      const reportEl = document.querySelector('.vp-report-body') as HTMLElement;
+      if (!reportEl) return;
 
-      // Dynamic imports keep html2canvas + jsPDF out of the SSR bundle
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import('html2canvas'),
         import('jspdf'),
@@ -530,53 +531,62 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       const isDark = document.body.classList.contains('dark-theme');
       const bgColor = isDark ? '#0f172a' : '#f8fafc';
 
-      const canvas = await html2canvas(page, {
-        scale: 1.8,
+      const canvas = await html2canvas(reportEl, {
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: bgColor,
         logging: false,
         onclone: (_doc, el) => {
-          // hide interactive-only elements in the cloned DOM
-          el.querySelectorAll<HTMLElement>('.vp-export-btn, .vp-drag-handle').forEach(n => n.style.display = 'none');
+          el.querySelectorAll<HTMLElement>('.vp-drag-handle').forEach(n => n.style.display = 'none');
         },
       });
 
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdf = new jsPDF({ orientation: this.pdfOrientation, unit: 'mm', format: 'a4' });
       const margin = 10;
+      const headerH = 14;
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const imgW = pageW - margin * 2;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const contentH = pageH - headerH - margin;
 
-      // PDF header bar
-      pdf.setFillColor(isDark ? '#0f172a' : '#f8fafc');
+      // pixels-per-mm ratio
+      const pxPerMm = canvas.width / imgW;
+      const contentHpx = contentH * pxPerMm;
+
       const proj = this.projetoSelecionado || 'Todos os projetos';
+      const periodStr = this.inicioLabel && this.fimLabel
+        ? `${this.inicioLabel} → ${this.fimLabel}`
+        : this.inicioLabel || this.fimLabel || 'Todo o período';
       const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-      pdf.setFontSize(9);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text(`Visão por Projeto — ${proj}`, margin, 7);
-      pdf.text(dateStr, pageW - margin, 7, { align: 'right' });
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(margin, 9, pageW - margin, 9);
 
-      // Multi-page image split
-      let remaining = imgH;
-      let srcY = 0;
+      const drawHeader = () => {
+        pdf.setFontSize(9); pdf.setTextColor(100, 116, 139);
+        pdf.text(`Visão por Projeto — ${proj}  ·  ${periodStr}`, margin, 6);
+        pdf.text(dateStr, pageW - margin, 6, { align: 'right' });
+        pdf.setDrawColor(226, 232, 240);
+        pdf.line(margin, 9, pageW - margin, 9);
+      };
 
-      while (remaining > 0) {
-        const sliceH = Math.min(remaining, pageH - margin - 12);
-        pdf.addImage(imgData, 'JPEG', margin, 12, imgW, imgH, undefined, 'FAST', 0);
-        remaining -= sliceH;
-        srcY += sliceH;
-        if (remaining > 0) {
-          pdf.addPage();
-          pdf.setFontSize(9); pdf.setTextColor(100, 116, 139);
-          pdf.text(`Visão por Projeto — ${proj}`, margin, 7);
-          pdf.text(dateStr, pageW - margin, 7, { align: 'right' });
-          pdf.line(margin, 9, pageW - margin, 9);
-        }
+      // Slice canvas page-by-page
+      let yPx = 0;
+      let pageNum = 0;
+      while (yPx < canvas.height) {
+        if (pageNum > 0) pdf.addPage();
+        drawHeader();
+
+        const sliceHpx = Math.min(contentHpx, canvas.height - yPx);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = Math.ceil(sliceHpx);
+        const ctx = sliceCanvas.getContext('2d')!;
+        ctx.drawImage(canvas, 0, -yPx);
+
+        const sliceHmm = sliceHpx / pxPerMm;
+        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, headerH, imgW, sliceHmm, undefined, 'FAST');
+
+        yPx += contentHpx;
+        pageNum++;
       }
 
       const slug = proj.toLowerCase().replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
