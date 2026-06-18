@@ -195,7 +195,6 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   private rendResumoData: { totalUtilizado: number; porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] } | null = null;
   private rendUtilizacaoPorMes = new Map<string, string>();
   private rendProjetosEncerrados = new Map<string, number>();
-  private srOpBasicaEvents: { mc: number; valor: number }[] = [];
   rendimentosAtribuidos: RendAtribuido[] = [];
   totalRendimentoAtribuido = 0;
   rendAccAberto = false;
@@ -381,16 +380,13 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
     this.dataService.getSaldos().subscribe((saldos: SaldoRemanescente[]) => {
       this.rendProjetosEncerrados.clear();
-      this.srOpBasicaEvents = [];
       saldos.forEach(s => {
         const parts = s.data.split('/');
         if (parts.length === 3) {
           const mc = parseInt(parts[2]) * 100 + parseInt(parts[1]);
           this.rendProjetosEncerrados.set(s.projeto, mc);
-          this.srOpBasicaEvents.push({ mc, valor: s.valorTransferido });
         }
       });
-      this.srOpBasicaEvents.sort((a, b) => a.mc - b.mc);
       this.computarRendimentosAtribuidos();
     });
   }
@@ -785,61 +781,81 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
     const closedMc = this.rendProjetosEncerrados.get(proj);
 
+    // Mesmo critério de inativo usado em rendimentos.component
+    const isInativo = (p: string) => {
+      const st = (this.statusMap.get(p) ?? '').toLowerCase();
+      return st === 'finalizado' || st === 'encerrado' || this.rendProjetosEncerrados.has(p);
+    };
+
+    // Exclui lançamentos sem projeto (créditos de rendimento) — mesmo filtro de rendimentos.component
     const lancsSorted = [...this.allLancamentos]
-      .filter(l => l.mesAno)
+      .filter(l => l.mesAno && l.projeto)
       .sort((a, b) => mesKeyNum(a.mesAno) - mesKeyNum(b.mesAno));
 
     const allMonthsSorted = [...this.rendResumoData.porMes]
       .sort((a, b) => mesKeyNum(a.mesAno) - mesKeyNum(b.mesAno));
 
+    // Mesmo ponto de início que rendimentos.component: primeiro mês "disponível"
+    const firstDispMc = allMonthsSorted.reduce((acc, m) => {
+      const isDisp = (this.rendUtilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
+      return isDisp && acc === Infinity ? mesKeyNum(m.mesAno) : acc;
+    }, Infinity);
+
     const runningBalance = new Map<string, number>();
     let lIdx = 0;
     let accumProject = 0;
-    let resetado = false;
+    let undistributed = 0;
     const result: RendAtribuido[] = [];
 
     for (const mes of allMonthsSorted) {
       const mc = mesKeyNum(mes.mesAno);
       if (closedMc && mc > closedMc) break;
 
-      // Include lancamentos up to and including this month
-      // (rendimento is apurado on last day of the month)
+      // Sempre avança lançamentos para manter runningBalance correto
       while (lIdx < lancsSorted.length && mesKeyNum(lancsSorted[lIdx].mesAno) <= mc) {
         const l = lancsSorted[lIdx++];
-        const key = l.projeto || 'Sem projeto';
-        runningBalance.set(key, (runningBalance.get(key) ?? 0) + l.valor);
+        runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
       }
 
-      // Zero out projects that closed before this month
+      // Transfere saldo de projetos encerrados (aba Saldos) para Op. Básica
       this.rendProjetosEncerrados.forEach((cMc, p) => {
-        if (mc > cMc) runningBalance.set(p, 0);
+        if (mc > cMc) {
+          const bal = runningBalance.get(p) ?? 0;
+          if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
+          runningBalance.set(p, 0);
+        }
       });
 
-      // SR transferido para Op. Básica acumulado até este mês
-      const srCum = this.srOpBasicaEvents
-        .filter(e => e.mc <= mc)
-        .reduce((sum, e) => sum + e.valor, 0);
+      // Transfere saldo de projetos inativos por Status (sem entrada na aba Saldos)
+      runningBalance.forEach((bal, p) => {
+        if (p !== 'Operação Básica' && isInativo(p) && !this.rendProjetosEncerrados.has(p)) {
+          if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
+          runningBalance.set(p, 0);
+        }
+      });
 
-      const saldoProjeto = (runningBalance.get(proj) ?? 0) + (proj === 'Operação Básica' ? srCum : 0);
-      if (saldoProjeto <= 0 || mes.liquido <= 0) continue;
+      // Só distribui a partir do primeiro mês "disponível" — mesmo critério do modal de rendimentos
+      if (mc < firstDispMc) continue;
 
-      const totalPos = Array.from(runningBalance.entries()).reduce((s, [key, v]) => {
-        const effective = key === 'Operação Básica' ? v + srCum : v;
-        return s + (effective > 0 ? effective : 0);
-      }, 0);
-      if (totalPos <= 0) continue;
+      const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+      const toDistribute = mes.liquido + undistributed;
+
+      if (totalPos <= 0 || toDistribute <= 0) {
+        undistributed += mes.liquido;
+        continue;
+      }
+
+      const saldoProjeto = runningBalance.get(proj) ?? 0;
+      if (saldoProjeto <= 0) {
+        undistributed = 0;
+        continue;
+      }
 
       const pct = saldoProjeto / totalPos;
-      const rendimentoMes = mes.liquido * pct;
+      const rendimentoMes = toDistribute * pct;
+      undistributed = 0;
 
-      // Reset accumulation at first "disponível" period boundary
-      const isDisponivel = (this.rendUtilizacaoPorMes.get(mes.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
-      if (isDisponivel && !resetado) {
-        accumProject = 0;
-        resetado = true;
-      }
       accumProject += rendimentoMes;
-
       result.push({ mesAno: mes.mesAno, pctParticipacao: pct * 100, rendimentoMes, rendimentoAcumulado: accumProject, saldoProjeto });
     }
 
