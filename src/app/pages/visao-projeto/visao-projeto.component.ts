@@ -531,28 +531,41 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       const isDark = document.body.classList.contains('dark-theme');
       const bgColor = isDark ? '#0f172a' : '#f8fafc';
 
-      const canvas = await html2canvas(reportEl, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: bgColor,
-        logging: false,
-        onclone: (_doc, el) => {
-          el.querySelectorAll<HTMLElement>('.vp-drag-handle').forEach(n => n.style.display = 'none');
-        },
-      });
+      // Load logos as data URLs via canvas
+      const loadImgData = (src: string): Promise<{ data: string; w: number; h: number }> =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            c.getContext('2d')!.drawImage(img, 0, 0);
+            resolve({ data: c.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight });
+          };
+          img.onerror = () => resolve({ data: '', w: 0, h: 0 });
+          img.src = src;
+        });
+
+      const [logoEnap, logoIH, canvas] = await Promise.all([
+        loadImgData('/logo-enap.png'),
+        loadImgData('/logo-impacthub.png'),
+        html2canvas(reportEl, {
+          scale: 2, useCORS: true, allowTaint: true,
+          backgroundColor: bgColor, logging: false,
+          onclone: (_doc, el) => {
+            el.querySelectorAll<HTMLElement>('.vp-drag-handle').forEach(n => n.style.display = 'none');
+          },
+        }),
+      ]);
 
       const pdf = new jsPDF({ orientation: this.pdfOrientation, unit: 'mm', format: 'a4' });
-      const margin = 10;
-      const headerH = 14;
+      const margin = 14;
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const imgW = pageW - margin * 2;
-      const contentH = pageH - headerH - margin;
 
-      // pixels-per-mm ratio
-      const pxPerMm = canvas.width / imgW;
-      const contentHpx = contentH * pxPerMm;
+      // Header heights: first page has logos (20mm), subsequent pages have slim header (12mm)
+      const firstHeaderH = 22;
+      const pageHeaderH  = 12;
 
       const proj = this.projetoSelecionado || 'Todos os projetos';
       const periodStr = this.inicioLabel && this.fimLabel
@@ -560,30 +573,56 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         : this.inicioLabel || this.fimLabel || 'Todo o período';
       const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-      const drawHeader = () => {
-        pdf.setFontSize(9); pdf.setTextColor(100, 116, 139);
+      const drawFirstHeader = () => {
+        const logoH = 12; // mm height for logos
+        if (logoEnap.data) {
+          const w = (logoEnap.w / logoEnap.h) * logoH;
+          pdf.addImage(logoEnap.data, 'PNG', margin, 4, w, logoH);
+        }
+        if (logoIH.data) {
+          const w = (logoIH.w / logoIH.h) * logoH;
+          pdf.addImage(logoIH.data, 'PNG', pageW - margin - w, 4, w, logoH);
+        }
+        pdf.setDrawColor(226, 232, 240);
+        pdf.line(margin, firstHeaderH - 2, pageW - margin, firstHeaderH - 2);
+      };
+
+      const drawPageHeader = () => {
+        pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
         pdf.text(`Visão por Projeto — ${proj}  ·  ${periodStr}`, margin, 6);
         pdf.text(dateStr, pageW - margin, 6, { align: 'right' });
         pdf.setDrawColor(226, 232, 240);
         pdf.line(margin, 9, pageW - margin, 9);
       };
 
-      // Slice canvas page-by-page
+      // pixels-per-mm
+      const pxPerMm = canvas.width / imgW;
+      // Use 96% of available content height to reduce mid-element cuts
+      const firstContentH  = (pageH - firstHeaderH - margin) * 0.96;
+      const pageContentH   = (pageH - pageHeaderH  - margin) * 0.96;
+
       let yPx = 0;
       let pageNum = 0;
       while (yPx < canvas.height) {
         if (pageNum > 0) pdf.addPage();
-        drawHeader();
+
+        const headerH   = pageNum === 0 ? firstHeaderH : pageHeaderH;
+        const contentH  = pageNum === 0 ? firstContentH : pageContentH;
+        const contentHpx = contentH * pxPerMm;
+
+        if (pageNum === 0) drawFirstHeader(); else drawPageHeader();
 
         const sliceHpx = Math.min(contentHpx, canvas.height - yPx);
         const sliceCanvas = document.createElement('canvas');
         sliceCanvas.width = canvas.width;
         sliceCanvas.height = Math.ceil(sliceHpx);
-        const ctx = sliceCanvas.getContext('2d')!;
-        ctx.drawImage(canvas, 0, -yPx);
+        sliceCanvas.getContext('2d')!.drawImage(canvas, 0, -yPx);
 
-        const sliceHmm = sliceHpx / pxPerMm;
-        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, headerH, imgW, sliceHmm, undefined, 'FAST');
+        pdf.addImage(
+          sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG',
+          margin, headerH, imgW, sliceHpx / pxPerMm,
+          undefined, 'FAST'
+        );
 
         yPx += contentHpx;
         pageNum++;
