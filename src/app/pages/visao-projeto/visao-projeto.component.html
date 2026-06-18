@@ -61,31 +61,56 @@
           <button class="vp-fchip" [class.active]="periodoAtivo==='tudo'" (click)="setPeriodo('tudo')">Tudo</button>
         </div>
         <div class="vp-date-range">
-          <div class="vp-date-input-wrap">
-            <mat-icon>event</mat-icon>
-            <select class="vp-select" [value]="inicioMes" (change)="onInicioMesChange($event)">
-              <option value="">Mês</option>
-              @for (m of meses; track m.valor) { <option [value]="m.valor">{{ m.abrev }}</option> }
-            </select>
-            <span class="vp-sel-sep">/</span>
-            <select class="vp-select" [value]="inicioAno" (change)="onInicioAnoChange($event)">
-              <option value="">Ano</option>
-              @for (ano of anosDisponiveis; track ano) { <option [value]="ano">{{ ano }}</option> }
-            </select>
+          <!-- INÍCIO -->
+          <div class="vp-picker-wrap">
+            <button class="vp-date-trigger" [class.open]="inicioPickerOpen" [class.has-value]="!!inicioLabel"
+              (click)="togglePicker('inicio', $event)">
+              <mat-icon>event</mat-icon>
+              <span>{{ inicioLabel || 'De' }}</span>
+              <mat-icon class="vp-tri">arrow_drop_down</mat-icon>
+            </button>
+            @if (inicioPickerOpen) {
+              <div class="vp-month-picker" (click)="$event.stopPropagation()">
+                <div class="vp-picker-years">
+                  @for (ano of anosDisponiveis; track ano) {
+                    <button class="vp-picker-btn" [class.sel]="inicioAno === ano" (click)="selectAno('inicio', ano)">{{ ano }}</button>
+                  }
+                </div>
+                <div class="vp-picker-months">
+                  @for (m of meses; track m.valor) {
+                    <button class="vp-picker-btn" [class.sel]="inicioMes === m.valor" (click)="selectMes('inicio', m.valor)">{{ m.abrev }}</button>
+                  }
+                </div>
+              </div>
+            }
           </div>
+
           <span class="vp-range-sep">→</span>
-          <div class="vp-date-input-wrap">
-            <mat-icon>event</mat-icon>
-            <select class="vp-select" [value]="fimMes" (change)="onFimMesChange($event)">
-              <option value="">Mês</option>
-              @for (m of meses; track m.valor) { <option [value]="m.valor">{{ m.abrev }}</option> }
-            </select>
-            <span class="vp-sel-sep">/</span>
-            <select class="vp-select" [value]="fimAno" (change)="onFimAnoChange($event)">
-              <option value="">Ano</option>
-              @for (ano of anosDisponiveis; track ano) { <option [value]="ano">{{ ano }}</option> }
-            </select>
+
+          <!-- FIM -->
+          <div class="vp-picker-wrap">
+            <button class="vp-date-trigger" [class.open]="fimPickerOpen" [class.has-value]="!!fimLabel"
+              (click)="togglePicker('fim', $event)">
+              <mat-icon>event</mat-icon>
+              <span>{{ fimLabel || 'Até' }}</span>
+              <mat-icon class="vp-tri">arrow_drop_down</mat-icon>
+            </button>
+            @if (fimPickerOpen) {
+              <div class="vp-month-picker" (click)="$event.stopPropagation()">
+                <div class="vp-picker-years">
+                  @for (ano of anosDisponiveis; track ano) {
+                    <button class="vp-picker-btn" [class.sel]="fimAno === ano" (click)="selectAno('fim', ano)">{{ ano }}</button>
+                  }
+                </div>
+                <div class="vp-picker-months">
+                  @for (m of meses; track m.valor) {
+                    <button class="vp-picker-btn" [class.sel]="fimMes === m.valor" (click)="selectMes('fim', m.valor)">{{ m.abrev }}</button>
+                  }
+                </div>
+              </div>
+            }
           </div>
+
           @if (dataInicio || dataFim) {
             <button class="vp-date-clear" (click)="limparFiltrosData()" matTooltip="Limpar datas">
               <mat-icon>close</mat-icon>
@@ -94,6 +119,9 @@
         </div>
       </div>
     </div>
+    @if (inicioPickerOpen || fimPickerOpen) {
+      <div class="vp-picker-backdrop" (click)="closeAllPickers()"></div>
+    }
   }
 
   <!-- ── CONTEÚDO DO PROJETO ────────────────────────────────────────── -->

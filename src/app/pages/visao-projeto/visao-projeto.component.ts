@@ -129,6 +129,8 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   inicioAno = '';
   fimMes = '';
   fimAno = '';
+  inicioPickerOpen = false;
+  fimPickerOpen = false;
 
   readonly meses = [
     { valor: "01", abrev: "Jan" }, { valor: "02", abrev: "Fev" },
@@ -458,10 +460,40 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     this.processData();
   }
 
-  onInicioMesChange(e: Event): void { this.inicioMes = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
-  onInicioAnoChange(e: Event): void { this.inicioAno = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
-  onFimMesChange(e: Event): void    { this.fimMes    = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
-  onFimAnoChange(e: Event): void    { this.fimAno    = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
+  get inicioLabel(): string {
+    if (!this.inicioMes && !this.inicioAno) return '';
+    const m = this.meses.find(x => x.valor === this.inicioMes);
+    return [m?.abrev, this.inicioAno].filter(Boolean).join(' ');
+  }
+
+  get fimLabel(): string {
+    if (!this.fimMes && !this.fimAno) return '';
+    const m = this.meses.find(x => x.valor === this.fimMes);
+    return [m?.abrev, this.fimAno].filter(Boolean).join(' ');
+  }
+
+  togglePicker(which: 'inicio' | 'fim', e: Event): void {
+    e.stopPropagation();
+    this.inicioPickerOpen = which === 'inicio' ? !this.inicioPickerOpen : false;
+    this.fimPickerOpen    = which === 'fim'    ? !this.fimPickerOpen    : false;
+  }
+
+  closeAllPickers(): void {
+    this.inicioPickerOpen = false;
+    this.fimPickerOpen = false;
+  }
+
+  selectAno(which: 'inicio' | 'fim', ano: string): void {
+    if (which === 'inicio') { this.inicioAno = ano; if (this.inicioMes) this.inicioPickerOpen = false; }
+    else                    { this.fimAno    = ano; if (this.fimMes)    this.fimPickerOpen    = false; }
+    this.updateFromSelects();
+  }
+
+  selectMes(which: 'inicio' | 'fim', mes: string): void {
+    if (which === 'inicio') { this.inicioMes = mes; if (this.inicioAno) this.inicioPickerOpen = false; }
+    else                    { this.fimMes    = mes; if (this.fimAno)    this.fimPickerOpen    = false; }
+    this.updateFromSelects();
+  }
 
   limparFiltrosData(): void {
     this.dataInicio = '';
