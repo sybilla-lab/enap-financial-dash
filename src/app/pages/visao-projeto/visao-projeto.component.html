@@ -51,46 +51,34 @@
   <!-- ── FILTROS DE DATA ───────────────────────────────────────────── -->
   @if (anosDisponiveis.length > 0) {
     <div class="vp-filter-panel">
-      <button class="vp-filter-toggle" (click)="filtrosAbertos = !filtrosAbertos">
-        <mat-icon>tune</mat-icon>
-        <span>Filtros</span>
-        @if (totalFiltrosAtivos > 0) {
-          <span class="vp-filter-badge">{{ totalFiltrosAtivos }}</span>
-        }
-        <mat-icon class="vp-chevron" [class.rotated]="filtrosAbertos">expand_more</mat-icon>
-      </button>
-
-      @if (totalFiltrosAtivos > 0) {
-        <button class="vp-filter-clear" (click)="limparFiltrosData()">
-          <mat-icon>filter_list_off</mat-icon>
-          Limpar
-        </button>
-      }
-
-      @if (filtrosAbertos) {
-        <div class="vp-filter-body">
-          <div class="vp-filter-group">
-            <span class="vp-filter-label">ANO</span>
-            <div class="vp-filter-chips">
-              @for (ano of anosDisponiveis; track ano) {
-                <button class="vp-fchip" [class.active]="filtroAnos.includes(ano)" (click)="toggleAno(ano)">
-                  {{ ano }}
-                </button>
-              }
-            </div>
-          </div>
-          <div class="vp-filter-group">
-            <span class="vp-filter-label">MÊS</span>
-            <div class="vp-filter-chips">
-              @for (m of meses; track m.valor) {
-                <button class="vp-fchip" [class.active]="filtroMeses.includes(m.valor)" (click)="toggleMes(m.valor)">
-                  {{ m.abrev }}
-                </button>
-              }
-            </div>
-          </div>
+      <div class="vp-filter-row">
+        <div class="vp-period-chips">
+          <span class="vp-filter-label">PERÍODO</span>
+          <button class="vp-fchip" [class.active]="periodoAtivo==='mes'" (click)="setPeriodo('mes')">Mês atual</button>
+          <button class="vp-fchip" [class.active]="periodoAtivo==='trimestre'" (click)="setPeriodo('trimestre')">Trimestre</button>
+          <button class="vp-fchip" [class.active]="periodoAtivo==='semestre'" (click)="setPeriodo('semestre')">Semestre</button>
+          <button class="vp-fchip" [class.active]="periodoAtivo==='ano'" (click)="setPeriodo('ano')">Ano atual</button>
+          <button class="vp-fchip" [class.active]="periodoAtivo==='tudo'" (click)="setPeriodo('tudo')">Tudo</button>
         </div>
-      }
+        <div class="vp-date-range">
+          <div class="vp-date-input-wrap">
+            <mat-icon>event</mat-icon>
+            <input type="month" class="vp-month-input" [value]="dataInicio"
+              (change)="onDataInicioChange($event)" placeholder="Início">
+          </div>
+          <span class="vp-range-sep">→</span>
+          <div class="vp-date-input-wrap">
+            <mat-icon>event</mat-icon>
+            <input type="month" class="vp-month-input" [value]="dataFim"
+              (change)="onDataFimChange($event)" placeholder="Fim">
+          </div>
+          @if (dataInicio || dataFim) {
+            <button class="vp-date-clear" (click)="limparFiltrosData()" matTooltip="Limpar datas">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+      </div>
     </div>
   }
 

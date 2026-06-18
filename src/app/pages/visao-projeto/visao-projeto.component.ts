@@ -122,9 +122,9 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
   // Filtros de data
   anosDisponiveis: string[] = [];
-  filtroAnos: string[] = [];
-  filtroMeses: string[] = [];
-  filtrosAbertos = true;
+  dataInicio = '';
+  dataFim = '';
+  periodoAtivo = 'tudo';
 
   readonly meses = [
     { valor: "01", abrev: "Jan" }, { valor: "02", abrev: "Fev" },
@@ -136,7 +136,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   ];
 
   get totalFiltrosAtivos(): number {
-    return this.filtroAnos.length + this.filtroMeses.length;
+    return (this.dataInicio ? 1 : 0) + (this.dataFim ? 1 : 0);
   }
 
   allLancamentos: Lancamento[] = [];
@@ -399,33 +399,60 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     this.processData();
   }
 
-  toggleAno(ano: string): void {
-    const idx = this.filtroAnos.indexOf(ano);
-    if (idx >= 0) {
-      this.filtroAnos = this.filtroAnos.filter(a => a < ano);
-    } else {
-      [...this.anosDisponiveis].sort().filter(a => a <= ano).forEach(a => {
-        if (!this.filtroAnos.includes(a)) this.filtroAnos.push(a);
-      });
+  private get nowKey(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  setPeriodo(periodo: string): void {
+    this.periodoAtivo = periodo;
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const mm = String(m).padStart(2, '0');
+    switch (periodo) {
+      case 'mes':
+        this.dataInicio = `${y}-${mm}`;
+        this.dataFim = `${y}-${mm}`;
+        break;
+      case 'trimestre': {
+        const qStart = String(Math.floor((m - 1) / 3) * 3 + 1).padStart(2, '0');
+        this.dataInicio = `${y}-${qStart}`;
+        this.dataFim = `${y}-${mm}`;
+        break;
+      }
+      case 'semestre':
+        this.dataInicio = `${y}-${m <= 6 ? '01' : '07'}`;
+        this.dataFim = `${y}-${mm}`;
+        break;
+      case 'ano':
+        this.dataInicio = `${y}-01`;
+        this.dataFim = `${y}-12`;
+        break;
+      case 'tudo':
+        this.dataInicio = '';
+        this.dataFim = '';
+        break;
     }
     this.processData();
   }
 
-  toggleMes(mes: string): void {
-    const idx = this.filtroMeses.indexOf(mes);
-    if (idx >= 0) {
-      this.filtroMeses = this.filtroMeses.filter(m => m < mes);
-    } else {
-      ['01','02','03','04','05','06','07','08','09','10','11','12']
-        .filter(m => m <= mes)
-        .forEach(m => { if (!this.filtroMeses.includes(m)) this.filtroMeses.push(m); });
-    }
+  onDataInicioChange(event: Event): void {
+    this.dataInicio = (event.target as HTMLInputElement).value;
+    this.periodoAtivo = 'custom';
+    this.processData();
+  }
+
+  onDataFimChange(event: Event): void {
+    this.dataFim = (event.target as HTMLInputElement).value;
+    this.periodoAtivo = 'custom';
     this.processData();
   }
 
   limparFiltrosData(): void {
-    this.filtroAnos = [];
-    this.filtroMeses = [];
+    this.dataInicio = '';
+    this.dataFim = '';
+    this.periodoAtivo = 'tudo';
     this.processData();
   }
 
@@ -528,25 +555,15 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       ? this.allLancamentos
       : this.allLancamentos.filter((l) => l.projeto === this.projetoSelecionado);
 
-    // Aplicar filtros de data (acumulativo: anos anteriores ao último mostram todos os meses)
-    if (this.filtroAnos.length > 0 && this.filtroMeses.length > 0) {
-      const maxAno = [...this.filtroAnos].sort().at(-1)!;
+    // Aplicar filtro de intervalo de datas
+    if (this.dataInicio || this.dataFim) {
       filtered = filtered.filter((l) => {
-        const parts = l.mesAno?.split("/");
-        if (!parts || parts.length !== 2) return false;
-        const [mes, ano] = parts;
-        if (!this.filtroAnos.includes(ano)) return false;
-        return ano < maxAno || this.filtroMeses.includes(mes);
-      });
-    } else if (this.filtroAnos.length > 0) {
-      filtered = filtered.filter((l) => {
-        const ano = l.mesAno?.split("/")[1];
-        return ano && this.filtroAnos.includes(ano);
-      });
-    } else if (this.filtroMeses.length > 0) {
-      filtered = filtered.filter((l) => {
-        const mes = l.mesAno?.split("/")[0];
-        return mes && this.filtroMeses.includes(mes);
+        if (!l.mesAno) return false;
+        const [mes, ano] = l.mesAno.split('/');
+        const key = `${ano}-${mes}`;
+        if (this.dataInicio && key < this.dataInicio) return false;
+        if (this.dataFim && key > this.dataFim) return false;
+        return true;
       });
     }
 
