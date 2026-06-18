@@ -10,35 +10,24 @@
       <p class="vp-subtitle">Selecione um projeto para ver resumo financeiro, categorias e fluxo de caixa em um só lugar.</p>
     </div>
     <div class="vp-export-wrap">
-      <button
-        class="vp-report-btn"
-        (click)="exportRelatorio()"
-        [disabled]="exportingRelatorio || exportingPDF"
-        matTooltip="Gera relatório profissional em PDF">
-        @if (exportingRelatorio) {
-          <span class="vp-btn-inner"><mat-icon class="spin">hourglass_empty</mat-icon> Gerando…</span>
-        } @else {
-          <span class="vp-btn-inner"><mat-icon>description</mat-icon> Relatório</span>
-        }
-      </button>
       <button class="vp-orient-btn" [class.active]="pdfOrientation==='portrait'"
-        (click)="pdfOrientation='portrait'" matTooltip="Retrato (print)">
+        (click)="pdfOrientation='portrait'" matTooltip="Retrato">
         <mat-icon>crop_portrait</mat-icon>
       </button>
       <button class="vp-orient-btn" [class.active]="pdfOrientation==='landscape'"
-        (click)="pdfOrientation='landscape'" matTooltip="Paisagem (print)">
+        (click)="pdfOrientation='landscape'" matTooltip="Paisagem">
         <mat-icon>crop_landscape</mat-icon>
       </button>
       <button
         mat-stroked-button
         class="vp-export-btn"
         (click)="exportPDF()"
-        [disabled]="exportingPDF || exportingRelatorio"
-        matTooltip="Print da tela atual em PDF">
+        [disabled]="exportingPDF"
+        matTooltip="Exporta a visão atual como PDF">
         @if (exportingPDF) {
           <span class="vp-btn-inner"><mat-icon class="spin">hourglass_empty</mat-icon> Gerando…</span>
         } @else {
-          <span class="vp-btn-inner"><mat-icon>screenshot</mat-icon> Print</span>
+          <span class="vp-btn-inner"><mat-icon>picture_as_pdf</mat-icon> Exportar PDF</span>
         }
       </button>
     </div>

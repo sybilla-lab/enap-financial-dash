@@ -40,20 +40,6 @@
   &.active { background: rgba(99,102,241,0.15); border-color: var(--accent-primary); color: var(--accent-primary); }
 }
 
-.vp-report-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 0 16px; height: 36px; border-radius: 8px;
-  border: none; cursor: pointer; white-space: nowrap;
-  background: var(--accent-primary); color: #fff;
-  font-size: 13px; font-weight: 600;
-  transition: opacity 0.15s, transform 0.1s;
-  .vp-btn-inner { display: inline-flex; align-items: center; gap: 6px; }
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
-  &:hover:not(:disabled) { opacity: 0.88; }
-  &:active:not(:disabled) { transform: scale(0.97); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-
 .vp-export-btn {
   display: inline-flex !important;
   align-items: center;
