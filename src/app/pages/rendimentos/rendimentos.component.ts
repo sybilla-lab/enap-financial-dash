@@ -196,6 +196,7 @@ export class RendimentosComponent implements OnInit {
     const runningBalance = new Map<string, number>();
     const projRendAcum = new Map<string, number>();
     let lIdx = 0;
+    let undistributed = 0; // rendimento acumulado de meses sem projetos com saldo positivo
 
     for (const mes of sortedMonths) {
       const mc = mesKey(mes.mesAno);
@@ -204,8 +205,8 @@ export class RendimentosComponent implements OnInit {
       // (inclui o próprio mês pois o rendimento é apurado no último dia do mês)
       while (lIdx < lancsSorted.length && mesKey(lancsSorted[lIdx].mesAno) <= mc) {
         const l = lancsSorted[lIdx++];
-        const key = l.projeto || 'Sem projeto';
-        runningBalance.set(key, (runningBalance.get(key) ?? 0) + l.valor);
+        if (!l.projeto) continue; // ignora créditos de rendimento sem projeto
+        runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
       }
 
       // Zera projetos encerrados e transfere saldo positivo para Operação Básica
@@ -217,26 +218,30 @@ export class RendimentosComponent implements OnInit {
         }
       });
 
-      // Distribui o rendimento líquido do mês proporcionalmente aos saldos positivos
+      // Distribui o rendimento líquido do mês proporcionalmente aos saldos positivos.
+      // Rendimentos de meses sem projetos com saldo positivo são acumulados e redistribuídos
+      // no próximo mês com distribuição possível, garantindo que a soma = total acumulado.
       const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
-      if (totalPos > 0 && mes.liquido > 0) {
+      const toDistribute = mes.liquido + undistributed;
+      if (totalPos > 0 && toDistribute > 0) {
         runningBalance.forEach((saldo, proj) => {
           if (saldo > 0) {
-            projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + mes.liquido * (saldo / totalPos));
+            projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + toDistribute * (saldo / totalPos));
           }
         });
+        undistributed = 0;
+      } else {
+        undistributed += mes.liquido;
       }
     }
 
     // Saldo de cada projeto ao início do mês clicado (para exibir % de participação atual)
     const saldoBase = new Map<string, number>();
     this.lancamentosOriginais.forEach(l => {
-      if (!l.mesAno || mesKey(l.mesAno) > cutoff) return;
-      const key = l.projeto || 'Sem projeto';
-      // Ignora projetos encerrados antes do mês clicado
-      const closedMc = this.projetosEncerrados.get(key);
+      if (!l.mesAno || !l.projeto || mesKey(l.mesAno) > cutoff) return;
+      const closedMc = this.projetosEncerrados.get(l.projeto);
       if (closedMc && cutoff > closedMc) return;
-      saldoBase.set(key, (saldoBase.get(key) ?? 0) + l.valor);
+      saldoBase.set(l.projeto, (saldoBase.get(l.projeto) ?? 0) + l.valor);
     });
     if (this.srOutrosProjetos > 0)
       saldoBase.set('Operação Básica', (saldoBase.get('Operação Básica') ?? 0) + this.srOutrosProjetos);
