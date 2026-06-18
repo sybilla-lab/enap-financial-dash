@@ -65,6 +65,7 @@ export class RendimentosComponent implements OnInit {
   }
   // projeto → numeric mesAno do encerramento (ex: 202505 para 31/05/2025)
   private projetosEncerrados = new Map<string, number>();
+  private projetosInativos = new Set<string>(); // projetos finalizado/encerrado sem entrada na aba Saldos
   private srOutrosProjetos = 0;
 
   get detalheInfo() {
@@ -151,6 +152,15 @@ export class RendimentosComponent implements OnInit {
         .filter(r => r.projeto !== 'Operação Básica')
         .reduce((acc, r) => acc + (r.saldoRemanescente || 0), 0);
     });
+
+    this.dataService.status$.subscribe(statuses => {
+      this.projetosInativos.clear();
+      statuses.forEach(s => {
+        const st = s.status.toLowerCase();
+        if (st === 'finalizado' || st === 'encerrado')
+          this.projetosInativos.add(s.projeto);
+      });
+    });
   }
 
   /**
@@ -234,6 +244,19 @@ export class RendimentosComponent implements OnInit {
         undistributed += mes.liquido;
       }
     }
+
+    // Consolida rendimento de projetos encerrados/inativos em Operação Básica
+    const isInativo = (proj: string) =>
+      this.projetosInativos.has(proj) ||
+      (this.projetosEncerrados.has(proj) && cutoff >= this.projetosEncerrados.get(proj)!);
+
+    projRendAcum.forEach((rend, proj) => {
+      if (proj !== 'Operação Básica' && isInativo(proj)) {
+        if (rend > 0)
+          projRendAcum.set('Operação Básica', (projRendAcum.get('Operação Básica') ?? 0) + rend);
+        projRendAcum.delete(proj);
+      }
+    });
 
     // Saldo de cada projeto ao início do mês clicado (para exibir % de participação atual)
     const saldoBase = new Map<string, number>();
