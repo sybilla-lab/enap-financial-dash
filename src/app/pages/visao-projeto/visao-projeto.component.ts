@@ -484,8 +484,8 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   }
 
   selectAno(which: 'inicio' | 'fim', ano: string): void {
-    if (which === 'inicio') { this.inicioAno = ano; if (this.inicioMes) this.inicioPickerOpen = false; }
-    else                    { this.fimAno    = ano; if (this.fimMes)    this.fimPickerOpen    = false; }
+    if (which === 'inicio') this.inicioAno = ano;
+    else                    this.fimAno    = ano;
     this.updateFromSelects();
   }
 
