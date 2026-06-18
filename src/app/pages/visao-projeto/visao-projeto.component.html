@@ -63,14 +63,28 @@
         <div class="vp-date-range">
           <div class="vp-date-input-wrap">
             <mat-icon>event</mat-icon>
-            <input type="month" class="vp-month-input" [value]="dataInicio"
-              (change)="onDataInicioChange($event)" placeholder="Início">
+            <select class="vp-select" [value]="inicioMes" (change)="onInicioMesChange($event)">
+              <option value="">Mês</option>
+              @for (m of meses; track m.valor) { <option [value]="m.valor">{{ m.abrev }}</option> }
+            </select>
+            <span class="vp-sel-sep">/</span>
+            <select class="vp-select" [value]="inicioAno" (change)="onInicioAnoChange($event)">
+              <option value="">Ano</option>
+              @for (ano of anosDisponiveis; track ano) { <option [value]="ano">{{ ano }}</option> }
+            </select>
           </div>
           <span class="vp-range-sep">→</span>
           <div class="vp-date-input-wrap">
             <mat-icon>event</mat-icon>
-            <input type="month" class="vp-month-input" [value]="dataFim"
-              (change)="onDataFimChange($event)" placeholder="Fim">
+            <select class="vp-select" [value]="fimMes" (change)="onFimMesChange($event)">
+              <option value="">Mês</option>
+              @for (m of meses; track m.valor) { <option [value]="m.valor">{{ m.abrev }}</option> }
+            </select>
+            <span class="vp-sel-sep">/</span>
+            <select class="vp-select" [value]="fimAno" (change)="onFimAnoChange($event)">
+              <option value="">Ano</option>
+              @for (ano of anosDisponiveis; track ano) { <option [value]="ano">{{ ano }}</option> }
+            </select>
           </div>
           @if (dataInicio || dataFim) {
             <button class="vp-date-clear" (click)="limparFiltrosData()" matTooltip="Limpar datas">

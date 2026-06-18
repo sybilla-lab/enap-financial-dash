@@ -125,6 +125,10 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   dataInicio = '';
   dataFim = '';
   periodoAtivo = 'tudo';
+  inicioMes = '';
+  inicioAno = '';
+  fimMes = '';
+  fimAno = '';
 
   readonly meses = [
     { valor: "01", abrev: "Jan" }, { valor: "02", abrev: "Fev" },
@@ -434,25 +438,36 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         this.dataFim = '';
         break;
     }
+    this.syncSelects();
     this.processData();
   }
 
-  onDataInicioChange(event: Event): void {
-    this.dataInicio = (event.target as HTMLInputElement).value;
+  private syncSelects(): void {
+    if (this.dataInicio) {
+      [this.inicioAno, this.inicioMes] = this.dataInicio.split('-');
+    } else { this.inicioAno = this.inicioMes = ''; }
+    if (this.dataFim) {
+      [this.fimAno, this.fimMes] = this.dataFim.split('-');
+    } else { this.fimAno = this.fimMes = ''; }
+  }
+
+  private updateFromSelects(): void {
+    this.dataInicio = this.inicioAno && this.inicioMes ? `${this.inicioAno}-${this.inicioMes}` : '';
+    this.dataFim = this.fimAno && this.fimMes ? `${this.fimAno}-${this.fimMes}` : '';
     this.periodoAtivo = 'custom';
     this.processData();
   }
 
-  onDataFimChange(event: Event): void {
-    this.dataFim = (event.target as HTMLInputElement).value;
-    this.periodoAtivo = 'custom';
-    this.processData();
-  }
+  onInicioMesChange(e: Event): void { this.inicioMes = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
+  onInicioAnoChange(e: Event): void { this.inicioAno = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
+  onFimMesChange(e: Event): void    { this.fimMes    = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
+  onFimAnoChange(e: Event): void    { this.fimAno    = (e.target as HTMLSelectElement).value; this.updateFromSelects(); }
 
   limparFiltrosData(): void {
     this.dataInicio = '';
     this.dataFim = '';
     this.periodoAtivo = 'tudo';
+    this.syncSelects();
     this.processData();
   }
 
