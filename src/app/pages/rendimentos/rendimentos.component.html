@@ -272,7 +272,7 @@
                 {{ d.pctParticipacao | number:'1.1-1' }}%
               </span>
               <span class="proj-resultado text-green">
-                +{{ d.rendimentoAcumulado | currency:'BRL':'symbol':'1.0-0' }}
+                +{{ d.rendimentoAcumulado | currency:'BRL':'symbol':'1.2-2' }}
               </span>
             </div>
 
@@ -282,7 +282,7 @@
               <div class="bar-track">
                 <div class="bar-fill" [style.width.%]="d.pctParticipacao" [style.background]="d.cor"></div>
               </div>
-              <span class="bar-value text-green">+{{ d.rendimentoMes | currency:'BRL':'symbol':'1.0-0' }}</span>
+              <span class="bar-value text-green">+{{ d.rendimentoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
             </div>
 
             <!-- Saldo base -->
@@ -290,7 +290,7 @@
               <span class="bar-label">Saldo base</span>
               <div class="bar-track" style="background:transparent"></div>
               <span class="bar-value" [class.positive]="d.saldoProjeto >= 0" [class.negative]="d.saldoProjeto < 0">
-                {{ d.saldoProjeto | currency:'BRL':'symbol':'1.0-0' }}
+                {{ d.saldoProjeto | currency:'BRL':'symbol':'1.2-2' }}
               </span>
             </div>
           </div>
