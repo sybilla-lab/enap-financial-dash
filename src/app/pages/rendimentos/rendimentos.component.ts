@@ -769,7 +769,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
           2: { halign: 'right', textColor: [5, 150, 105], fontStyle: 'bold' },
           3: { halign: 'right', fontStyle: 'bold' },
         },
-        didParseCell: (data) => {
+        didParseCell: (data: any) => {
           const isTotal = data.row.index === rows.length - 1;
           if (isTotal) {
             data.cell.styles.fillColor = [236, 253, 245];
