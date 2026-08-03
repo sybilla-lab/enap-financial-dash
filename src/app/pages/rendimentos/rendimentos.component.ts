@@ -319,7 +319,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setFontSize(8); doc.setFont('helvetica','normal');
     doc.setTextColor(160,180,220);
     doc.text('Projeção jul/2026–dez/2028 — Metodologia proporcional', margin, 16);
-    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, W - margin, 16, { align: 'right' });
+    doc.setFontSize(7); doc.setTextColor(120,145,195);
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, margin, 21);
     y = 28;
 
     doc.setFillColor(245,247,252);
@@ -737,7 +738,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setTextColor(180, 180, 210);
     doc.text('Histórico mensal — período disponível (set/2025 a jun/2026)', margin, 16);
     const dataGer = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    doc.text(`Gerado em ${dataGer}`, W - margin, 16, { align: 'right' });
+    doc.setFontSize(7); doc.setTextColor(140, 150, 185);
+    doc.text(`Gerado em ${dataGer}`, margin, 21);
     y = 30;
 
     // ── Sumário ──
