@@ -45,15 +45,18 @@
   object-fit: contain;
 }
 .enap_40 {
-  height: 100px;
+  height: 48px;
   object-fit: contain;
+  transition: filter 0.3s ease;
 }
 .enap_40-small {
-  height: 50px;
+  height: 28px;
   object-fit: contain;
+  transition: filter 0.3s ease;
 }
 
-:host-context(body.dark-theme) .logo-hub, :host-context(body.dark-theme) .logo-hub-small {
+:host-context(body.dark-theme) .logo-hub, :host-context(body.dark-theme) .logo-hub-small,
+:host-context(body.dark-theme) .enap_40, :host-context(body.dark-theme) .enap_40-small {
   filter: invert(1) brightness(1.5) contrast(1.1);
   mix-blend-mode: screen;
 }
