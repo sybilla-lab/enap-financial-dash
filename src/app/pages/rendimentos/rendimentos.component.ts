@@ -315,7 +315,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     this.addPdfLogos(doc, 22);
     doc.setTextColor(255,255,255);
     doc.setFontSize(13); doc.setFont('helvetica','bold');
-    doc.text('Previsão de Rendimentos — Impact Hub x Enap', margin, 10);
+    doc.text('Previsão de Rendimentos — Impact Hub + Enap', margin, 10);
     doc.setFontSize(8); doc.setFont('helvetica','normal');
     doc.setTextColor(160,180,220);
     doc.text('Projeção jul/2026–dez/2028 — Metodologia proporcional', margin, 16);
@@ -401,7 +401,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(7); doc.setTextColor(160,160,180); doc.setFont('helvetica','normal');
-      doc.text('Impact Hub x Enap — Previsão de Rendimentos', margin, 292);
+      doc.text('Impact Hub + Enap — Previsão de Rendimentos', margin, 292);
       doc.text(`Página ${i} de ${pageCount}`, W-margin, 292, { align: 'right' });
     }
     doc.save(`previsao-rendimentos-${new Date().toISOString().slice(0,10)}.pdf`);
@@ -750,7 +750,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     this.addPdfLogos(doc, 22);
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-    doc.text('Relatório Completo de Rendimentos — Impact Hub x Enap', margin, 10);
+    doc.text('Relatório Completo de Rendimentos — Impact Hub + Enap', margin, 10);
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
     doc.setTextColor(160, 180, 220);
     doc.text('Realizado set/2025–jun/2026  ·  Projetado jul/2026–dez/2028', margin, 16);
@@ -870,7 +870,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(7); doc.setTextColor(160, 160, 180); doc.setFont('helvetica', 'normal');
-      doc.text('Impact Hub x Enap — Relatório Completo de Rendimentos', margin, 292);
+      doc.text('Impact Hub + Enap — Relatório Completo de Rendimentos', margin, 292);
       doc.text(`Página ${i} de ${pageCount}`, W - margin, 292, { align: 'right' });
     }
 
@@ -902,7 +902,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('Rendimento por Projeto — Impact Hub x Enap', margin, 10);
+    doc.text('Rendimento por Projeto — Impact Hub + Enap', margin, 10);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(180, 180, 210);
@@ -1006,7 +1006,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       doc.setFontSize(7);
       doc.setTextColor(160, 160, 180);
       doc.setFont('helvetica', 'normal');
-      doc.text('Impact Hub x Enap — Estratégia de Inovação Aberta', margin, 292);
+      doc.text('Impact Hub + Enap — Estratégia de Inovação Aberta', margin, 292);
       doc.text(`Página ${i} de ${pageCount}`, W - margin, 292, { align: 'right' });
     }
 
