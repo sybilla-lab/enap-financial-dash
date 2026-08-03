@@ -729,6 +729,11 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
     const pct = (v: number) =>
       v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const fmtMes = (mesAno: string) => {
+      const [mm, yyyy] = mesAno.split('/');
+      return `${MESES[parseInt(mm, 10) - 1]}/${yyyy.slice(2)}`;
+    };
     const hexToRgb = (hex: string): [number, number, number] => {
       const h = hex.startsWith('#') ? hex : '#6366f1';
       return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
@@ -816,7 +821,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
       // ── monta rows unificadas ──
       const histRows: string[][] = (hist?.meses ?? []).map(m => [
-        m.mesAno, pct(m.pctParticipacao), '+' + brl(m.rendimentoMes), brl(m.rendimentoAcumulado),
+        fmtMes(m.mesAno), pct(m.pctParticipacao), '+' + brl(m.rendimentoMes), brl(m.rendimentoAcumulado),
       ]);
       const prevRows: string[][] = prev
         ? prev.meses.map(m => [m.label, pct(m.pct), '+' + brl(m.rendMes), brl(prev.histAcum + m.acumRun)])
