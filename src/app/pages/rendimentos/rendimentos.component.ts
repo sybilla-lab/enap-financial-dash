@@ -738,20 +738,6 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       const h = hex.startsWith('#') ? hex : '#6366f1';
       return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
     };
-    const tableOpts = (onParse: (d: any) => void) => ({
-      styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica', textColor: [30,30,50] as [number,number,number] },
-      headStyles: { fillColor: [55,65,81] as [number,number,number], textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 7.5 },
-      columnStyles: {
-        0: { cellWidth: 22, fontStyle: 'bold' as const, textColor: [80,80,110] as [number,number,number] },
-        1: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
-        2: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
-        3: { halign: 'right' as const, fontStyle: 'bold' as const },
-      },
-      tableLineColor: [220,225,235] as [number,number,number],
-      tableLineWidth: 0.2,
-      didParseCell: onParse,
-    });
-
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const W = doc.internal.pageSize.getWidth();
     const margin = 14;
@@ -803,64 +789,83 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     }
     y += boxH + 8;
 
-    // ── PARTE 1: Realizado ──
-    doc.setFillColor(30, 30, 50);
-    doc.roundedRect(margin, y, W - margin * 2, 8, 1.5, 1.5, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-    doc.text('PARTE 1 — RENDIMENTO REALIZADO  (set/2025 – jun/2026)', margin + 5, y + 5.5);
-    y += 12;
+    // ── Tabelas unificadas por projeto (histórico + projetado) ──
+    const histMap = new Map(this.historicoPorProjeto.map(p => [p.projeto, p]));
+    const prevMap = new Map(this.previsaoPorProjeto.map(p => [p.projeto, p]));
+    const allNames = [...new Set([
+      ...this.historicoPorProjeto.map(p => p.projeto),
+      ...this.previsaoPorProjeto.filter(p => p.meses.length > 0).map(p => p.projeto),
+    ])];
+    const lastProjeto = allNames[allNames.length - 1];
 
-    for (const p of this.historicoPorProjeto) {
-      const [r, g, b] = hexToRgb(p.cor.startsWith('#') ? p.cor : '#6366f1');
-      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 8, 'F');
-      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 8, 'F');
-      doc.setTextColor(20, 20, 40); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
-      doc.text(p.projeto, margin + 7, y + 5.5);
-      doc.setTextColor(80, 80, 110); doc.setFontSize(8);
-      doc.text(pct(p.pctTotal) + ' do total', margin + 80, y + 5.5);
-      doc.setTextColor(20, 20, 40); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-      doc.text(brl(p.totalAcumulado), W - margin, y + 5.5, { align: 'right' });
-      y += 10;
-      const rows = p.meses.map(m => [m.mesAno, pct(m.pctParticipacao), '+' + brl(m.rendimentoMes), brl(m.rendimentoAcumulado)]);
-      rows.push(['Total acumulado', '', '', brl(p.totalAcumulado)]);
-      autoTable(doc, { startY: y, margin: { left: margin, right: margin }, head: [['Mês', 'Participação', 'Rend. do mês', 'Acumulado']], body: rows,
-        ...tableOpts((d: any) => {
-          if (d.row.index === rows.length - 1) { d.cell.styles.fillColor = [240,242,248]; d.cell.styles.textColor = [50,50,80]; d.cell.styles.fontStyle = 'bold'; }
-          else if (d.row.index % 2 === 1) { d.cell.styles.fillColor = [250,250,253]; }
-        }) });
-      y = (doc as any).lastAutoTable.finalY + 8;
-      if (y > 265 && p !== this.historicoPorProjeto[this.historicoPorProjeto.length - 1]) { doc.addPage(); y = margin; }
-    }
+    for (const nome of allNames) {
+      const hist = histMap.get(nome);
+      const prev = prevMap.get(nome);
+      if (!hist && (!prev || prev.meses.length === 0)) continue;
 
-    // ── PARTE 2: Projetado ──
-    doc.addPage(); y = margin;
-    doc.setFillColor(20, 30, 60);
-    doc.roundedRect(margin, y, W - margin * 2, 8, 1.5, 1.5, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-    doc.text('PARTE 2 — PREVISÃO DE RENDIMENTOS  (jul/2026 – dez/2028)', margin + 5, y + 5.5);
-    y += 12;
+      const cor = hist?.cor ?? prev?.cor ?? '#6366f1';
+      const [r, g, b] = hexToRgb(cor.startsWith('#') ? cor : '#6366f1');
+      const histTotal = hist?.totalAcumulado ?? 0;
+      const projTotal = prev?.projTotal ?? 0;
+      const totalGeral = histTotal + projTotal;
 
-    for (const p of this.previsaoPorProjeto) {
-      if (p.meses.length === 0) continue;
-      const [r, g, b] = hexToRgb(p.cor);
-      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 8, 'F');
-      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 8, 'F');
-      doc.setTextColor(20, 20, 40); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
-      doc.text(p.projeto, margin + 7, y + 5.5);
-      doc.setTextColor(80, 80, 110); doc.setFontSize(7.5);
-      doc.text(`Hist.: ${brl(p.histAcum)}  |  Proj.: ${brl(p.projTotal)}`, margin + 70, y + 5.5);
-      doc.setTextColor(20, 20, 40); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-      doc.text(brl(p.totalGeral), W - margin, y + 5.5, { align: 'right' });
-      y += 10;
-      const rows = p.meses.map(m => [m.label, pct(m.pct), '+' + brl(m.rendMes), brl(m.acumRun)]);
-      rows.push(['Total projetado', '', '', brl(p.projTotal)]);
-      autoTable(doc, { startY: y, margin: { left: margin, right: margin }, head: [['Mês', 'Participação', 'Rend. est.', 'Acumulado proj.']], body: rows,
-        ...tableOpts((d: any) => {
-          if (d.row.index === rows.length - 1) { d.cell.styles.fillColor = [240,242,248]; d.cell.styles.textColor = [50,50,80]; d.cell.styles.fontStyle = 'bold'; }
-          else if (d.row.index % 2 === 1) { d.cell.styles.fillColor = [250,250,253]; }
-        }) });
-      y = (doc as any).lastAutoTable.finalY + 8;
-      if (y > 265 && p !== this.previsaoPorProjeto[this.previsaoPorProjeto.length - 1]) { doc.addPage(); y = margin; }
+      // ── cabeçalho do projeto ──
+      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 10, 'F');
+      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 10, 'F');
+      doc.setTextColor(20, 20, 40); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+      doc.text(nome, margin + 7, y + 6.5);
+      doc.setTextColor(80, 80, 110); doc.setFontSize(7);
+      if (hist && prev?.meses.length) {
+        doc.text(`Realizado: ${brl(histTotal)}  +  Projetado: ${brl(projTotal)}`, margin + 7, y + 10.5 - 2);
+      }
+      doc.setTextColor(20, 20, 40); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text(brl(totalGeral), W - margin, y + 6.5, { align: 'right' });
+      y += 13;
+
+      // ── monta rows unificadas ──
+      const histRows: string[][] = (hist?.meses ?? []).map(m => [
+        m.mesAno, pct(m.pctParticipacao), '+' + brl(m.rendimentoMes), brl(m.rendimentoAcumulado),
+      ]);
+      const prevRows: string[][] = prev
+        ? prev.meses.map(m => [m.label, pct(m.pct), '+' + brl(m.rendMes), brl(prev.histAcum + m.acumRun)])
+        : [];
+      // índices para colorir: separador = histRows.length, total = última linha
+      const sepIdx = histRows.length > 0 && prevRows.length > 0 ? histRows.length : -1;
+      const separatorRow = sepIdx >= 0 ? [['▸ PROJETADO', '', '', '']] : [];
+      const totalRow = [brl(totalGeral).replace('R$','Total  R$'), '', '', brl(totalGeral)];
+      const allRows = [...histRows, ...separatorRow, ...prevRows, totalRow];
+      const totalIdx = allRows.length - 1;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [['Mês / Período', 'Participação', 'Rend. do mês', 'Acumulado']],
+        body: allRows,
+        styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica', textColor: [30,30,50] as [number,number,number] },
+        headStyles: { fillColor: [55,65,81] as [number,number,number], textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 7.5 },
+        columnStyles: {
+          0: { cellWidth: 28, fontStyle: 'bold' as const, textColor: [80,80,110] as [number,number,number] },
+          1: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
+          2: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
+          3: { halign: 'right' as const, fontStyle: 'bold' as const },
+        },
+        tableLineColor: [220,225,235] as [number,number,number],
+        tableLineWidth: 0.2,
+        didParseCell: (d: any) => {
+          if (d.row.index === totalIdx) {
+            d.cell.styles.fillColor = [240,242,248]; d.cell.styles.textColor = [50,50,80]; d.cell.styles.fontStyle = 'bold';
+          } else if (d.row.index === sepIdx) {
+            d.cell.styles.fillColor = [30,30,50]; d.cell.styles.textColor = [200,210,240]; d.cell.styles.fontStyle = 'bold'; d.cell.styles.fontSize = 7;
+          } else if (d.row.index < sepIdx || sepIdx < 0 && d.row.index < totalIdx) {
+            if (d.row.index % 2 === 1) d.cell.styles.fillColor = [250,250,253];
+          } else if (d.row.index > sepIdx && d.row.index < totalIdx) {
+            d.cell.styles.fillColor = d.row.index % 2 === 0 ? [243,246,253] : [235,240,252];
+          }
+        },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 10;
+      if (y > 260 && nome !== lastProjeto) { doc.addPage(); y = margin; }
     }
 
     // ── Rodapé em todas as páginas ──
