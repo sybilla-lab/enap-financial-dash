@@ -148,49 +148,60 @@
           </thead>
           <tbody>
             @if (isLoading) {
-              @for (i of [1,2,3,4,5,6]; track i) {
-                <tr>
-                  <td><div class="skeleton-box" style="width:56px;height:14px;border-radius:3px;"></div></td>
-                  <td><div class="skeleton-box" style="width:100px;height:14px;border-radius:3px;margin-left:auto;"></div></td>
-                  <td><div class="skeleton-box" style="width:80px;height:14px;border-radius:3px;margin-left:auto;"></div></td>
-                  <td><div class="skeleton-box" style="width:80px;height:14px;border-radius:3px;margin-left:auto;"></div></td>
-                  <td><div class="skeleton-box" style="width:100px;height:14px;border-radius:3px;margin-left:auto;"></div></td>
-                  <td><div class="skeleton-box" style="width:70px;height:14px;border-radius:3px;"></div></td>
-                  <td></td>
-                </tr>
-              }
+            @for (i of [1,2,3,4,5,6]; track i) {
+            <tr>
+              <td>
+                <div class="skeleton-box" style="width:56px;height:14px;border-radius:3px;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:100px;height:14px;border-radius:3px;margin-left:auto;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:80px;height:14px;border-radius:3px;margin-left:auto;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:80px;height:14px;border-radius:3px;margin-left:auto;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:100px;height:14px;border-radius:3px;margin-left:auto;"></div>
+              </td>
+              <td>
+                <div class="skeleton-box" style="width:70px;height:14px;border-radius:3px;"></div>
+              </td>
+              <td></td>
+            </tr>
+            }
             } @else {
-              @for (m of porMesCorrigido; track m.mesAno) {
-                <tr class="row-clickable" (click)="abrirDetalhe(m.mesAno)">
-                  <td><span class="mes-label">{{ m.mesAno }}</span></td>
-                  <td class="num positive">{{ m.bruto | currency:"BRL":"symbol":"1.2-2" }}</td>
-                  <td class="num" [class.negative]="m.imposto !== 0">{{ m.imposto | currency:"BRL":"symbol":"1.2-2" }}</td>
-                  <td class="num" [class.positive]="m.liquido >= 0" [class.negative]="m.liquido < 0">
-                    {{ m.liquido | currency:"BRL":"symbol":"1.2-2" }}
-                  </td>
-                  <td class="num cell-acumulado">
-                    <div class="acum-wrap">
-                      <span [class.positive]="m.acumulado >= 0" [class.negative]="m.acumulado < 0">
-                        {{ m.acumulado | currency:"BRL":"symbol":"1.2-2" }}
-                      </span>
-                      <div class="acum-bar-track">
-                        <div class="acum-bar-fill"
-                          [style.width.%]="pctAcumulado(m.acumulado)"
-                          [style.background]="m.acumulado >= 0 ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,#ef4444,#f87171)'">
-                        </div>
-                      </div>
+            @for (m of porMesCorrigido; track m.mesAno) {
+            <tr class="row-clickable" (click)="abrirDetalhe(m.mesAno)">
+              <td><span class="mes-label">{{ m.mesAno }}</span></td>
+              <td class="num positive">{{ m.bruto | currency:"BRL":"symbol":"1.2-2" }}</td>
+              <td class="num" [class.negative]="m.imposto !== 0">{{ m.imposto | currency:"BRL":"symbol":"1.2-2" }}</td>
+              <td class="num" [class.positive]="m.liquido >= 0" [class.negative]="m.liquido < 0">
+                {{ m.liquido | currency:"BRL":"symbol":"1.2-2" }}
+              </td>
+              <td class="num cell-acumulado">
+                <div class="acum-wrap">
+                  <span [class.positive]="m.acumulado >= 0" [class.negative]="m.acumulado < 0">
+                    {{ m.acumulado | currency:"BRL":"symbol":"1.2-2" }}
+                  </span>
+                  <div class="acum-bar-track">
+                    <div class="acum-bar-fill" [style.width.%]="pctAcumulado(m.acumulado)"
+                      [style.background]="m.acumulado >= 0 ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,#ef4444,#f87171)'">
                     </div>
-                  </td>
-                  <td>
-                    @if (isUtilizado(m.mesAno)) {
-                      <span class="badge-used">utilizado</span>
-                    } @else {
-                      <span class="badge-disponivel">disponível</span>
-                    }
-                  </td>
-                  <td class="num"><mat-icon class="row-arrow">chevron_right</mat-icon></td>
-                </tr>
-              }
+                  </div>
+                </div>
+              </td>
+              <td>
+                @if (isUtilizado(m.mesAno)) {
+                <span class="badge-used">utilizado</span>
+                } @else {
+                <span class="badge-disponivel">disponível</span>
+                }
+              </td>
+              <td class="num"><mat-icon class="row-arrow">chevron_right</mat-icon></td>
+            </tr>
+            }
             }
           </tbody>
         </table>
@@ -201,43 +212,43 @@
   <!-- ── Seção unificada Rendimentos ── -->
   <div class="rend-section">
     <div class="rend-section-header">
-      <span class="rend-section-label">Rendimentos por Projeto</span>
+      <span class="rend-section-label">Rendimentos</span>
       @if (!isLoading && previsaoCarregada) {
-        <button class="global-export-btn-min" (click)="exportarPdfCompleto()"
-          matTooltip="PDF único: realizado set/25–jun/26 + projetado jul/26–dez/28">
-          <mat-icon>picture_as_pdf</mat-icon>
-          Relatório Completo
-        </button>
+      <button class="global-export-btn-min" (click)="exportarPdfCompleto()"
+        matTooltip="PDF único: realizado set/25–jun/26 + projetado jul/26–dez/28">
+        <mat-icon>picture_as_pdf</mat-icon>
+        Relatório Completo
+      </button>
       }
     </div>
 
-  <!-- ── Histórico por Projeto ── -->
-  <mat-card class="hist-card" appearance="outlined">
-    <button class="acc-toggle" (click)="histAberto = !histAberto">
-      <div class="acc-toggle-left">
-        <mat-icon>stacked_bar_chart</mat-icon>
-        <span>Rendimento por Projeto</span>
-        <span class="acc-hint">histórico mensal — período disponível</span>
-      </div>
-      <div class="hist-toggle-right">
-        @if (!isLoading && !somaVerificacao.bate) {
+    <!-- ── Histórico por Projeto ── -->
+    <mat-card class="hist-card" appearance="outlined">
+      <button class="acc-toggle" (click)="histAberto = !histAberto">
+        <div class="acc-toggle-left">
+          <mat-icon>stacked_bar_chart</mat-icon>
+          <span>Rendimento por Projeto</span>
+          <span class="acc-hint">histórico mensal — período disponível</span>
+        </div>
+        <div class="hist-toggle-right">
+          @if (!isLoading && !somaVerificacao.bate) {
           <span class="verif-badge err">
             <mat-icon>warning</mat-icon>divergência detectada
           </span>
-        }
-        <mat-icon class="acc-chevron" [class.open]="histAberto">expand_more</mat-icon>
-      </div>
-    </button>
-
-    <div class="acc-body" [class.open]="histAberto">
-      <div class="acc-body-inner">
-      <div class="hist-body">
-        @if (isLoading) {
-          @for (i of [1,2,3,4]; track i) {
-            <div class="proj-acc-skel"></div>
           }
-        } @else {
-          @for (p of historicoPorProjeto; track p.projeto) {
+          <mat-icon class="acc-chevron" [class.open]="histAberto">expand_more</mat-icon>
+        </div>
+      </button>
+
+      <div class="acc-body" [class.open]="histAberto">
+        <div class="acc-body-inner">
+          <div class="hist-body">
+            @if (isLoading) {
+            @for (i of [1,2,3,4]; track i) {
+            <div class="proj-acc-skel"></div>
+            }
+            } @else {
+            @for (p of historicoPorProjeto; track p.projeto) {
             <div class="proj-acc-item">
 
               <!-- Cabeçalho do projeto -->
@@ -259,8 +270,7 @@
 
               <!-- Barra de participação do projeto -->
               <div class="proj-pct-bar-wrap">
-                <div class="proj-pct-bar-fill"
-                  [style.width.%]="p.pctTotal"
+                <div class="proj-pct-bar-fill" [style.width.%]="p.pctTotal"
                   [style.background]="'linear-gradient(90deg,' + p.cor + 'cc,' + p.cor + '55)'">
                 </div>
               </div>
@@ -279,35 +289,33 @@
                     </thead>
                     <tbody>
                       @for (m of p.meses; track m.mesAno) {
-                        <tr>
-                          <td class="col-mes mes-lbl">{{ m.mesAno }}</td>
-                          <td class="col-pct">
-                            <div class="pct-cell">
-                              <div class="pct-bar-track">
-                                <div class="pct-bar-fill"
-                                  [style.width.%]="m.pctParticipacao"
-                                  [style.background]="p.cor">
-                                </div>
-                              </div>
-                              <span class="pct-num" [style.color]="p.cor">
-                                {{ m.pctParticipacao | number:'1.1-1' }}%
-                              </span>
-                            </div>
-                          </td>
-                          <td class="col-rend num rend-val">
-                            +{{ m.rendimentoMes | currency:'BRL':'symbol':'1.2-2' }}
-                          </td>
-                          <td class="col-acum num">
-                            <div class="acum-cell">
-                              <span class="acum-num">{{ m.rendimentoAcumulado | currency:'BRL':'symbol':'1.2-2' }}</span>
-                              <div class="acum-mini-bar">
-                                <div class="acum-mini-fill"
-                                  [style.width.%]="(m.rendimentoAcumulado / p.totalAcumulado) * 100">
-                                </div>
+                      <tr>
+                        <td class="col-mes mes-lbl">{{ m.mesAno }}</td>
+                        <td class="col-pct">
+                          <div class="pct-cell">
+                            <div class="pct-bar-track">
+                              <div class="pct-bar-fill" [style.width.%]="m.pctParticipacao" [style.background]="p.cor">
                               </div>
                             </div>
-                          </td>
-                        </tr>
+                            <span class="pct-num" [style.color]="p.cor">
+                              {{ m.pctParticipacao | number:'1.1-1' }}%
+                            </span>
+                          </div>
+                        </td>
+                        <td class="col-rend num rend-val">
+                          +{{ m.rendimentoMes | currency:'BRL':'symbol':'1.2-2' }}
+                        </td>
+                        <td class="col-acum num">
+                          <div class="acum-cell">
+                            <span class="acum-num">{{ m.rendimentoAcumulado | currency:'BRL':'symbol':'1.2-2' }}</span>
+                            <div class="acum-mini-bar">
+                              <div class="acum-mini-fill"
+                                [style.width.%]="(m.rendimentoAcumulado / p.totalAcumulado) * 100">
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                       }
                       <!-- Linha de verificação -->
                       <tr class="verif-row">
@@ -323,98 +331,100 @@
                 </div>
               </div>
             </div>
-          }
+            }
 
-          <!-- Rodapé de verificação global -->
-          <div class="hist-footer">
-            <div class="hist-footer-left">
-              <mat-icon>functions</mat-icon>
-              <span>Soma de todos os projetos</span>
+            <!-- Rodapé de verificação global -->
+            <div class="hist-footer">
+              <div class="hist-footer-left">
+                <mat-icon>functions</mat-icon>
+                <span>Soma de todos os projetos</span>
+              </div>
+              <div class="hist-footer-right" [class.ok]="somaVerificacao.bate" [class.err]="!somaVerificacao.bate">
+                <span class="soma-val">{{ somaVerificacao.totalProjetos | currency:'BRL':'symbol':'1.2-2' }}</span>
+                @if (somaVerificacao.bate) {
+                <span class="soma-eq">= saldo disponível {{ somaVerificacao.totalGeral | currency:'BRL':'symbol':'1.2-2'
+                  }} ✓</span>
+                } @else {
+                <span class="soma-eq">≠ saldo disponível {{ somaVerificacao.totalGeral | currency:'BRL':'symbol':'1.2-2'
+                  }} ✗</span>
+                }
+              </div>
             </div>
-            <div class="hist-footer-right" [class.ok]="somaVerificacao.bate" [class.err]="!somaVerificacao.bate">
-              <span class="soma-val">{{ somaVerificacao.totalProjetos | currency:'BRL':'symbol':'1.2-2' }}</span>
-              @if (somaVerificacao.bate) {
-                <span class="soma-eq">= saldo disponível {{ somaVerificacao.totalGeral | currency:'BRL':'symbol':'1.2-2' }} ✓</span>
-              } @else {
-                <span class="soma-eq">≠ saldo disponível {{ somaVerificacao.totalGeral | currency:'BRL':'symbol':'1.2-2' }} ✗</span>
-              }
-            </div>
-          </div>
-        }
-      </div>
-      </div>
-    </div>
-  </mat-card>
-
-  <!-- ── Previsão de Rendimentos Futuros ── -->
-  <mat-card class="prev-card" appearance="outlined">
-    <button class="acc-toggle" (click)="prevAberto = !prevAberto">
-      <div class="acc-toggle-left">
-        <mat-icon>query_stats</mat-icon>
-        <span>Previsão de Rendimentos Futuros</span>
-        <span class="acc-hint">jul/2026–dez/2028 — metodologia proporcional</span>
-      </div>
-      <div class="hist-toggle-right">
-        <mat-icon class="acc-chevron" [class.open]="prevAberto">expand_more</mat-icon>
-      </div>
-    </button>
-
-    <div class="acc-body" [class.open]="prevAberto">
-      <div class="acc-body-inner">
-      <div class="prev-body">
-
-        <div class="prev-totais">
-          <div class="pt-card pt-realizado">
-            <mat-icon class="pt-icon">check_circle</mat-icon>
-            <span class="pt-label">Realizado</span>
-            <span class="pt-period">set/25–jun/26</span>
-            <span class="pt-value">{{ prevTotais.hist | currency:'BRL':'symbol':'1.2-2' }}</span>
-          </div>
-          <div class="pt-connector">+</div>
-          <div class="pt-card pt-proj26">
-            <mat-icon class="pt-icon">trending_up</mat-icon>
-            <span class="pt-label">Projeção</span>
-            <span class="pt-period">jul–dez/2026</span>
-            <span class="pt-value">{{ prevTotais.proj2026 | currency:'BRL':'symbol':'1.2-2' }}</span>
-          </div>
-          <div class="pt-connector">+</div>
-          <div class="pt-card pt-proj27">
-            <mat-icon class="pt-icon">trending_up</mat-icon>
-            <span class="pt-label">Projeção</span>
-            <span class="pt-period">jan–dez/2027</span>
-            <span class="pt-value">{{ prevTotais.proj2027 | currency:'BRL':'symbol':'1.2-2' }}</span>
-          </div>
-          <div class="pt-connector">+</div>
-          <div class="pt-card pt-proj28">
-            <mat-icon class="pt-icon">trending_up</mat-icon>
-            <span class="pt-label">Projeção</span>
-            <span class="pt-period">jan–dez/2028</span>
-            <span class="pt-value">{{ prevTotais.proj2028 | currency:'BRL':'symbol':'1.2-2' }}</span>
-          </div>
-          <div class="pt-connector pt-eq">=</div>
-          <div class="pt-card pt-total">
-            <mat-icon class="pt-icon">account_balance_wallet</mat-icon>
-            <span class="pt-label">Total Geral</span>
-            <span class="pt-period">set/25–dez/28</span>
-            <span class="pt-value">{{ prevTotais.geral | currency:'BRL':'symbol':'1.2-2' }}</span>
+            }
           </div>
         </div>
+      </div>
+    </mat-card>
 
-        @if (!previsaoCarregada) {
-          @for (i of [1,2,3,4]; track i) {
+    <!-- ── Previsão de Rendimentos Futuros ── -->
+    <mat-card class="prev-card" appearance="outlined">
+      <button class="acc-toggle" (click)="prevAberto = !prevAberto">
+        <div class="acc-toggle-left">
+          <mat-icon>query_stats</mat-icon>
+          <span>Previsão de Rendimentos Futuros</span>
+          <span class="acc-hint">jul/2026–dez/2028 — metodologia proporcional</span>
+        </div>
+        <div class="hist-toggle-right">
+          <mat-icon class="acc-chevron" [class.open]="prevAberto">expand_more</mat-icon>
+        </div>
+      </button>
+
+      <div class="acc-body" [class.open]="prevAberto">
+        <div class="acc-body-inner">
+          <div class="prev-body">
+
+            <div class="prev-totais">
+              <div class="pt-card pt-realizado">
+                <mat-icon class="pt-icon">check_circle</mat-icon>
+                <span class="pt-label">Realizado</span>
+                <span class="pt-period">set/25–jun/26</span>
+                <span class="pt-value">{{ prevTotais.hist | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="pt-connector">+</div>
+              <div class="pt-card pt-proj26">
+                <mat-icon class="pt-icon">trending_up</mat-icon>
+                <span class="pt-label">Projeção</span>
+                <span class="pt-period">jul–dez/2026</span>
+                <span class="pt-value">{{ prevTotais.proj2026 | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="pt-connector">+</div>
+              <div class="pt-card pt-proj27">
+                <mat-icon class="pt-icon">trending_up</mat-icon>
+                <span class="pt-label">Projeção</span>
+                <span class="pt-period">jan–dez/2027</span>
+                <span class="pt-value">{{ prevTotais.proj2027 | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="pt-connector">+</div>
+              <div class="pt-card pt-proj28">
+                <mat-icon class="pt-icon">trending_up</mat-icon>
+                <span class="pt-label">Projeção</span>
+                <span class="pt-period">jan–dez/2028</span>
+                <span class="pt-value">{{ prevTotais.proj2028 | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="pt-connector pt-eq">=</div>
+              <div class="pt-card pt-total">
+                <mat-icon class="pt-icon">account_balance_wallet</mat-icon>
+                <span class="pt-label">Total Geral</span>
+                <span class="pt-period">set/25–dez/28</span>
+                <span class="pt-value">{{ prevTotais.geral | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+
+            @if (!previsaoCarregada) {
+            @for (i of [1,2,3,4]; track i) {
             <div class="proj-acc-skel"></div>
-          }
-        } @else {
-          @for (p of previsaoPorProjeto; track p.projeto) {
+            }
+            } @else {
+            @for (p of previsaoPorProjeto; track p.projeto) {
             <div class="proj-acc-item">
               <button class="proj-acc-header" (click)="toggleProjPrev(p.projeto)">
                 <div class="proj-acc-left">
                   <span class="proj-dot" [style.background]="p.cor"></span>
                   <span class="proj-acc-name">{{ p.projeto }}</span>
                   @if (p.histAcum > 0) {
-                    <span class="proj-pct-pill" [style.background]="p.cor + '22'" [style.color]="p.cor">
-                      hist: {{ p.histAcum | currency:'BRL':'symbol':'1.0-0' }}
-                    </span>
+                  <span class="proj-pct-pill" [style.background]="p.cor + '22'" [style.color]="p.cor">
+                    hist: {{ p.histAcum | currency:'BRL':'symbol':'1.0-0' }}
+                  </span>
                   }
                 </div>
                 <div class="proj-acc-right">
@@ -431,8 +441,7 @@
               </button>
 
               <div class="proj-pct-bar-wrap">
-                <div class="proj-pct-bar-fill"
-                  [style.width.%]="(p.totalGeral / prevTotais.geral) * 100"
+                <div class="proj-pct-bar-fill" [style.width.%]="(p.totalGeral / prevTotais.geral) * 100"
                   [style.background]="'linear-gradient(90deg,' + p.cor + 'cc,' + p.cor + '55)'">
                 </div>
               </div>
@@ -451,29 +460,29 @@
                     </thead>
                     <tbody>
                       @for (m of p.meses; track m.mes) {
-                        <tr>
-                          <td class="col-mes mes-lbl">{{ m.label }}</td>
-                          <td class="col-pct">
-                            <div class="pct-cell">
-                              <div class="pct-bar-track">
-                                <div class="pct-bar-fill" [style.width.%]="m.pct" [style.background]="p.cor"></div>
-                              </div>
-                              <span class="pct-num" [style.color]="p.cor">{{ m.pct | number:'1.1-1' }}%</span>
+                      <tr>
+                        <td class="col-mes mes-lbl">{{ m.label }}</td>
+                        <td class="col-pct">
+                          <div class="pct-cell">
+                            <div class="pct-bar-track">
+                              <div class="pct-bar-fill" [style.width.%]="m.pct" [style.background]="p.cor"></div>
                             </div>
-                          </td>
-                          <td class="col-rend num rend-val">+{{ m.rendMes | currency:'BRL':'symbol':'1.2-2' }}</td>
-                          <td class="col-acum num">
-                            <div class="acum-cell">
-                              <span class="acum-num">{{ m.acumRun | currency:'BRL':'symbol':'1.2-2' }}</span>
-                              <div class="acum-mini-bar">
-                                <div class="acum-mini-fill"
-                                  [style.width.%]="p.projTotal > 0 ? (m.acumRun / p.projTotal) * 100 : 0">
-                                </div>
+                            <span class="pct-num" [style.color]="p.cor">{{ m.pct | number:'1.1-1' }}%</span>
+                          </div>
+                        </td>
+                        <td class="col-rend num rend-val">+{{ m.rendMes | currency:'BRL':'symbol':'1.2-2' }}</td>
+                        <td class="col-acum num">
+                          <div class="acum-cell">
+                            <span class="acum-num">{{ m.acumRun | currency:'BRL':'symbol':'1.2-2' }}</span>
+                            <div class="acum-mini-bar">
+                              <div class="acum-mini-fill"
+                                [style.width.%]="p.projTotal > 0 ? (m.acumRun / p.projTotal) * 100 : 0">
                               </div>
                             </div>
-                          </td>
-                          <td class="col-saldo num saldo-est">{{ m.saldoFin | currency:'BRL':'symbol':'1.0-0' }}</td>
-                        </tr>
+                          </div>
+                        </td>
+                        <td class="col-saldo num saldo-est">{{ m.saldoFin | currency:'BRL':'symbol':'1.0-0' }}</td>
+                      </tr>
                       }
                       <tr class="verif-row">
                         <td colspan="4" class="verif-lbl">
@@ -486,13 +495,13 @@
                 </div>
               </div>
             </div>
-          }
-        }
+            }
+            }
 
+          </div>
+        </div>
       </div>
-      </div>
-    </div>
-  </mat-card>
+    </mat-card>
 
   </div><!-- /rend-section -->
 
@@ -516,89 +525,89 @@
 
 <!-- ── Modal: Atribuição por Projeto ── -->
 @if (mesAnoSelecionado) {
-  <div class="modal-overlay" (click)="fecharDetalhe()">
-    <div class="modal-panel" (click)="$event.stopPropagation()">
+<div class="modal-overlay" (click)="fecharDetalhe()">
+  <div class="modal-panel" (click)="$event.stopPropagation()">
 
-      <div class="modal-header">
-        <div class="modal-header-left">
-          <div class="modal-month-badge">
-            <mat-icon>trending_up</mat-icon>
-          </div>
-          <div>
-            <h2 class="modal-title">{{ mesAnoSelecionado }}</h2>
-            <p class="modal-subtitle">Atribuição proporcional por projeto</p>
-          </div>
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-month-badge">
+          <mat-icon>trending_up</mat-icon>
         </div>
-        <button class="modal-close" (click)="fecharDetalhe()">
-          <mat-icon>close</mat-icon>
-        </button>
+        <div>
+          <h2 class="modal-title">{{ mesAnoSelecionado }}</h2>
+          <p class="modal-subtitle">Atribuição proporcional por projeto</p>
+        </div>
       </div>
+      <button class="modal-close" (click)="fecharDetalhe()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
 
-      <!-- Totais do mês -->
-      <div class="modal-totais">
-        <div class="modal-total-item">
-          <span class="mt-label">Bruto</span>
-          <span class="mt-value text-green">{{ detalheBrutoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+    <!-- Totais do mês -->
+    <div class="modal-totais">
+      <div class="modal-total-item">
+        <span class="mt-label">Bruto</span>
+        <span class="mt-value text-green">{{ detalheBrutoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+      </div>
+      <div class="mt-sep"></div>
+      <div class="modal-total-item">
+        <span class="mt-label">Impostos</span>
+        <span class="mt-value text-red">{{ detalheImpMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+      </div>
+      <div class="mt-sep"></div>
+      <div class="modal-total-item">
+        <span class="mt-label">Líquido</span>
+        <span class="mt-value text-blue">{{ detalheLiquidoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+      </div>
+      <div class="mt-sep"></div>
+      <div class="modal-total-item">
+        <span class="mt-label">Acumulado</span>
+        <span class="mt-value" [class.text-green]="detalheAcumulado >= 0" [class.text-red]="detalheAcumulado < 0">
+          {{ detalheAcumulado | currency:'BRL':'symbol':'1.2-2' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Lista por projeto -->
+    <div class="modal-proj-list">
+      @for (d of detalhesRend; track d.projeto) {
+      <div class="modal-proj-item">
+        <div class="proj-item-head">
+          <div class="proj-color-dot" [style.background]="d.cor"></div>
+          <span class="proj-name">{{ d.projeto }}</span>
+          <span class="proj-pct-badge" [style.border-color]="d.cor" [style.color]="d.cor">
+            {{ d.pctParticipacao | number:'1.1-1' }}%
+          </span>
+          <span class="proj-resultado text-green">
+            +{{ d.rendimentoAcumulado | currency:'BRL':'symbol':'1.2-2' }}
+          </span>
         </div>
-        <div class="mt-sep"></div>
-        <div class="modal-total-item">
-          <span class="mt-label">Impostos</span>
-          <span class="mt-value text-red">{{ detalheImpMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+
+        <!-- Barra de participação proporcional -->
+        <div class="proj-bar-row">
+          <span class="bar-label">Participação</span>
+          <div class="bar-track">
+            <div class="bar-fill" [style.width.%]="d.pctParticipacao" [style.background]="d.cor"></div>
+          </div>
+          <span class="bar-value text-green">+{{ d.rendimentoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
         </div>
-        <div class="mt-sep"></div>
-        <div class="modal-total-item">
-          <span class="mt-label">Líquido</span>
-          <span class="mt-value text-blue">{{ detalheLiquidoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
-        </div>
-        <div class="mt-sep"></div>
-        <div class="modal-total-item">
-          <span class="mt-label">Acumulado</span>
-          <span class="mt-value" [class.text-green]="detalheAcumulado >= 0" [class.text-red]="detalheAcumulado < 0">
-            {{ detalheAcumulado | currency:'BRL':'symbol':'1.2-2' }}
+
+        <!-- Saldo base -->
+        <div class="proj-bar-row">
+          <span class="bar-label">Saldo base</span>
+          <div class="bar-track" style="background:transparent"></div>
+          <span class="bar-value" [class.positive]="d.saldoProjeto >= 0" [class.negative]="d.saldoProjeto < 0">
+            {{ d.saldoProjeto | currency:'BRL':'symbol':'1.2-2' }}
           </span>
         </div>
       </div>
+      }
 
-      <!-- Lista por projeto -->
-      <div class="modal-proj-list">
-        @for (d of detalhesRend; track d.projeto) {
-          <div class="modal-proj-item">
-            <div class="proj-item-head">
-              <div class="proj-color-dot" [style.background]="d.cor"></div>
-              <span class="proj-name">{{ d.projeto }}</span>
-              <span class="proj-pct-badge" [style.border-color]="d.cor" [style.color]="d.cor">
-                {{ d.pctParticipacao | number:'1.1-1' }}%
-              </span>
-              <span class="proj-resultado text-green">
-                +{{ d.rendimentoAcumulado | currency:'BRL':'symbol':'1.2-2' }}
-              </span>
-            </div>
-
-            <!-- Barra de participação proporcional -->
-            <div class="proj-bar-row">
-              <span class="bar-label">Participação</span>
-              <div class="bar-track">
-                <div class="bar-fill" [style.width.%]="d.pctParticipacao" [style.background]="d.cor"></div>
-              </div>
-              <span class="bar-value text-green">+{{ d.rendimentoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-
-            <!-- Saldo base -->
-            <div class="proj-bar-row">
-              <span class="bar-label">Saldo base</span>
-              <div class="bar-track" style="background:transparent"></div>
-              <span class="bar-value" [class.positive]="d.saldoProjeto >= 0" [class.negative]="d.saldoProjeto < 0">
-                {{ d.saldoProjeto | currency:'BRL':'symbol':'1.2-2' }}
-              </span>
-            </div>
-          </div>
-        }
-
-        @if (detalhesRend.length === 0) {
-          <p class="empty-msg">Nenhum projeto com saldo positivo antes deste mês.</p>
-        }
-      </div>
-
+      @if (detalhesRend.length === 0) {
+      <p class="empty-msg">Nenhum projeto com saldo positivo antes deste mês.</p>
+      }
     </div>
+
   </div>
+</div>
 }
