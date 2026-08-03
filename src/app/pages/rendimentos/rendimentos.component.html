@@ -198,6 +198,17 @@
     </div>
   </mat-card>
 
+  <!-- ── Exportar Relatório Completo ── -->
+  @if (!isLoading && previsaoCarregada) {
+    <div class="global-export-row">
+      <button class="global-export-btn" (click)="exportarPdfCompleto()"
+        matTooltip="Gera um PDF único com realizado (set/25–jun/26) + projetado (jul/26–dez/28)">
+        <mat-icon>picture_as_pdf</mat-icon>
+        Exportar Relatório Completo — set/2025 a dez/2028
+      </button>
+    </div>
+  }
+
   <!-- ── Histórico por Projeto ── -->
   <mat-card class="hist-card" appearance="outlined">
     <button class="acc-toggle" (click)="histAberto = !histAberto">

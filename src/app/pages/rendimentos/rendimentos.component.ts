@@ -729,6 +729,152 @@ export class RendimentosComponent implements OnInit, OnDestroy {
                               bate: Math.abs(somaProj - expectedTotal) < 0.02 };
   }
 
+  exportarPdfCompleto(): void {
+    const brl = (v: number) =>
+      v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
+    const pct = (v: number) =>
+      v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    const hexToRgb = (hex: string): [number, number, number] => {
+      const h = hex.startsWith('#') ? hex : '#6366f1';
+      return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+    };
+    const tableOpts = (onParse: (d: any) => void) => ({
+      styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica', textColor: [30,30,50] as [number,number,number] },
+      headStyles: { fillColor: [55,65,81] as [number,number,number], textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 7.5 },
+      columnStyles: {
+        0: { cellWidth: 22, fontStyle: 'bold' as const, textColor: [80,80,110] as [number,number,number] },
+        1: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
+        2: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
+        3: { halign: 'right' as const, fontStyle: 'bold' as const },
+      },
+      tableLineColor: [220,225,235] as [number,number,number],
+      tableLineWidth: 0.2,
+      didParseCell: onParse,
+    });
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    let y = margin;
+    const dataGer = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    // ── Cabeçalho global ──
+    doc.setFillColor(20, 25, 50);
+    doc.rect(0, 0, W, 22, 'F');
+    this.addPdfLogos(doc, 22);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+    doc.text('Relatório Completo de Rendimentos — Impact Hub x Enap', margin, 10);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(160, 180, 220);
+    doc.text('Realizado set/2025–jun/2026  ·  Projetado jul/2026–dez/2028', margin, 16);
+    doc.setFontSize(7); doc.setTextColor(120, 145, 195);
+    doc.text(`Gerado em ${dataGer}`, margin, 21);
+    y = 28;
+
+    // ── Sumário global (4 colunas) ──
+    const totalUtilizado = this.resumo.porMes
+      .filter(m => this.isUtilizado(m.mesAno))
+      .reduce((sum, m) => sum + m.liquido, 0);
+    const boxH = 28;
+    doc.setFillColor(245, 247, 252);
+    doc.roundedRect(margin, y, W - margin * 2, boxH, 2, 2, 'F');
+    doc.setDrawColor(210, 215, 230); doc.setLineWidth(0.2);
+    doc.line(margin + 46, y + 4, margin + 46, y + boxH - 4);
+    const cols = [
+      { x: margin + 4,   label: 'UTILIZADO',  sub: 'dez/23–ago/25',    val: totalUtilizado,           note: 'já consumido — não distribuível', muted: true  },
+      { x: margin + 52,  label: 'DISPONÍVEL', sub: 'set/25–jun/26',    val: this.prevTotais.hist,      note: 'para distribuição',               muted: false },
+      { x: margin + 100, label: 'PROJETADO',  sub: 'jul/26–dez/28',    val: this.prevTotais.projTotal, note: 'estimado proporcional',           muted: false },
+      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',val: this.prevTotais.geral,    note: 'distribuível',                    muted: false },
+    ];
+    for (const col of cols) {
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(col.muted ? 130 : 80, col.muted ? 130 : 80, col.muted ? 140 : 110);
+      doc.text(col.label, col.x, y + 6);
+      doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+      doc.setTextColor(150, 150, 165);
+      doc.text(col.sub, col.x, y + 10.5);
+      doc.setFontSize(9.5); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(col.muted ? 140 : 20, col.muted ? 140 : 20, col.muted ? 150 : 40);
+      doc.text(brl(col.val), col.x, y + 18.5);
+      doc.setFontSize(5.5); doc.setFont('helvetica', 'normal');
+      doc.setTextColor(150, 150, 160);
+      doc.text(col.note, col.x, y + 23.5);
+    }
+    y += boxH + 8;
+
+    // ── PARTE 1: Realizado ──
+    doc.setFillColor(30, 30, 50);
+    doc.roundedRect(margin, y, W - margin * 2, 8, 1.5, 1.5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.text('PARTE 1 — RENDIMENTO REALIZADO  (set/2025 – jun/2026)', margin + 5, y + 5.5);
+    y += 12;
+
+    for (const p of this.historicoPorProjeto) {
+      const [r, g, b] = hexToRgb(p.cor.startsWith('#') ? p.cor : '#6366f1');
+      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 8, 'F');
+      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 8, 'F');
+      doc.setTextColor(20, 20, 40); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.text(p.projeto, margin + 7, y + 5.5);
+      doc.setTextColor(80, 80, 110); doc.setFontSize(8);
+      doc.text(pct(p.pctTotal) + ' do total', margin + 80, y + 5.5);
+      doc.setTextColor(20, 20, 40); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.text(brl(p.totalAcumulado), W - margin, y + 5.5, { align: 'right' });
+      y += 10;
+      const rows = p.meses.map(m => [m.mesAno, pct(m.pctParticipacao), '+' + brl(m.rendimentoMes), brl(m.rendimentoAcumulado)]);
+      rows.push(['Total acumulado', '', '', brl(p.totalAcumulado)]);
+      autoTable(doc, { startY: y, margin: { left: margin, right: margin }, head: [['Mês', 'Participação', 'Rend. do mês', 'Acumulado']], body: rows,
+        ...tableOpts((d: any) => {
+          if (d.row.index === rows.length - 1) { d.cell.styles.fillColor = [240,242,248]; d.cell.styles.textColor = [50,50,80]; d.cell.styles.fontStyle = 'bold'; }
+          else if (d.row.index % 2 === 1) { d.cell.styles.fillColor = [250,250,253]; }
+        }) });
+      y = (doc as any).lastAutoTable.finalY + 8;
+      if (y > 265 && p !== this.historicoPorProjeto[this.historicoPorProjeto.length - 1]) { doc.addPage(); y = margin; }
+    }
+
+    // ── PARTE 2: Projetado ──
+    doc.addPage(); y = margin;
+    doc.setFillColor(20, 30, 60);
+    doc.roundedRect(margin, y, W - margin * 2, 8, 1.5, 1.5, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.text('PARTE 2 — PREVISÃO DE RENDIMENTOS  (jul/2026 – dez/2028)', margin + 5, y + 5.5);
+    y += 12;
+
+    for (const p of this.previsaoPorProjeto) {
+      if (p.meses.length === 0) continue;
+      const [r, g, b] = hexToRgb(p.cor);
+      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 8, 'F');
+      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 8, 'F');
+      doc.setTextColor(20, 20, 40); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.text(p.projeto, margin + 7, y + 5.5);
+      doc.setTextColor(80, 80, 110); doc.setFontSize(7.5);
+      doc.text(`Hist.: ${brl(p.histAcum)}  |  Proj.: ${brl(p.projTotal)}`, margin + 70, y + 5.5);
+      doc.setTextColor(20, 20, 40); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.text(brl(p.totalGeral), W - margin, y + 5.5, { align: 'right' });
+      y += 10;
+      const rows = p.meses.map(m => [m.label, pct(m.pct), '+' + brl(m.rendMes), brl(m.acumRun)]);
+      rows.push(['Total projetado', '', '', brl(p.projTotal)]);
+      autoTable(doc, { startY: y, margin: { left: margin, right: margin }, head: [['Mês', 'Participação', 'Rend. est.', 'Acumulado proj.']], body: rows,
+        ...tableOpts((d: any) => {
+          if (d.row.index === rows.length - 1) { d.cell.styles.fillColor = [240,242,248]; d.cell.styles.textColor = [50,50,80]; d.cell.styles.fontStyle = 'bold'; }
+          else if (d.row.index % 2 === 1) { d.cell.styles.fillColor = [250,250,253]; }
+        }) });
+      y = (doc as any).lastAutoTable.finalY + 8;
+      if (y > 265 && p !== this.previsaoPorProjeto[this.previsaoPorProjeto.length - 1]) { doc.addPage(); y = margin; }
+    }
+
+    // ── Rodapé em todas as páginas ──
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7); doc.setTextColor(160, 160, 180); doc.setFont('helvetica', 'normal');
+      doc.text('Impact Hub x Enap — Relatório Completo de Rendimentos', margin, 292);
+      doc.text(`Página ${i} de ${pageCount}`, W - margin, 292, { align: 'right' });
+    }
+
+    doc.save(`relatorio-completo-rendimentos-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
   exportarPdf(): void {
     const brl = (v: number) =>
       v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
