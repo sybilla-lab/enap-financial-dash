@@ -220,17 +220,10 @@
         <span class="acc-hint">histórico mensal — período disponível</span>
       </div>
       <div class="hist-toggle-right">
-        @if (!isLoading) {
-          @if (!somaVerificacao.bate) {
-            <span class="verif-badge err">
-              <mat-icon>warning</mat-icon>divergência detectada
-            </span>
-          }
-          <button class="export-btn" (click)="exportarPdf(); $event.stopPropagation()"
-            matTooltip="Exportar PDF com todos os dados">
-            <mat-icon>picture_as_pdf</mat-icon>
-            <span>Exportar PDF</span>
-          </button>
+        @if (!isLoading && !somaVerificacao.bate) {
+          <span class="verif-badge err">
+            <mat-icon>warning</mat-icon>divergência detectada
+          </span>
         }
         <mat-icon class="acc-chevron" [class.open]="histAberto">expand_more</mat-icon>
       </div>
@@ -362,13 +355,6 @@
         <span class="acc-hint">jul/2026–dez/2028 — metodologia proporcional</span>
       </div>
       <div class="hist-toggle-right">
-        @if (previsaoCarregada) {
-          <button class="export-btn" (click)="exportarPdfPrevisao(); $event.stopPropagation()"
-            matTooltip="Exportar PDF da previsão">
-            <mat-icon>picture_as_pdf</mat-icon>
-            <span>Exportar PDF</span>
-          </button>
-        }
         <mat-icon class="acc-chevron" [class.open]="prevAberto">expand_more</mat-icon>
       </div>
     </button>

@@ -327,20 +327,18 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       .filter(m => this.isUtilizado(m.mesAno))
       .reduce((sum, m) => sum + m.liquido, 0);
 
-    const boxH = 28;
+    const boxH = 22;
     doc.setFillColor(245,247,252);
     doc.roundedRect(margin, y, W-margin*2, boxH, 2, 2, 'F');
-
-    // Divisor vertical entre coluna 1 e 2
     doc.setDrawColor(210,215,230);
     doc.setLineWidth(0.2);
     doc.line(margin + 46, y + 4, margin + 46, y + boxH - 4);
 
     const summaryData = [
-      { x: margin + 4,   label: 'UTILIZADO', sub: 'dez/23–ago/25', val: totalUtilizado, note: 'já consumido — não distribuível', muted: true  },
-      { x: margin + 52,  label: 'DISPONÍVEL', sub: 'set/25–jun/26', val: this.prevTotais.hist,      note: 'para distribuição',             muted: false },
-      { x: margin + 100, label: 'PROJETADO',  sub: 'jul/26–dez/28', val: this.prevTotais.projTotal, note: 'estimado proporcional',          muted: false },
-      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.', val: this.prevTotais.geral, note: 'distribuível',                  muted: false },
+      { x: margin + 4,   label: 'UTILIZADO', sub: 'dez/23–ago/25',    val: totalUtilizado,           muted: true  },
+      { x: margin + 52,  label: 'DISPONÍVEL', sub: 'set/25–jun/26',   val: this.prevTotais.hist,      muted: false },
+      { x: margin + 100, label: 'PROJETADO',  sub: 'jul/26–dez/28',   val: this.prevTotais.projTotal, muted: false },
+      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',val: this.prevTotais.geral,   muted: false },
     ];
     for (const col of summaryData) {
       doc.setFontSize(6.5); doc.setFont('helvetica','bold');
@@ -351,10 +349,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       doc.text(col.sub, col.x, y + 10.5);
       doc.setFontSize(9.5); doc.setFont('helvetica','bold');
       doc.setTextColor(col.muted ? 140 : 20, col.muted ? 140 : 20, col.muted ? 150 : 40);
-      doc.text(brl(col.val), col.x, y + 18.5);
-      doc.setFontSize(5.5); doc.setFont('helvetica','normal');
-      doc.setTextColor(150, 150, 160);
-      doc.text(col.note, col.x, y + 23.5);
+      doc.text(brl(col.val), col.x, y + 18);
     }
     y += boxH + 6;
 
@@ -762,16 +757,16 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     const totalUtilizado = this.resumo.porMes
       .filter(m => this.isUtilizado(m.mesAno))
       .reduce((sum, m) => sum + m.liquido, 0);
-    const boxH = 28;
+    const boxH = 22;
     doc.setFillColor(245, 247, 252);
     doc.roundedRect(margin, y, W - margin * 2, boxH, 2, 2, 'F');
     doc.setDrawColor(210, 215, 230); doc.setLineWidth(0.2);
     doc.line(margin + 46, y + 4, margin + 46, y + boxH - 4);
     const cols = [
-      { x: margin + 4,   label: 'UTILIZADO',  sub: 'dez/23–ago/25',    val: totalUtilizado,           note: 'já consumido — não distribuível', muted: true  },
-      { x: margin + 52,  label: 'DISPONÍVEL', sub: 'set/25–jun/26',    val: this.prevTotais.hist,      note: 'para distribuição',               muted: false },
-      { x: margin + 100, label: 'PROJETADO',  sub: 'jul/26–dez/28',    val: this.prevTotais.projTotal, note: 'estimado proporcional',           muted: false },
-      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',val: this.prevTotais.geral,    note: 'distribuível',                    muted: false },
+      { x: margin + 4,   label: 'UTILIZADO',  sub: 'dez/23–ago/25',    val: totalUtilizado,           muted: true  },
+      { x: margin + 52,  label: 'DISPONÍVEL', sub: 'set/25–jun/26',    val: this.prevTotais.hist,      muted: false },
+      { x: margin + 100, label: 'PROJETADO',  sub: 'jul/26–dez/28',    val: this.prevTotais.projTotal, muted: false },
+      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',val: this.prevTotais.geral,    muted: false },
     ];
     for (const col of cols) {
       doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
@@ -782,10 +777,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       doc.text(col.sub, col.x, y + 10.5);
       doc.setFontSize(9.5); doc.setFont('helvetica', 'bold');
       doc.setTextColor(col.muted ? 140 : 20, col.muted ? 140 : 20, col.muted ? 150 : 40);
-      doc.text(brl(col.val), col.x, y + 18.5);
-      doc.setFontSize(5.5); doc.setFont('helvetica', 'normal');
-      doc.setTextColor(150, 150, 160);
-      doc.text(col.note, col.x, y + 23.5);
+      doc.text(brl(col.val), col.x, y + 18);
     }
     y += boxH + 8;
 
@@ -810,17 +802,17 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       const totalGeral = histTotal + projTotal;
 
       // ── cabeçalho do projeto ──
-      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 10, 'F');
-      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 10, 'F');
+      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 14, 'F');
+      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 14, 'F');
       doc.setTextColor(20, 20, 40); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
-      doc.text(nome, margin + 7, y + 6.5);
-      doc.setTextColor(80, 80, 110); doc.setFontSize(7);
+      doc.text(nome, margin + 7, y + 8);
+      doc.setTextColor(80, 80, 110); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
       if (hist && prev?.meses.length) {
-        doc.text(`Realizado: ${brl(histTotal)}  +  Projetado: ${brl(projTotal)}`, margin + 7, y + 10.5 - 2);
+        doc.text(`Realizado: ${brl(histTotal)}  +  Projetado: ${brl(projTotal)}`, margin + 7, y + 12);
       }
       doc.setTextColor(20, 20, 40); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      doc.text(brl(totalGeral), W - margin, y + 6.5, { align: 'right' });
-      y += 13;
+      doc.text(brl(totalGeral), W - margin, y + 8, { align: 'right' });
+      y += 17;
 
       // ── monta rows unificadas ──
       const histRows: string[][] = (hist?.meses ?? []).map(m => [
