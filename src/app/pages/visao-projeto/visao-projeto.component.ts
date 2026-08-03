@@ -795,12 +795,6 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     const allMonthsSorted = [...this.rendResumoData.porMes]
       .sort((a, b) => mesKeyNum(a.mesAno) - mesKeyNum(b.mesAno));
 
-    // Mesmo ponto de início que rendimentos.component: primeiro mês "disponível"
-    const firstDispMc = allMonthsSorted.reduce((acc, m) => {
-      const isDisp = (this.rendUtilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
-      return isDisp && acc === Infinity ? mesKeyNum(m.mesAno) : acc;
-    }, Infinity);
-
     const runningBalance = new Map<string, number>();
     let lIdx = 0;
     let accumProject = 0;
@@ -833,9 +827,6 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
           runningBalance.set(p, 0);
         }
       });
-
-      // Só distribui a partir do primeiro mês "disponível" — mesmo critério do modal de rendimentos
-      if (mc < firstDispMc) continue;
 
       const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
       const toDistribute = mes.liquido + undistributed;
