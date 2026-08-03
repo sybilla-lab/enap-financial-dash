@@ -268,18 +268,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.rect(0, 0, W, 22, 'F');
     doc.setTextColor(255,255,255);
     doc.setFontSize(13); doc.setFont('helvetica','bold');
-    doc.text('Previsão de Rendimentos — FinControl ENAP', margin, 10);
+    doc.text('Previsão de Rendimentos — Impact Hub x Enap', margin, 10);
     doc.setFontSize(8); doc.setFont('helvetica','normal');
     doc.setTextColor(160,180,220);
-    doc.text('Projeção jul/2026–dez/2028 — Metodologia proporcional (EM REVISÃO)', margin, 16);
+    doc.text('Projeção jul/2026–dez/2028 — Metodologia proporcional', margin, 16);
     doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, W - margin, 16, { align: 'right' });
     y = 28;
-
-    doc.setFillColor(255, 247, 230);
-    doc.roundedRect(margin, y, W - margin*2, 10, 2, 2, 'F');
-    doc.setTextColor(180, 100, 0); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-    doc.text('⚠ VALORES ESTIMADOS — Sujeitos a revisão. Não validados pelo Impact Hub.', margin+4, y+6.5);
-    y += 16;
 
     doc.setFillColor(245,247,252);
     doc.roundedRect(margin, y, W-margin*2, 18, 2, 2, 'F');
@@ -290,7 +284,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setFontSize(10); doc.setTextColor(20,20,40);
     doc.text(brl(this.prevTotais.hist), margin+4, y+13);
     doc.text(brl(this.prevTotais.projTotal), margin+60, y+13);
-    doc.setTextColor(99,102,241);
+    doc.setTextColor(50,50,80);
     doc.text(brl(this.prevTotais.geral), margin+118, y+13);
     y += 24;
 
@@ -301,7 +295,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       doc.setFillColor(248,249,252); doc.rect(margin+3, y, W-margin*2-3, 8, 'F');
       doc.setTextColor(20,20,40); doc.setFontSize(9); doc.setFont('helvetica','bold');
       doc.text(p.projeto, margin+7, y+5.5);
-      doc.setTextColor(r,g,b); doc.setFontSize(7.5);
+      doc.setTextColor(80,80,110); doc.setFontSize(7.5);
       doc.text(`Hist.: ${brl(p.histAcum)}  |  Proj.: ${brl(p.projTotal)}`, margin+70, y+5.5);
       doc.setTextColor(20,20,40); doc.setFont('helvetica','bold'); doc.setFontSize(9);
       doc.text(brl(p.totalGeral), W-margin, y+5.5, { align: 'right' });
@@ -314,17 +308,17 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         head: [['Mês','Participação','Rend. projetado','Acumulado proj.']],
         body: rows,
         styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica', textColor: [30,30,50] },
-        headStyles: { fillColor: [r,g,b], textColor: [255,255,255], fontStyle: 'bold', fontSize: 7.5 },
+        headStyles: { fillColor: [55,65,81], textColor: [255,255,255], fontStyle: 'bold', fontSize: 7.5 },
         columnStyles: {
           0: { cellWidth: 22, fontStyle: 'bold', textColor: [80,80,110] },
-          1: { halign: 'right', textColor: [r,g,b], fontStyle: 'bold' },
-          2: { halign: 'right', textColor: [5,150,105], fontStyle: 'bold' },
+          1: { halign: 'right', textColor: [80,80,110], fontStyle: 'bold' },
+          2: { halign: 'right', textColor: [80,80,110], fontStyle: 'bold' },
           3: { halign: 'right', fontStyle: 'bold' },
         },
         didParseCell: (data: any) => {
           if (data.row.index === rows.length - 1) {
-            data.cell.styles.fillColor = [236,253,245];
-            data.cell.styles.textColor = [5,150,105];
+            data.cell.styles.fillColor = [240,242,248];
+            data.cell.styles.textColor = [50,50,80];
             data.cell.styles.fontStyle = 'bold';
           } else if (data.row.index % 2 === 1) {
             data.cell.styles.fillColor = [250,250,253];
@@ -342,7 +336,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(7); doc.setTextColor(160,160,180); doc.setFont('helvetica','normal');
-      doc.text('FinControl ENAP — Previsão de Rendimentos (EM REVISÃO)', margin, 292);
+      doc.text('Impact Hub x Enap — Previsão de Rendimentos', margin, 292);
       doc.text(`Página ${i} de ${pageCount}`, W-margin, 292, { align: 'right' });
     }
     doc.save(`previsao-rendimentos-${new Date().toISOString().slice(0,10)}.pdf`);
@@ -687,7 +681,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('Rendimento por Projeto — FinControl ENAP', margin, 10);
+    doc.text('Rendimento por Projeto — Impact Hub x Enap', margin, 10);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(180, 180, 210);
@@ -733,7 +727,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.text(p.projeto, margin + 7, y + 5.5);
-      doc.setTextColor(r, g, b);
+      doc.setTextColor(80, 80, 110);
       doc.setFontSize(8);
       doc.text(pct(p.pctTotal) + ' do total', margin + 80, y + 5.5);
       doc.setTextColor(20, 20, 40);
@@ -758,22 +752,22 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         body: rows,
         styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica', textColor: [30, 30, 50] },
         headStyles: {
-          fillColor: [r, g, b],
+          fillColor: [55, 65, 81],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 7.5,
         },
         columnStyles: {
           0: { cellWidth: 22, fontStyle: 'bold', textColor: [80, 80, 110] },
-          1: { halign: 'right', textColor: [r, g, b], fontStyle: 'bold' },
-          2: { halign: 'right', textColor: [5, 150, 105], fontStyle: 'bold' },
+          1: { halign: 'right', textColor: [80, 80, 110], fontStyle: 'bold' },
+          2: { halign: 'right', textColor: [80, 80, 110], fontStyle: 'bold' },
           3: { halign: 'right', fontStyle: 'bold' },
         },
         didParseCell: (data: any) => {
           const isTotal = data.row.index === rows.length - 1;
           if (isTotal) {
-            data.cell.styles.fillColor = [236, 253, 245];
-            data.cell.styles.textColor = [5, 150, 105];
+            data.cell.styles.fillColor = [240, 242, 248];
+            data.cell.styles.textColor = [50, 50, 80];
             data.cell.styles.fontStyle = 'bold';
           } else if (data.row.index % 2 === 1) {
             data.cell.styles.fillColor = [250, 250, 253];
@@ -798,7 +792,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       doc.setFontSize(7);
       doc.setTextColor(160, 160, 180);
       doc.setFont('helvetica', 'normal');
-      doc.text('FinControl ENAP — Estratégia de Inovação Aberta', margin, 292);
+      doc.text('Impact Hub x Enap — Estratégia de Inovação Aberta', margin, 292);
       doc.text(`Página ${i} de ${pageCount}`, W - margin, 292, { align: 'right' });
     }
 
