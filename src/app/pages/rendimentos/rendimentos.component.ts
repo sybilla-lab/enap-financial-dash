@@ -828,7 +828,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         : [];
       // índices para colorir: separador = histRows.length, total = última linha
       const sepIdx = histRows.length > 0 && prevRows.length > 0 ? histRows.length : -1;
-      const separatorRow = sepIdx >= 0 ? [['▸ PROJETADO', '', '', '']] : [];
+      const separatorRow = sepIdx >= 0
+        ? [[{ content: '▸  PROJETADO', colSpan: 4, styles: { fillColor: [30,30,50] as [number,number,number], textColor: [200,210,240] as [number,number,number], fontStyle: 'bold' as const, fontSize: 7, halign: 'center' as const } }]]
+        : [];
       const totalRow = [brl(totalGeral).replace('R$','Total  R$'), '', '', brl(totalGeral)];
       const allRows = [...histRows, ...separatorRow, ...prevRows, totalRow];
       const totalIdx = allRows.length - 1;
@@ -841,7 +843,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica', textColor: [30,30,50] as [number,number,number] },
         headStyles: { fillColor: [55,65,81] as [number,number,number], textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 7.5 },
         columnStyles: {
-          0: { cellWidth: 28, fontStyle: 'bold' as const, textColor: [80,80,110] as [number,number,number] },
+          0: { cellWidth: 28, halign: 'center' as const, fontStyle: 'bold' as const, textColor: [80,80,110] as [number,number,number] },
           1: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
           2: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
           3: { halign: 'right' as const, fontStyle: 'bold' as const },
@@ -851,8 +853,6 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         didParseCell: (d: any) => {
           if (d.row.index === totalIdx) {
             d.cell.styles.fillColor = [240,242,248]; d.cell.styles.textColor = [50,50,80]; d.cell.styles.fontStyle = 'bold';
-          } else if (d.row.index === sepIdx) {
-            d.cell.styles.fillColor = [30,30,50]; d.cell.styles.textColor = [200,210,240]; d.cell.styles.fontStyle = 'bold'; d.cell.styles.fontSize = 7;
           } else if (d.row.index < sepIdx || sepIdx < 0 && d.row.index < totalIdx) {
             if (d.row.index % 2 === 1) d.cell.styles.fillColor = [250,250,253];
           } else if (d.row.index > sepIdx && d.row.index < totalIdx) {
