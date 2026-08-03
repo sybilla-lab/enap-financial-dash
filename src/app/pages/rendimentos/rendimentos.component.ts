@@ -113,6 +113,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   previsaoPorProjeto: ProjetoPrev[] = [];
   prevTotais = { hist: 467078.70, proj2026: 0, proj2027: 0, proj2028: 0, projTotal: 0, geral: 0 };
 
+  private logoIH = '';   private logoIHW = 0;   private logoIHH = 0;
+  private logoEnap = ''; private logoEnapW = 0; private logoEnapH = 0;
+
 
   get maxAcumulado(): number {
     return Math.max(...this.porMesCorrigido.map(m => Math.abs(m.acumulado)), 1);
@@ -248,6 +251,49 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     this.previsaoCarregada = true;
   }
 
+  private preloadLogo(url: string): Promise<{data: string; w: number; h: number}> {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d')!.drawImage(img, 0, 0);
+        resolve({ data: canvas.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight });
+      };
+      img.onerror = () => resolve({ data: '', w: 0, h: 0 });
+      img.src = url;
+    });
+  }
+
+  private addPdfLogos(doc: jsPDF, headerH: number): void {
+    const W = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    const logoH = 9;
+    const padX = 4;
+    const padV = 3;
+
+    const logos: Array<{data: string; w: number; h: number}> = [];
+    if (this.logoIH   && this.logoIHH   > 0) logos.push({ data: this.logoIH,   w: this.logoIHW,   h: this.logoIHH   });
+    if (this.logoEnap && this.logoEnapH > 0) logos.push({ data: this.logoEnap, w: this.logoEnapW, h: this.logoEnapH });
+    if (logos.length === 0) return;
+
+    const drawWidths = logos.map(l => logoH * (l.w / l.h));
+    const totalW = drawWidths.reduce((a, b) => a + b, 0) + (logos.length - 1) * padX + padX * 2;
+    const pillH  = logoH + padV * 2;
+    const pillX  = W - margin - totalW;
+    const pillY  = (headerH - pillH) / 2;
+
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(pillX, pillY, totalW, pillH, 2.5, 2.5, 'F');
+
+    let cx = pillX + padX;
+    for (let i = 0; i < logos.length; i++) {
+      doc.addImage(logos[i].data, 'PNG', cx, pillY + padV, drawWidths[i], logoH);
+      cx += drawWidths[i] + padX;
+    }
+  }
+
   exportarPdfPrevisao(): void {
     const brl = (v: number) =>
       v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
@@ -266,6 +312,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
     doc.setFillColor(20, 30, 60);
     doc.rect(0, 0, W, 22, 'F');
+    this.addPdfLogos(doc, 22);
     doc.setTextColor(255,255,255);
     doc.setFontSize(13); doc.setFont('helvetica','bold');
     doc.text('Previsão de Rendimentos — Impact Hub x Enap', margin, 10);
@@ -347,6 +394,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       this.http.get<{ results: CalcRendResult[] }>('/calc_rendimentos.json').subscribe(data => {
         this.computarPrevisao(data.results ?? []);
       });
+      this.preloadLogo('/logo-impacthub.png').then(r => { this.logoIH = r.data; this.logoIHW = r.w; this.logoIHH = r.h; });
+      this.preloadLogo('/logo-enap.png').then(r => { this.logoEnap = r.data; this.logoEnapW = r.w; this.logoEnapH = r.h; });
     }
 
     this.dataService.getRendimentoResumo().subscribe((r) => {
@@ -678,6 +727,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     // ── Cabeçalho ──
     doc.setFillColor(30, 30, 50);
     doc.rect(0, 0, W, 22, 'F');
+    this.addPdfLogos(doc, 22);
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
