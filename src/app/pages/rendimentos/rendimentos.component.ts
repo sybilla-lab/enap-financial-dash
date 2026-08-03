@@ -772,19 +772,11 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL RENDIMENTOS', margin + 4, y + 5);
     doc.text('SOMA DOS PROJETOS', margin + 60, y + 5);
-    doc.text('VERIFICAÇÃO', margin + 118, y + 5);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(20, 20, 40);
     doc.text(brl(this.somaVerificacao.totalGeral), margin + 4, y + 12);
     doc.text(brl(this.somaVerificacao.totalProjetos), margin + 60, y + 12);
-    if (this.somaVerificacao.bate) {
-      doc.setTextColor(5, 150, 105);
-      doc.text('✓ Somas conferem', margin + 118, y + 12);
-    } else {
-      doc.setTextColor(220, 38, 38);
-      doc.text('✗ Divergência detectada', margin + 118, y + 12);
-    }
     y += 22;
 
     // ── Tabela por projeto ──
