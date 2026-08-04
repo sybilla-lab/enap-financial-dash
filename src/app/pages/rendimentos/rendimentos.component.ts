@@ -237,14 +237,26 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     for (const m of results) {
       const yr = parseInt(m.mes.substring(0, 4));
       const sheetsTotal = this._sheetsRendimentos.get(m.mes);
-      for (const p of PROJETOS_KEY) {
-        if (m.mes > (PROJ_END[p] ?? '2028-12')) continue;
-        const rend = sheetsTotal !== undefined
-          ? sheetsTotal * (m.proj_part[p] ?? 0)
-          : (m.proj_rend[p] ?? 0);
-        projTotal[p] += rend;
-        projPorAno[p][yr] = (projPorAno[p][yr] ?? 0) + rend;
-        bancoPorAno[yr] = (bancoPorAno[yr] ?? 0) + rend;
+
+      if (sheetsTotal !== undefined) {
+        // Planilha é a fonte de verdade — total do ano não passa pelo filtro de projetos
+        bancoPorAno[yr] = (bancoPorAno[yr] ?? 0) + sheetsTotal;
+        // Distribuição por projeto é só para exibição (accordion); usa proj_part do JSON
+        for (const p of PROJETOS_KEY) {
+          if (m.mes > (PROJ_END[p] ?? '2028-12')) continue;
+          const rend = sheetsTotal * (m.proj_part[p] ?? 0);
+          projTotal[p] += rend;
+          projPorAno[p][yr] = (projPorAno[p][yr] ?? 0) + rend;
+        }
+      } else {
+        // Fallback JSON: tudo derivado do JSON (meses além do alcance da planilha)
+        for (const p of PROJETOS_KEY) {
+          if (m.mes > (PROJ_END[p] ?? '2028-12')) continue;
+          const rend = m.proj_rend[p] ?? 0;
+          projTotal[p] += rend;
+          projPorAno[p][yr] = (projPorAno[p][yr] ?? 0) + rend;
+          bancoPorAno[yr] = (bancoPorAno[yr] ?? 0) + rend;
+        }
       }
     }
     const bancoTotal = Object.values(bancoPorAno).reduce((s, v) => s + v, 0);
