@@ -113,6 +113,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   previsaoPorProjeto: ProjetoPrev[] = [];
   prevTotais = { hist: 467078.70, proj2026: 0, proj2027: 0, proj2028: 0, projTotal: 0, geral: 0 };
   private _rawPrevResults: CalcRendResult[] = [];
+  private _sheetsRendimentos = new Map<string, number>(); // YYYY-MM → total do orçamento
   projFirstMes = '2026-07';     // YYYY-MM — primeiro mês da projeção (atualizado via resumo)
   projFirstLabel = 'jul/26';    // label curto do primeiro mês projetado
   projLastHistLabel = 'jun/26'; // label curto do último mês realizado
@@ -235,9 +236,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
     for (const m of results) {
       const yr = parseInt(m.mes.substring(0, 4));
+      const sheetsTotal = this._sheetsRendimentos.get(m.mes);
       for (const p of PROJETOS_KEY) {
         if (m.mes > (PROJ_END[p] ?? '2028-12')) continue;
-        const rend = m.proj_rend[p] ?? 0;
+        const rend = sheetsTotal !== undefined
+          ? sheetsTotal * (m.proj_part[p] ?? 0)
+          : (m.proj_rend[p] ?? 0);
         projTotal[p] += rend;
         projPorAno[p][yr] = (projPorAno[p][yr] ?? 0) + rend;
         bancoPorAno[yr] = (bancoPorAno[yr] ?? 0) + rend;
@@ -260,9 +264,15 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         const endDate = PROJ_END[p] ?? '2028-12';
         let acumRun = 0;
         const meses = results
-          .filter(m => m.mes <= endDate && (m.proj_rend[p] ?? 0) > 0.01)
+          .filter(m => m.mes <= endDate && (
+            (m.proj_rend[p] ?? 0) > 0.01 ||
+            ((this._sheetsRendimentos.get(m.mes) ?? 0) * (m.proj_part[p] ?? 0)) > 0.01
+          ))
           .map(m => {
-            const rendMes = Math.round((m.proj_rend[p] ?? 0) * 100) / 100;
+            const sheetsTotal = this._sheetsRendimentos.get(m.mes);
+            const rendMes = Math.round((sheetsTotal !== undefined
+              ? sheetsTotal * (m.proj_part[p] ?? 0)
+              : (m.proj_rend[p] ?? 0)) * 100) / 100;
             acumRun = Math.round((acumRun + rendMes) * 100) / 100;
             return { mes: m.mes, label: m.label, rendMes,
                      pct: (m.proj_part[p] ?? 0) * 100,
@@ -443,6 +453,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         this._rawPrevResults = data.results ?? [];
         this.computarPrevisao(this._rawPrevResults);
       });
+
+      this.dataService.getOrcamentoRendimentos().subscribe(mapa => {
+        this._sheetsRendimentos = mapa;
+        if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
+      });
+
       this.preloadLogo('/logo-impacthub.png').then(r => { this.logoIH = r.data; this.logoIHW = r.w; this.logoIHH = r.h; });
       this.preloadLogo('/logo-enap.png').then(r => { this.logoEnap = r.data; this.logoEnapW = r.w; this.logoEnapH = r.h; });
     }

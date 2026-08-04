@@ -642,6 +642,52 @@ export class DataService {
     return this.rendimentos$;
   }
 
+  // ===== ORÇAMENTO — Planilha DFC (rendimentos projetados por mês) =====
+  private readonly ORCAMENTO_BASE =
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQk5MAr4iJ1c7JubFqBVw8BPbcallMvsRdfFiIMQeSufBLRuYgZvQOYC79_vTyv0Q/pub?output=csv';
+
+  getOrcamentoRendimentos(): Observable<Map<string, number>> {
+    return this.http.get(this.ORCAMENTO_BASE, { responseType: 'text' }).pipe(
+      map(csv => this.parseOrcamentoRendimentos(csv))
+    );
+  }
+
+  private parseOrcamentoRendimentos(csv: string): Map<string, number> {
+    const MESES_PT: Record<string, string> = {
+      'jan': '01', 'fev': '02', 'mar': '03', 'abr': '04',
+      'mai': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+      'set': '09', 'out': '10', 'nov': '11', 'dez': '12',
+    };
+    const parsed = Papa.parse(csv, { header: false, skipEmptyLines: false });
+    const rows = parsed.data as string[][];
+    const result = new Map<string, number>();
+
+    let headerColMap: Map<number, string> = new Map(); // colIndex → YYYY-MM
+
+    for (const row of rows) {
+      // Detectar linha de cabeçalho com meses: "jan./26", "ago./26", etc.
+      const hasMonth = row.some(c => /^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.\//i.test(c.trim()));
+      if (hasMonth && headerColMap.size === 0) {
+        for (let i = 0; i < row.length; i++) {
+          const h = row[i].trim().toLowerCase().replace('.', '');  // "jan/26"
+          const [mon, yy] = h.split('/');
+          const m = MESES_PT[mon];
+          if (m && yy) headerColMap.set(i, `20${yy}-${m}`);
+        }
+        continue;
+      }
+      // Detectar linha "Rendimentos"
+      if (headerColMap.size > 0 && row[1]?.trim().toLowerCase() === 'rendimentos') {
+        headerColMap.forEach((mesKey, colIdx) => {
+          const val = this.parseValor(row[colIdx] ?? '');
+          if (val > 0) result.set(mesKey, val);
+        });
+        break;
+      }
+    }
+    return result;
+  }
+
   getRendimentoResumo(): Observable<{
     totalBruto: number;
     totalImpostos: number;
