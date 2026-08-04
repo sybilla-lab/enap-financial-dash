@@ -114,6 +114,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   prevTotais = { hist: 467078.70, proj2026: 0, proj2027: 0, proj2028: 0, projTotal: 0, geral: 0 };
   private _rawPrevResults: CalcRendResult[] = [];
   private _sheetsRendimentos = new Map<string, number>(); // YYYY-MM → total do orçamento
+  private _histAcumDynamic  = new Map<string, number>(); // PROJETOS_KEY → acumulado histórico real
   projFirstMes = '2026-07';     // YYYY-MM — primeiro mês da projeção (atualizado via resumo)
   projFirstLabel = 'jul/26';    // label curto do primeiro mês projetado
   projLastHistLabel = 'jun/26'; // label curto do último mês realizado
@@ -216,10 +217,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     this._rawPrevResults = results;
     results = results.filter(r => r.mes >= this.projFirstMes);
     const PROJETOS_KEY = ['Alimenta', 'CAR DPG', 'MDIC', 'Co.NE', 'Op. Básica'];
-    const HIST_ACUM: Record<string, number> = {
+    // Fallback hardcoded só até o histórico dinâmico (historicoPorProjeto) chegar
+    const HIST_ACUM_FB: Record<string, number> = {
       'Alimenta': 345942.81, 'CAR DPG': 64948.71,
       'Op. Básica': 33450.06, 'Co.NE': 22737.13, 'MDIC': 0,
     };
+    const histAcumFor = (p: string) => this._histAcumDynamic.get(p) ?? (HIST_ACUM_FB[p] ?? 0);
     const DISPLAY: Record<string, string> = {
       'Alimenta': 'Alimenta +1000 Cidades', 'CAR DPG': 'CAR DPG',
       'MDIC': 'Parceria MDIC', 'Co.NE': 'Co.NE', 'Op. Básica': 'Operação Básica',
@@ -272,7 +275,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
     this.previsaoPorProjeto = PROJETOS_KEY
       .map((p, i) => {
-        const histAcum = HIST_ACUM[p] ?? 0;
+        const histAcum = histAcumFor(p);
         const endDate = PROJ_END[p] ?? '2028-12';
         let acumRun = 0;
         const meses = results
@@ -783,6 +786,18 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     const somaProj = Math.round(this.historicoPorProjeto.reduce((s, p) => s + p.totalAcumulado, 0) * 100) / 100;
     this.somaVerificacao = { totalProjetos: somaProj, totalGeral: expectedTotal,
                               bate: Math.abs(somaProj - expectedTotal) < 0.02 };
+
+    // Atualiza o acumulado histórico por projeto para a seção de previsão
+    const HIST_KEY_MAP: Record<string, string> = {
+      'Alimenta +1000 Cidades': 'Alimenta', 'CAR DPG': 'CAR DPG',
+      'Operação Básica': 'Op. Básica', 'Co.NE': 'Co.NE', 'Parceria MDIC': 'MDIC',
+    };
+    this._histAcumDynamic.clear();
+    this.historicoPorProjeto.forEach(p => {
+      const key = HIST_KEY_MAP[p.projeto];
+      if (key) this._histAcumDynamic.set(key, p.totalAcumulado);
+    });
+    if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
   }
 
   exportarPdfCompleto(): void {
