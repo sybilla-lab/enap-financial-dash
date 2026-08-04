@@ -267,7 +267,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       proj2027: bancoPorAno[2027] ?? 0,
       proj2028: bancoPorAno[2028] ?? 0,
       projTotal: bancoTotal,
-      geral: this.prevHistTotal + bancoTotal,
+      geral: this.prevUtilizadoTotal + this.prevHistTotal + bancoTotal,
     };
 
     this.previsaoPorProjeto = PROJETOS_KEY
