@@ -188,6 +188,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     if (p) p.aberto = !p.aberto;
   }
 
+  prevUtilizadoTotal = 0;
+
   private deriveProjectionStart(): void {
     if (!this.resumo.porMes.length) return;
     const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -200,7 +202,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     this.projFirstMes = `${nextY}-${String(nextM).padStart(2, '0')}`;
     this.projFirstLabel = `${MESES[nextM - 1]}/${String(nextY).slice(2)}`;
     this.projLastHistLabel = `${MESES[lastM - 1]}/${String(lastY).slice(2)}`;
-    this.prevHistTotal = Math.round(sorted.reduce((s, m) => s + (m.liquido ?? 0), 0) * 100) / 100;
+    if (this.utilizacaoPorMes.size > 0) {
+      const isUtil = (m: { mesAno: string }) =>
+        (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() === 'utilizado';
+      this.prevHistTotal    = Math.round(sorted.filter(m => !isUtil(m)).reduce((s, m) => s + (m.liquido ?? 0), 0) * 100) / 100;
+      this.prevUtilizadoTotal = Math.round(sorted.filter(m =>  isUtil(m)).reduce((s, m) => s + (m.liquido ?? 0), 0) * 100) / 100;
+    }
     if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
   }
 
@@ -463,6 +470,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       });
       this.computarPorMesCorrigido();
       this.tryComputarHistorico();
+      this.deriveProjectionStart();
     });
 
     this.dataService.getSaldos().subscribe(saldos => {

@@ -374,9 +374,18 @@
           <div class="prev-body">
 
             <div class="prev-totais">
+              @if (prevUtilizadoTotal > 0) {
+              <div class="pt-card pt-utilizado">
+                <mat-icon class="pt-icon">history</mat-icon>
+                <span class="pt-label">Utilizado</span>
+                <span class="pt-period">dez/23–ago/25</span>
+                <span class="pt-value">{{ prevUtilizadoTotal | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="pt-connector">+</div>
+              }
               <div class="pt-card pt-realizado">
                 <mat-icon class="pt-icon">check_circle</mat-icon>
-                <span class="pt-label">Realizado</span>
+                <span class="pt-label">Disponível</span>
                 <span class="pt-period">set/25–{{ projLastHistLabel }}</span>
                 <span class="pt-value">{{ prevTotais.hist | currency:'BRL':'symbol':'1.2-2' }}</span>
               </div>
@@ -405,7 +414,7 @@
               <div class="pt-card pt-total">
                 <mat-icon class="pt-icon">account_balance_wallet</mat-icon>
                 <span class="pt-label">Total Geral</span>
-                <span class="pt-period">set/25–dez/28</span>
+                <span class="pt-period">dez/23–dez/28</span>
                 <span class="pt-value">{{ prevTotais.geral | currency:'BRL':'symbol':'1.2-2' }}</span>
               </div>
             </div>

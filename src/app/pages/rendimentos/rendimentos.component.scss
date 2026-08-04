@@ -940,6 +940,12 @@
     font-weight: 700;
     letter-spacing: -0.3px;
   }
+  &.pt-utilizado {
+    border-left-color: #94a3b8;
+    opacity: 0.7;
+    .pt-icon, .pt-value { color: #94a3b8; }
+    &::after { background: linear-gradient(90deg, #94a3b8, transparent); }
+  }
   &.pt-realizado {
     border-left-color: #10b981;
     .pt-icon, .pt-value { color: #10b981; }
