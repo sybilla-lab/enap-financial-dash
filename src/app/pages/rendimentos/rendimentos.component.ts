@@ -112,6 +112,11 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   previsaoCarregada = false;
   previsaoPorProjeto: ProjetoPrev[] = [];
   prevTotais = { hist: 467078.70, proj2026: 0, proj2027: 0, proj2028: 0, projTotal: 0, geral: 0 };
+  private _rawPrevResults: CalcRendResult[] = [];
+  projFirstMes = '2026-07';     // YYYY-MM — primeiro mês da projeção (atualizado via resumo)
+  projFirstLabel = 'jul/26';    // label curto do primeiro mês projetado
+  projLastHistLabel = 'jun/26'; // label curto do último mês realizado
+  prevHistTotal = 467078.70;    // total realizado (derivado de resumo.porMes)
 
   private logoIH = '';   private logoIHW = 0;   private logoIHH = 0;
   private logoEnap = ''; private logoEnapW = 0; private logoEnapH = 0;
@@ -183,7 +188,25 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     if (p) p.aberto = !p.aberto;
   }
 
+  private deriveProjectionStart(): void {
+    if (!this.resumo.porMes.length) return;
+    const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const sorted = [...this.resumo.porMes].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
+    const last = sorted[sorted.length - 1];
+    const [mm, yyyy] = last.mesAno.split('/');
+    const lastM = parseInt(mm), lastY = parseInt(yyyy);
+    const nextM = lastM === 12 ? 1 : lastM + 1;
+    const nextY = lastM === 12 ? lastY + 1 : lastY;
+    this.projFirstMes = `${nextY}-${String(nextM).padStart(2, '0')}`;
+    this.projFirstLabel = `${MESES[nextM - 1]}/${String(nextY).slice(2)}`;
+    this.projLastHistLabel = `${MESES[lastM - 1]}/${String(lastY).slice(2)}`;
+    this.prevHistTotal = Math.round(sorted.reduce((s, m) => s + (m.liquido ?? 0), 0) * 100) / 100;
+    if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
+  }
+
   private computarPrevisao(results: CalcRendResult[]): void {
+    this._rawPrevResults = results;
+    results = results.filter(r => r.mes >= this.projFirstMes);
     const PROJETOS_KEY = ['Alimenta', 'CAR DPG', 'MDIC', 'Co.NE', 'Op. Básica'];
     const HIST_ACUM: Record<string, number> = {
       'Alimenta': 345942.81, 'CAR DPG': 64948.71,
@@ -216,12 +239,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     const bancoTotal = Object.values(bancoPorAno).reduce((s, v) => s + v, 0);
 
     this.prevTotais = {
-      hist: 467078.70,
+      hist: this.prevHistTotal,
       proj2026: bancoPorAno[2026] ?? 0,
       proj2027: bancoPorAno[2027] ?? 0,
       proj2028: bancoPorAno[2028] ?? 0,
       projTotal: bancoTotal,
-      geral: 467078.70 + bancoTotal,
+      geral: this.prevHistTotal + bancoTotal,
     };
 
     this.previsaoPorProjeto = PROJETOS_KEY
@@ -318,7 +341,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.text('Previsão de Rendimentos — Impact Hub + Enap', margin, 10);
     doc.setFontSize(8); doc.setFont('helvetica','normal');
     doc.setTextColor(160,180,220);
-    doc.text('Projeção jul/2026–dez/2028 — Metodologia proporcional', margin, 16);
+    doc.text(`Projeção ${this.projFirstLabel.split('/')[0]}/${this.projFirstMes.split('-')[0]}–dez/2028 — Metodologia proporcional`, margin, 16);
     doc.setFontSize(7); doc.setTextColor(120,145,195);
     doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, margin, 21);
     y = 28;
@@ -335,10 +358,10 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.line(margin + 46, y + 4, margin + 46, y + boxH - 4);
 
     const summaryData = [
-      { x: margin + 4,   label: 'UTILIZADO', sub: 'dez/23–ago/25',    val: totalUtilizado,           muted: true  },
-      { x: margin + 52,  label: 'DISPONÍVEL', sub: 'set/25–jun/26',   val: this.prevTotais.hist,      muted: false },
-      { x: margin + 100, label: 'PROJETADO',  sub: 'jul/26–dez/28',   val: this.prevTotais.projTotal, muted: false },
-      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',val: this.prevTotais.geral,   muted: false },
+      { x: margin + 4,   label: 'UTILIZADO',  sub: 'dez/23–ago/25',                                          val: totalUtilizado,           muted: true  },
+      { x: margin + 52,  label: 'DISPONÍVEL', sub: `set/25–${this.projLastHistLabel}`,                        val: this.prevTotais.hist,      muted: false },
+      { x: margin + 100, label: 'PROJETADO',  sub: `${this.projFirstLabel}–dez/28`,                           val: this.prevTotais.projTotal, muted: false },
+      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',                                      val: this.prevTotais.geral,    muted: false },
     ];
     for (const col of summaryData) {
       doc.setFontSize(6.5); doc.setFont('helvetica','bold');
@@ -410,7 +433,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       this.http.get<{ results: CalcRendResult[] }>('/calc_rendimentos.json').subscribe(data => {
-        this.computarPrevisao(data.results ?? []);
+        this._rawPrevResults = data.results ?? [];
+        this.computarPrevisao(this._rawPrevResults);
       });
       this.preloadLogo('/logo-impacthub.png').then(r => { this.logoIH = r.data; this.logoIHW = r.w; this.logoIHH = r.h; });
       this.preloadLogo('/logo-enap.png').then(r => { this.logoEnap = r.data; this.logoEnapW = r.w; this.logoEnapH = r.h; });
@@ -421,6 +445,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       this.buildChart(r.porMes);
       this.computarPorMesCorrigido();
       this.tryComputarHistorico();
+      this.deriveProjectionStart();
       setTimeout(() => (this.isLoading = false), 1200);
     });
 
@@ -753,7 +778,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.text('Relatório Completo de Rendimentos — Impact Hub + Enap', margin, 10);
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
     doc.setTextColor(160, 180, 220);
-    doc.text('Realizado set/2025–jun/2026  ·  Projetado jul/2026–dez/2028', margin, 16);
+    doc.text(`Realizado set/2025–${this.projLastHistLabel.split('/')[0]}/20${this.projLastHistLabel.split('/')[1]}  ·  Projetado ${this.projFirstLabel.split('/')[0]}/20${this.projFirstLabel.split('/')[1]}–dez/2028`, margin, 16);
     doc.setFontSize(7); doc.setTextColor(120, 145, 195);
     doc.text(`Gerado em ${dataGer}`, margin, 21);
     y = 28;
@@ -768,10 +793,10 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setDrawColor(210, 215, 230); doc.setLineWidth(0.2);
     doc.line(margin + 46, y + 4, margin + 46, y + boxH - 4);
     const cols = [
-      { x: margin + 4,   label: 'UTILIZADO',  sub: 'dez/23–ago/25',    val: totalUtilizado,           muted: true  },
-      { x: margin + 52,  label: 'DISPONÍVEL', sub: 'set/25–jun/26',    val: this.prevTotais.hist,      muted: false },
-      { x: margin + 100, label: 'PROJETADO',  sub: 'jul/26–dez/28',    val: this.prevTotais.projTotal, muted: false },
-      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',val: this.prevTotais.geral,    muted: false },
+      { x: margin + 4,   label: 'UTILIZADO',  sub: 'dez/23–ago/25',                                   val: totalUtilizado,           muted: true  },
+      { x: margin + 52,  label: 'DISPONÍVEL', sub: `set/25–${this.projLastHistLabel}`,                 val: this.prevTotais.hist,      muted: false },
+      { x: margin + 100, label: 'PROJETADO',  sub: `${this.projFirstLabel}–dez/28`,                    val: this.prevTotais.projTotal, muted: false },
+      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',                               val: this.prevTotais.geral,    muted: false },
     ];
     for (const col of cols) {
       doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
