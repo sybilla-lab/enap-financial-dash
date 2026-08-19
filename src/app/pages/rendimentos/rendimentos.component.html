@@ -4,121 +4,112 @@
     Rendimentos Financeiros
   </h1>
 
-  <!-- KPI Cards -->
-  <div class="kpi-grid">
-    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>show_chart</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Valor Total Bruto</span>
-          @if (isLoading) {
-          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
-          } @else {
-          <span class="kpi-value text-green">{{ resumo.totalBruto | currency:"BRL":"symbol":"1.2-2" }}</span>
-          }
-          <span class="kpi-sub">Soma de todos os rendimentos</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="kpi-card card-indicator-red" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Valor Total Impostos</span>
-          @if (isLoading) {
-          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
-          } @else {
-          <span class="kpi-value text-red">{{ resumo.totalImpostos | currency:"BRL":"symbol":"1.2-2" }}</span>
-          }
-          <span class="kpi-sub">Soma de IOF/IR descontados</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>account_balance_wallet</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Valor Total Líquido</span>
-          @if (isLoading) {
-          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
-          } @else {
-          <span class="kpi-value text-blue">{{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
-          }
-          <span class="kpi-sub">Bruto − Impostos</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>task_alt</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Já Utilizado</span>
-          @if (isLoading) {
-          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
-          } @else {
-          <span class="kpi-value text-orange">{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
-          }
-          <span class="kpi-sub">Líquido dos lançamentos utilizados</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="kpi-card card-indicator-teal" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-icon"><mat-icon>savings</mat-icon></div>
-        <div class="kpi-info">
-          <span class="kpi-label">Saldo Líquido Disponível</span>
-          @if (isLoading) {
-          <div class="skeleton-box" style="width:140px;height:32px;border-radius:4px;margin-top:4px;"></div>
-          } @else {
-          <span class="kpi-value text-teal">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
-          }
-          <span class="kpi-sub">Líquido dos lançamentos não utilizados</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
+  <!-- ─── Painel de Rendimentos ────────────────────────────────── -->
+  @if (isLoading) {
+  <div style="margin-bottom:24px">
+    <div class="skeleton-box" style="height:210px;border-radius:20px;width:100%;"></div>
   </div>
+  } @else {
+  <div class="rend-header-panel">
 
-  <!-- Barra de Utilização -->
-  @if (!isLoading) {
-  <mat-card class="utilization-card" appearance="outlined">
-    <mat-card-content>
-      <div class="util-header">
+    <!-- Esquerda: cascata de cálculo -->
+    <div class="rhp-calc">
+      <div class="rhp-calc-eyebrow">
+        <mat-icon>trending_up</mat-icon>
+        <span>Rendimentos da conta</span>
+      </div>
+
+      <div class="rhp-cr-row">
+        <div class="rhp-cr-left">
+          <div class="rhp-cr-icon rhp-cr-icon-green"><mat-icon>show_chart</mat-icon></div>
+          <div>
+            <div class="rhp-cr-label">Rendimento Bruto</div>
+            <div class="rhp-cr-sub">soma de todos os rendimentos</div>
+          </div>
+        </div>
+        <span class="rhp-cr-val rhp-cr-green">{{ resumo.totalBruto | currency:"BRL":"symbol":"1.2-2" }}</span>
+      </div>
+
+      <div class="rhp-cr-oper">
+        <div class="rhp-cr-line"></div>
+        <span class="rhp-cr-op-sym">−</span>
+        <div class="rhp-cr-line"></div>
+      </div>
+
+      <div class="rhp-cr-row">
+        <div class="rhp-cr-left">
+          <div class="rhp-cr-icon rhp-cr-icon-red"><mat-icon>receipt_long</mat-icon></div>
+          <div>
+            <div class="rhp-cr-label">IOF / IR descontados</div>
+            <div class="rhp-cr-sub">impostos retidos na fonte</div>
+          </div>
+        </div>
+        <span class="rhp-cr-val rhp-cr-red">{{ resumo.totalImpostos | currency:"BRL":"symbol":"1.2-2" }}</span>
+      </div>
+
+      <div class="rhp-cr-eq-line"></div>
+
+      <div class="rhp-cr-row rhp-cr-row-total">
+        <div class="rhp-cr-left">
+          <div class="rhp-cr-icon rhp-cr-icon-primary"><mat-icon>account_balance_wallet</mat-icon></div>
+          <div>
+            <div class="rhp-cr-label rhp-cr-label-total">Saldo Líquido Total</div>
+            <div class="rhp-cr-sub">bruto − impostos</div>
+          </div>
+        </div>
+        <span class="rhp-cr-total">{{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
+      </div>
+    </div>
+
+    <!-- Separador -->
+    <div class="rhp-vsep"></div>
+
+    <!-- Direita: composição do saldo -->
+    <div class="rhp-util">
+      <div class="rhp-util-eyebrow">
         <mat-icon>donut_large</mat-icon>
-        <span class="util-title">Composição dos saldos de rendimentos da conta da parceria</span>
-        <span class="util-total">Total líquido: {{ resumo.saldoLiquido | currency:"BRL":"symbol":"1.2-2" }}</span>
+        <span>Composição do saldo líquido</span>
       </div>
-      <div class="stacked-bar">
-        <div class="seg-used" [style.width.%]="pctUtilizado"
-          [matTooltip]="'Utilizado: ' + (resumo.totalUtilizado | currency:'BRL':'symbol':'1.2-2')">
+
+      <div class="rhp-bar">
+        <div class="rhp-bar-used" [style.width.%]="pctUtilizado"
+          [matTooltip]="'Utilizado: ' + (resumo.totalUtilizado | currency:'BRL':'symbol':'1.2-2')"></div>
+        <div class="rhp-bar-avail" [style.width.%]="pctDisponivel"
+          [matTooltip]="'Disponível: ' + (resumo.saldoDisponivel | currency:'BRL':'symbol':'1.2-2')"></div>
+      </div>
+
+      <div class="rhp-metrics">
+        <div class="rhp-metric rhp-metric-used">
+          <div class="rhp-metric-head">
+            <mat-icon>task_alt</mat-icon>
+            <span class="rhp-metric-lbl">Utilizado</span>
+            <span class="rhp-metric-pct">{{ pctUtilizado | number:'1.1-1' }}%</span>
+          </div>
+          <span class="rhp-metric-val">{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="rhp-metric-desc">formalizado via Transferegov</span>
         </div>
-        <div class="seg-available" [style.width.%]="pctDisponivel"
-          [matTooltip]="'Disponível: ' + (resumo.saldoDisponivel | currency:'BRL':'symbol':'1.2-2')">
+
+        <div class="rhp-metrics-sep"></div>
+
+        <div class="rhp-metric rhp-metric-avail">
+          <div class="rhp-metric-head">
+            <mat-icon>savings</mat-icon>
+            <span class="rhp-metric-lbl">Disponível</span>
+            <span class="rhp-metric-pct">{{ pctDisponivel | number:'1.1-1' }}%</span>
+          </div>
+          <span class="rhp-metric-val">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="rhp-metric-desc">sem destino definido</span>
         </div>
       </div>
-      <div class="util-legend">
-        <div class="leg-item">
-          <span class="dot used"></span>
-          <span>Utilizado — {{ pctUtilizado | number:"1.1-1" }}%</span>
-          <strong>{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</strong>
-        </div>
-        <div class="leg-item">
-          <span class="dot available"></span>
-          <span>Disponível — {{ pctDisponivel | number:"1.1-1" }}%</span>
-          <strong class="text-teal">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</strong>
-        </div>
-      </div>
-      <div class="context-note">
+
+      <div class="rhp-note">
         <mat-icon>info_outline</mat-icon>
-        O valor utilizado foi formalizado via Transferegov e autorizado pela ENAP. Foi aplicado na Operação Básica da
-        parceria em momento de ausência de caixa por atraso de aporte (saldo acumulado até ago/25). O saldo disponível
-        ainda não tem destino definido.
+        <p>O valor utilizado foi autorizado pela ENAP e aplicado na Operação Básica em momento de ausência de caixa
+          por atraso de aporte (saldo acumulado até ago/25).</p>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </div>
+
+  </div>
   }
 
   <!-- ── Detalhamento Mensal (accordion) ── -->
