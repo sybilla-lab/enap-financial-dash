@@ -543,62 +543,80 @@
       </button>
     </div>
 
-    <!-- Totais do mês -->
+    <!-- Totais do mês — equação bruto − impostos = líquido, + acumulado -->
     <div class="modal-totais">
-      <div class="modal-total-item">
+      <div class="mt-item">
         <span class="mt-label">Bruto</span>
-        <span class="mt-value text-green">{{ detalheBrutoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+        <span class="mt-value mt-bruto">{{ detalheBrutoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
       </div>
-      <div class="mt-sep"></div>
-      <div class="modal-total-item">
+      <span class="mt-op">−</span>
+      <div class="mt-item">
         <span class="mt-label">Impostos</span>
-        <span class="mt-value text-red">{{ detalheImpMes | currency:'BRL':'symbol':'1.2-2' }}</span>
-      </div>
-      <div class="mt-sep"></div>
-      <div class="modal-total-item">
-        <span class="mt-label">Líquido</span>
-        <span class="mt-value text-blue">{{ detalheLiquidoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
-      </div>
-      <div class="mt-sep"></div>
-      <div class="modal-total-item">
-        <span class="mt-label">Acumulado</span>
-        <span class="mt-value" [class.text-green]="detalheAcumulado >= 0" [class.text-red]="detalheAcumulado < 0">
-          {{ detalheAcumulado | currency:'BRL':'symbol':'1.2-2' }}
+        <span class="mt-value" [class.mt-imposto]="detalheImpMes !== 0" [class.mt-zero]="detalheImpMes === 0">
+          {{ detalheImpMes | currency:'BRL':'symbol':'1.2-2' }}
         </span>
       </div>
+      <span class="mt-op mt-op-eq">=</span>
+      <div class="mt-item">
+        <span class="mt-label mt-label-key">Líquido do mês</span>
+        <span class="mt-value mt-liquido">{{ detalheLiquidoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+      </div>
+      <span class="mt-div"></span>
+      <div class="mt-item">
+        <span class="mt-label mt-label-key">Acumulado</span>
+        <span class="mt-value mt-acum">{{ detalheAcumulado | currency:'BRL':'symbol':'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <!-- Como o rateio funciona -->
+    <div class="modal-nota">
+      <mat-icon>lightbulb</mat-icon>
+      <span>O <strong>líquido do mês</strong> é distribuído entre os projetos na proporção do
+        <strong>saldo base</strong> de cada um no início do mês.</span>
     </div>
 
     <!-- Lista por projeto -->
     <div class="modal-proj-list">
       @for (d of detalhesRend; track d.projeto) {
       <div class="modal-proj-item">
+
+        <!-- Cabeçalho: projeto + fatia do saldo base -->
         <div class="proj-item-head">
           <div class="proj-color-dot" [style.background]="d.cor"></div>
           <span class="proj-name">{{ d.projeto }}</span>
-          <span class="proj-pct-badge" [style.border-color]="d.cor" [style.color]="d.cor">
-            {{ d.pctParticipacao | number:'1.1-1' }}%
-          </span>
-          <span class="proj-resultado text-green">
-            +{{ d.rendimentoAcumulado | currency:'BRL':'symbol':'1.2-2' }}
+          <span class="proj-pct-badge" [style.background]="d.cor + '1f'" [style.color]="d.cor">
+            {{ d.pctParticipacao | number:'1.1-1' }}% da base
           </span>
         </div>
 
-        <!-- Barra de participação proporcional -->
-        <div class="proj-bar-row">
-          <span class="bar-label">Participação</span>
-          <div class="bar-track">
-            <div class="bar-fill" [style.width.%]="d.pctParticipacao" [style.background]="d.cor"></div>
+        <!-- Barra de participação -->
+        <div class="proj-share-track">
+          <div class="proj-share-fill" [style.width.%]="d.pctParticipacao" [style.background]="d.cor"></div>
+        </div>
+
+        <!-- Três métricas: base → mês → acumulado -->
+        <div class="proj-metrics">
+          <div class="pm-cell pm-base">
+            <span class="pm-label">Saldo base</span>
+            <span class="pm-value">{{ d.saldoProjeto | currency:'BRL':'symbol':'1.0-0' }}</span>
           </div>
-          <span class="bar-value text-green">+{{ d.rendimentoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
-        </div>
 
-        <!-- Saldo base -->
-        <div class="proj-bar-row">
-          <span class="bar-label">Saldo base</span>
-          <div class="bar-track" style="background:transparent"></div>
-          <span class="bar-value" [class.positive]="d.saldoProjeto >= 0" [class.negative]="d.saldoProjeto < 0">
-            {{ d.saldoProjeto | currency:'BRL':'symbol':'1.2-2' }}
-          </span>
+          <mat-icon class="pm-arrow">arrow_right_alt</mat-icon>
+
+          <div class="pm-cell pm-mes">
+            <span class="pm-label">Rendimento do mês</span>
+            <span class="pm-value">+{{ d.rendimentoMes | currency:'BRL':'symbol':'1.2-2' }}</span>
+          </div>
+
+          <div class="pm-divider"></div>
+
+          <div class="pm-cell pm-acum">
+            <span class="pm-label">Acumulado</span>
+            <span class="pm-value">{{ d.rendimentoAcumulado | currency:'BRL':'symbol':'1.2-2' }}</span>
+            <div class="pm-acum-track">
+              <div class="pm-acum-fill" [style.width.%]="(d.rendimentoAcumulado / maxRendAcum) * 100"></div>
+            </div>
+          </div>
         </div>
       </div>
       }

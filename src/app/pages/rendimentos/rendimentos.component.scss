@@ -294,7 +294,7 @@
   border: 1px solid var(--border-color);
   border-radius: 20px;
   width: 100%;
-  max-width: 640px;
+  max-width: 700px;
   max-height: 85vh;
   overflow: hidden;
   display: flex;
@@ -333,95 +333,200 @@
   &:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
 }
 
-// ─── Modal totais (4 itens) ───────────────────────────────────────────────────
+// ─── Modal totais — equação do mês ────────────────────────────────────────────
+// Sistema de cores do modal (cada total do topo tem uma coluna equivalente nas linhas):
+//   verde  = bruto        · vermelho = impostos
+//   índigo = líquido do mês  ↔  "Rendimento do mês" de cada projeto
+//   teal   = acumulado       ↔  "Acumulado" de cada projeto
+//   slate  = saldo base (capital que rende, não é resultado)
 .modal-totais {
   display: flex;
-  align-items: center;
-  padding: 14px 24px;
+  align-items: stretch;
+  padding: 14px 22px;
   border-bottom: 1px solid var(--border-color);
-  background: rgba(255,255,255,0.02);
+  background: var(--hover-bg);
 }
-.modal-total-item { flex: 1; display: flex; flex-direction: column; gap: 2px; align-items: center; }
-.mt-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
-.mt-value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.mt-sep { width: 1px; align-self: stretch; background: var(--border-color); margin: 0 4px; }
+.mt-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.mt-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.mt-label-key { color: var(--text-secondary); }
+.mt-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+.mt-bruto   { color: #10b981; }
+.mt-imposto { color: #ef4444; }
+.mt-zero    { color: var(--text-muted); font-weight: 600; }
+.mt-liquido { color: var(--accent-primary); font-size: 17px; font-weight: 800; }
+.mt-acum    { color: #14b8a6; }
+
+.mt-op {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  align-self: center;
+  margin-top: 12px;
+  &.mt-op-eq { color: var(--accent-primary); font-size: 15px; }
+}
+.mt-div { width: 1px; align-self: stretch; background: var(--border-color); margin: 0 12px; }
 
 // ─── Nota informativa ─────────────────────────────────────────────────────────
 .modal-nota {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin: 14px 24px;
-  padding: 10px 14px;
-  background: rgba(99,102,241,0.07);
-  border-left: 3px solid #6366f1;
+  gap: 9px;
+  margin: 14px 24px 4px;
+  padding: 10px 13px;
+  background: rgba(99,102,241,0.06);
+  border-left: 3px solid var(--accent-primary);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-secondary);
-  line-height: 1.5;
-  mat-icon { font-size: 16px; width: 16px; height: 16px; color: #6366f1; flex-shrink: 0; margin-top: 1px; }
-  strong { color: var(--text-primary); }
+  line-height: 1.55;
+  mat-icon { font-size: 15px; width: 15px; height: 15px; color: var(--accent-primary); flex-shrink: 0; margin-top: 1px; }
+  strong { color: var(--text-primary); font-weight: 600; }
 }
 
 // ─── Lista de projetos ────────────────────────────────────────────────────────
-.modal-proj-list { padding: 4px 24px 24px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; }
+.modal-proj-list { padding: 10px 24px 24px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
 
 .modal-proj-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
+  padding: 13px 15px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
-  background: rgba(255,255,255,0.015);
-  transition: background 0.15s;
-  &:hover { background: rgba(99,102,241,0.04); }
+  background: var(--card-bg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  &:hover { border-color: rgba(99,102,241,0.35); box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
 }
 
 .proj-item-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 2px;
+  gap: 9px;
+  margin-bottom: 9px;
 }
-.proj-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.proj-name { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; }
+.proj-color-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.proj-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .proj-pct-badge {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 1px solid;
-  opacity: 0.85;
+  padding: 2.5px 9px;
+  border-radius: 20px;
   white-space: nowrap;
-}
-
-.proj-resultado {
-  font-size: 13px;
-  font-weight: 700;
+  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
-.proj-bar-row {
-  display: grid;
-  grid-template-columns: 78px 1fr 130px;
-  align-items: center;
-  gap: 10px;
-}
-.bar-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
-.bar-track {
-  height: 6px; border-radius: 3px;
-  background: rgba(255,255,255,0.07);
+// barra da fatia do saldo base
+.proj-share-track {
+  height: 4px;
+  border-radius: 3px;
+  background: var(--hover-bg);
   overflow: hidden;
+  margin-bottom: 12px;
 }
-.bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
-.bar-value {
-  font-size: 12px; font-weight: 600;
-  text-align: right;
+.proj-share-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.55s cubic-bezier(0.4,0,0.2,1);
+}
+
+// ─── Três métricas: base → mês | acumulado ────────────────────────────────────
+.proj-metrics {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.pm-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pm-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.pm-value {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+
+.pm-base {
+  flex: 0 0 auto;
+  .pm-value { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+}
+.pm-arrow {
+  font-size: 17px; width: 17px; height: 17px;
+  color: var(--text-muted);
+  opacity: 0.5;
+  margin: 8px 10px 0;
+  flex-shrink: 0;
+}
+.pm-mes {
+  flex: 1 1 auto;
+  .pm-label { color: var(--accent-primary); opacity: 0.85; }
+  .pm-value { font-size: 17px; font-weight: 800; color: var(--accent-primary); }
+}
+.pm-divider { width: 1px; align-self: stretch; background: var(--border-color); margin: 0 14px; flex-shrink: 0; }
+.pm-acum {
+  flex: 0 0 auto;
+  align-items: flex-end;
+  .pm-value { font-size: 13px; font-weight: 700; color: #14b8a6; }
+}
+.pm-acum-track {
+  width: 62px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hover-bg);
+  overflow: hidden;
+  margin-top: 3px;
+}
+.pm-acum-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: #14b8a6;
+  opacity: 0.65;
+  transition: width 0.55s cubic-bezier(0.4,0,0.2,1);
+}
+
+@media (max-width: 560px) {
+  .proj-metrics { flex-wrap: wrap; gap: 10px 0; }
+  .pm-arrow, .pm-divider { display: none; }
+  .pm-base, .pm-mes { flex: 1 1 45%; }
+  .pm-acum { flex: 1 1 100%; align-items: flex-start; }
+  .pm-acum-track { width: 100%; }
+  .modal-totais { flex-wrap: wrap; gap: 10px 0; }
+  .mt-op, .mt-div { display: none; }
+  .mt-item { flex: 1 1 45%; }
 }
 
 // ─── Acumulado com mini-barra ─────────────────────────────────────────────────
