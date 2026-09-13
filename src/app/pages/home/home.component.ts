@@ -35,6 +35,15 @@ export class HomeComponent implements OnInit, OnDestroy {
   projetosDestaque: ProjetoResumo[] = [];
   execucaoMedia = 0;
 
+  /**
+   * Média simples das razões por projeto — não é ponderada por volume.
+   * Responde pergunta diferente da execução consolidada do Dashboard
+   * (Σ executado ÷ Σ recebido), por isso o rótulo precisa dizer qual é.
+   */
+  readonly formulaExecucaoMedia =
+    'Média aritmética simples de (executado ÷ recebido) entre os projetos ativos ' +
+    'com recurso recebido. Não é ponderada pelo volume de cada projeto.';
+
   ultimaAtualizacao = new Date();
   sobreExpandido = false;
 

@@ -87,7 +87,9 @@
         <p class="destaque-summary">
           {{ projetosDestaque.length }} projetos ·
           execução média
-          <strong>{{ execucaoMedia | number:'1.0-0' }}%</strong>
+          <strong [title]="formulaExecucaoMedia">{{ execucaoMedia | number:'1.0-0' }}%</strong>
+          <span class="destaque-formula">média simples entre os {{ projetosDestaque.length }} projetos
+            ativos com recurso recebido</span>
         </p>
         }
       </div>
@@ -112,6 +114,7 @@
       } @else {
       @for (p of projetosDestaque; track p.projeto) {
       <a class="pc" [routerLink]="['/visao-projeto']" [queryParams]="{p: p.projeto}"
+        [class.pc-excedido]="p.execucao > 100"
         [style.--exec]="p.execucao > 100 ? 100 : p.execucao">
 
         <div class="pc-ring-wrap">
@@ -120,6 +123,9 @@
               <span class="pc-pct">{{ p.execucao | number:'1.0-0' }}%</span>
             </div>
           </div>
+          @if (p.execucao > 100) {
+          <span class="pc-alerta" aria-hidden="true"><mat-icon>priority_high</mat-icon></span>
+          }
         </div>
 
         <div class="pc-body">
@@ -130,11 +136,21 @@
           <div class="pc-bar">
             <div class="pc-bar-fill"></div>
           </div>
+          <!-- Numerador e denominador explícitos: executado sobre recebido. -->
           <div class="pc-amounts">
             <span class="pc-spent">{{ p.saidas | currency:'BRL':'symbol':'1.0-0' }}</span>
-            <span class="pc-sep"> / </span>
+            <span class="pc-sep"> executado de </span>
             <span class="pc-total">{{ p.entradas | currency:'BRL':'symbol':'1.0-0' }}</span>
+            <span class="pc-sep"> recebido</span>
           </div>
+          @if (p.execucao > 100) {
+          <div class="pc-excedente">
+            <mat-icon>warning_amber</mat-icon>
+            <span>Excedente de
+              <strong>{{ p.saidas - p.entradas | currency:'BRL':'symbol':'1.0-0' }}</strong>
+              sobre o recebido</span>
+          </div>
+          }
           <div class="pc-cta">
             <span>Ver detalhes</span>
             <mat-icon>arrow_forward</mat-icon>
