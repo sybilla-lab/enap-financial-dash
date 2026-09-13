@@ -8,6 +8,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
+import { RelatorioPdfService, CabecalhoRelatorio } from '../../services/relatorio-pdf.service';
 import { Rendimento } from "../../models/lancamento.model";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -289,7 +290,11 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     },
   };
 
-  constructor(private dataService: DataService, private http: HttpClient) {}
+  constructor(
+    private dataService: DataService,
+    private http: HttpClient,
+    private relatorioPdf: RelatorioPdfService,
+  ) {}
 
   ngOnDestroy(): void {}
 
@@ -927,156 +932,124 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
   }
 
-  exportarPdfCompleto(): void {
-    const brl = (v: number) =>
-      v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
-    const pct = (v: number) =>
-      v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
-    const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-    const fmtMes = (mesAno: string) => {
-      const [mm, yyyy] = mesAno.split('/');
-      return `${MESES[parseInt(mm, 10) - 1]}/${yyyy.slice(2)}`;
+  /**
+   * Relatório completo de rendimentos em PDF nativo.
+   *
+   * Reescrito sobre RelatorioPdfService para herdar cabeçalho institucional,
+   * cabeçalho de tabela repetido a cada quebra, paginação "X de Y" e notas de
+   * metodologia. Os totais vêm de `resumo`, já consolidado — sem recálculo
+   * paralelo, que era o risco estrutural do achado F-12.
+   */
+  async exportarPdfCompleto(): Promise<void> {
+    const { jsPDF } = await import('jspdf');
+    const R = this.relatorioPdf;
+
+    const [logoIH, logoEnap] = await Promise.all([
+      R.carregarImagem('/logo-impacthub.png'),
+      R.carregarImagem('/logo-enap.png'),
+    ]);
+
+    const periodo = this.periodoUtilizadoLabel
+      ? `${this.histPrimeiroUtilizadoLabel} a ${this.projLastHistLabel} (realizado) · ` +
+        `${this.projFirstLabel} a dez/28 (projetado)`
+      : 'Todo o período';
+
+    const cab: CabecalhoRelatorio = {
+      titulo: 'Rendimentos financeiros',
+      subtitulo: 'Parceria Impact Hub Brasil e Enap — Estratégia de Inovação Aberta da Enap',
+      periodo,
+      logoIH, logoEnap,
     };
-    const hexToRgb = (hex: string): [number, number, number] => {
-      const h = hex.startsWith('#') ? hex : '#6366f1';
-      return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
-    };
+
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const W = doc.internal.pageSize.getWidth();
-    const margin = 14;
-    let y = margin;
-    const dataGer = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    let y = R.desenharCabecalho(doc, cab, true);
 
-    // ── Cabeçalho global ──
-    doc.setFillColor(20, 25, 50);
-    doc.rect(0, 0, W, 22, 'F');
-    this.addPdfLogos(doc, 22);
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-    doc.text('Relatório Completo de Rendimentos — Impact Hub + Enap', margin, 10);
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-    doc.setTextColor(160, 180, 220);
-    doc.text(`Realizado set/2025–${this.projLastHistLabel.split('/')[0]}/20${this.projLastHistLabel.split('/')[1]}  ·  Projetado ${this.projFirstLabel.split('/')[0]}/20${this.projFirstLabel.split('/')[1]}–dez/2028`, margin, 16);
-    doc.setFontSize(7); doc.setTextColor(120, 145, 195);
-    doc.text(`Gerado em ${dataGer}`, margin, 21);
-    y = 28;
+    // ── Composição do saldo ────────────────────────────────────────────
+    y = R.secao(doc, y, 'Composição do saldo', cab);
+    y = R.kpis(doc, y, [
+      { rotulo: 'Rendimento bruto', valor: R.brl(this.resumo.totalBruto), base: 'créditos de aplicação' },
+      { rotulo: 'Impostos retidos', valor: R.brl(this.resumo.totalImpostos), base: 'IOF e IR' },
+      { rotulo: 'Rendimento líquido', valor: R.brl(this.resumo.saldoLiquido), base: 'bruto − impostos' },
+    ], cab);
+    y = R.kpis(doc, y, [
+      { rotulo: 'Autorizado e aplicado', valor: R.brl(this.resumo.totalUtilizado),
+        base: `complementação da Meta 2 · ${this.periodoUtilizadoLabel}` },
+      { rotulo: 'Saldo disponível', valor: R.brl(this.resumo.saldoDisponivel),
+        base: 'sem destinação definida' },
+    ], cab);
 
-    // ── Sumário global (4 colunas) ──
-    const totalUtilizado = this.resumo.porMes
-      .filter(m => this.isUtilizado(m.mesAno))
-      .reduce((sum, m) => sum + m.liquido, 0);
-    const boxH = 22;
-    doc.setFillColor(245, 247, 252);
-    doc.roundedRect(margin, y, W - margin * 2, boxH, 2, 2, 'F');
-    doc.setDrawColor(210, 215, 230); doc.setLineWidth(0.2);
-    doc.line(margin + 46, y + 4, margin + 46, y + boxH - 4);
-    const cols = [
-      { x: margin + 4,   label: 'UTILIZADO',  sub: 'dez/23–ago/25',                                   val: totalUtilizado,           muted: true  },
-      { x: margin + 52,  label: 'DISPONÍVEL', sub: `set/25–${this.projLastHistLabel}`,                 val: this.prevTotais.hist,      muted: false },
-      { x: margin + 100, label: 'PROJETADO',  sub: `${this.projFirstLabel}–dez/28`,                    val: this.prevTotais.projTotal, muted: false },
-      { x: margin + 148, label: 'TOTAL',      sub: 'disponível + proj.',                               val: this.prevTotais.geral,    muted: false },
-    ];
-    for (const col of cols) {
-      doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
-      doc.setTextColor(col.muted ? 130 : 80, col.muted ? 130 : 80, col.muted ? 140 : 110);
-      doc.text(col.label, col.x, y + 6);
-      doc.setFontSize(6); doc.setFont('helvetica', 'normal');
-      doc.setTextColor(150, 150, 165);
-      doc.text(col.sub, col.x, y + 10.5);
-      doc.setFontSize(9.5); doc.setFont('helvetica', 'bold');
-      doc.setTextColor(col.muted ? 140 : 20, col.muted ? 140 : 20, col.muted ? 150 : 40);
-      doc.text(brl(col.val), col.x, y + 18);
-    }
-    y += boxH + 8;
+    y = R.nota(doc, y,
+      `Destinação formal do valor autorizado: complementação da Meta 2, conforme o Plano de ` +
+      `Trabalho, mediante autorização da Enap e vinculação ao objeto do Termo de Colaboração. ` +
+      `Nota histórica: o saldo transitou pela Operação Básica em período de ausência de caixa ` +
+      `por atraso de aporte — registro contextual que não altera a vinculação à Meta 2.`, cab);
 
-    // ── Tabelas unificadas por projeto (histórico + projetado) ──
-    const histMap = new Map(this.historicoPorProjeto.map(p => [p.projeto, p]));
-    const prevMap = new Map(this.previsaoPorProjeto.map(p => [p.projeto, p]));
-    const allNames = [...new Set([
-      ...this.historicoPorProjeto.map(p => p.projeto),
-      ...this.previsaoPorProjeto.filter(p => p.meses.length > 0).map(p => p.projeto),
-    ])];
-    const lastProjeto = allNames[allNames.length - 1];
-
-    for (const nome of allNames) {
-      const hist = histMap.get(nome);
-      const prev = prevMap.get(nome);
-      if (!hist && (!prev || prev.meses.length === 0)) continue;
-
-      const cor = hist?.cor ?? prev?.cor ?? '#6366f1';
-      const [r, g, b] = hexToRgb(cor.startsWith('#') ? cor : '#6366f1');
-      const histTotal = hist?.totalAcumulado ?? 0;
-      const projTotal = prev?.projTotal ?? 0;
-      const totalGeral = histTotal + projTotal;
-
-      // ── cabeçalho do projeto ──
-      doc.setFillColor(r, g, b); doc.rect(margin, y, 3, 14, 'F');
-      doc.setFillColor(248, 249, 252); doc.rect(margin + 3, y, W - margin * 2 - 3, 14, 'F');
-      doc.setTextColor(20, 20, 40); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
-      doc.text(nome, margin + 7, y + 8);
-      doc.setTextColor(80, 80, 110); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-      if (hist && prev?.meses.length) {
-        doc.text(`Realizado: ${brl(histTotal)}  +  Projetado: ${brl(projTotal)}`, margin + 7, y + 12);
-      }
-      doc.setTextColor(20, 20, 40); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      doc.text(brl(totalGeral), W - margin, y + 8, { align: 'right' });
-      y += 17;
-
-      // ── monta rows unificadas ──
-      const histRows: string[][] = (hist?.meses ?? []).map(m => [
-        fmtMes(m.mesAno), pct(m.pctParticipacao), '+' + brl(m.rendimentoMes), brl(m.rendimentoAcumulado),
-      ]);
-      const prevRows: string[][] = prev
-        ? prev.meses.map(m => [m.label, pct(m.pct), '+' + brl(m.rendMes), brl(prev.histAcum + m.acumRun)])
-        : [];
-      // índices para colorir: separador = histRows.length, total = última linha
-      const sepIdx = histRows.length > 0 && prevRows.length > 0 ? histRows.length : -1;
-      const separatorRow = sepIdx >= 0
-        ? [[{ content: '▸  PROJETADO', colSpan: 4, styles: { fillColor: [30,30,50] as [number,number,number], textColor: [200,210,240] as [number,number,number], fontStyle: 'bold' as const, fontSize: 7, halign: 'center' as const } }]]
-        : [];
-      const totalRow = [brl(totalGeral).replace('R$','Total  R$'), '', '', brl(totalGeral)];
-      const allRows = [...histRows, ...separatorRow, ...prevRows, totalRow];
-      const totalIdx = allRows.length - 1;
-
-      autoTable(doc, {
-        startY: y,
-        margin: { left: margin, right: margin },
-        head: [['Mês / Período', 'Participação', 'Rend. do mês', 'Acumulado']],
-        body: allRows,
-        styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica', textColor: [30,30,50] as [number,number,number] },
-        headStyles: { fillColor: [55,65,81] as [number,number,number], textColor: [255,255,255] as [number,number,number], fontStyle: 'bold' as const, fontSize: 7.5 },
-        columnStyles: {
-          0: { cellWidth: 28, halign: 'center' as const, fontStyle: 'bold' as const, textColor: [80,80,110] as [number,number,number] },
-          1: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
-          2: { halign: 'right' as const, textColor: [80,80,110] as [number,number,number], fontStyle: 'bold' as const },
-          3: { halign: 'right' as const, fontStyle: 'bold' as const },
-        },
-        tableLineColor: [220,225,235] as [number,number,number],
-        tableLineWidth: 0.2,
-        didParseCell: (d: any) => {
-          if (d.row.index === totalIdx) {
-            d.cell.styles.fillColor = [240,242,248]; d.cell.styles.textColor = [50,50,80]; d.cell.styles.fontStyle = 'bold';
-          } else if (d.row.index < sepIdx || sepIdx < 0 && d.row.index < totalIdx) {
-            if (d.row.index % 2 === 1) d.cell.styles.fillColor = [250,250,253];
-          } else if (d.row.index > sepIdx && d.row.index < totalIdx) {
-            d.cell.styles.fillColor = d.row.index % 2 === 0 ? [243,246,253] : [235,240,252];
-          }
-        },
-      });
-
-      y = (doc as any).lastAutoTable.finalY + 10;
-      if (y > 260 && nome !== lastProjeto) { doc.addPage(); y = margin; }
+    // ── Detalhamento mensal ────────────────────────────────────────────
+    if (this.porMesCorrigido.length) {
+      y = R.secao(doc, y, 'Detalhamento mensal', cab);
+      const tb = this.porMesCorrigido.reduce((s, m) => s + m.bruto, 0);
+      const ti = this.porMesCorrigido.reduce((s, m) => s + m.imposto, 0);
+      y = R.tabela(doc, y,
+        [
+          { titulo: 'Mês/ano', chave: 'mes', largura: 1 },
+          { titulo: 'Bruto', chave: 'bruto', largura: 1.3, alinhamento: 'right' },
+          { titulo: 'Impostos', chave: 'imp', largura: 1.2, alinhamento: 'right' },
+          { titulo: 'Líquido', chave: 'liq', largura: 1.3, alinhamento: 'right' },
+          { titulo: 'Situação', chave: 'sit', largura: 1.1 },
+        ],
+        this.porMesCorrigido.map(m => ({
+          mes: m.mesAno,
+          bruto: R.brl(m.bruto),
+          imp: R.brl(m.imposto),
+          liq: R.brl(m.liquido),
+          sit: this.isUtilizado(m.mesAno) ? 'Aplicado' : 'Disponível',
+        })),
+        cab,
+        { mes: 'Total', bruto: R.brl(tb), imp: R.brl(ti), liq: R.brl(tb + ti), sit: '' });
     }
 
-    // ── Rodapé em todas as páginas ──
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7); doc.setTextColor(160, 160, 180); doc.setFont('helvetica', 'normal');
-      doc.text('Impact Hub + Enap — Relatório Completo de Rendimentos', margin, 292);
-      doc.text(`Página ${i} de ${pageCount}`, W - margin, 292, { align: 'right' });
+    // ── Atribuição por projeto ─────────────────────────────────────────
+    if (this.historicoPorProjeto.length) {
+      y = R.secao(doc, y, 'Rendimentos atribuídos por projeto', cab);
+      y = R.tabela(doc, y,
+        [
+          { titulo: 'Projeto', chave: 'proj', largura: 2.4 },
+          { titulo: 'Participação', chave: 'pct', largura: 1, alinhamento: 'right' },
+          { titulo: 'Rendimento acumulado', chave: 'val', largura: 1.5, alinhamento: 'right' },
+        ],
+        this.historicoPorProjeto.map(p => ({
+          proj: p.projeto,
+          pct: `${p.pctTotal.toFixed(1)}%`,
+          val: R.brl(p.totalAcumulado),
+        })),
+        cab,
+        { proj: 'Total atribuído', pct: '100,0%',
+          val: R.brl(this.somaVerificacao.totalProjetos) });
+
+      y = R.nota(doc, y,
+        'Metodologia: atribuição proporcional ao saldo base de cada projeto no início de cada ' +
+        'mês. Valor atribuído economicamente — não representa aplicação já realizada. ' +
+        'O resíduo de arredondamento é lançado no projeto de maior rendimento para que a soma ' +
+        'das partes reconcilie com o total.', cab);
     }
 
+    // ── Projeção ───────────────────────────────────────────────────────
+    if (this.previsaoCarregada) {
+      y = R.secao(doc, y, 'Projeção de rendimentos', cab);
+      y = R.kpis(doc, y, [
+        { rotulo: `Projeção ${this.projFirstLabel}–dez/26`, valor: R.brl(this.prevTotais.proj2026), base: 'estimativa' },
+        { rotulo: 'Projeção 2027', valor: R.brl(this.prevTotais.proj2027), base: 'estimativa' },
+        { rotulo: 'Projeção 2028', valor: R.brl(this.prevTotais.proj2028), base: 'estimativa' },
+      ], cab);
+
+      y = R.nota(doc, y,
+        'Premissas: total mensal conforme a planilha de orçamento vigente, rateado entre os ' +
+        'projetos na proporção do saldo base, respeitando a data de encerramento de cada um. ' +
+        'Valores projetados são estimativa e não devem ser somados ao saldo disponível sem ' +
+        'essa ressalva.', cab, 'atencao');
+    }
+
+    R.desenharRodapes(doc);
     doc.save(`relatorio-completo-rendimentos-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
