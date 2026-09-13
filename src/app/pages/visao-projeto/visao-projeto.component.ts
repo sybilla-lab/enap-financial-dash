@@ -12,6 +12,7 @@ import { DataService } from "../../services/data.service";
 import { Lancamento, StatusProjeto, ProjetoResumo, Rendimento, SaldoRemanescente } from "../../models/lancamento.model";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
+import { RelatorioPdfService, CabecalhoRelatorio } from "../../services/relatorio-pdf.service";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -328,7 +329,11 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     },
   };
 
-  constructor(private dataService: DataService, private route: ActivatedRoute) {}
+  constructor(
+    private dataService: DataService,
+    private route: ActivatedRoute,
+    private relatorioPdf: RelatorioPdfService,
+  ) {}
 
   ngOnInit(): void {
     const projetoFromUrl = this.route.snapshot.queryParamMap.get('p');
@@ -509,123 +514,170 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     moveItemInArray(this.chartSections, event.previousIndex, event.currentIndex);
   }
 
+
   pdfOrientation: 'portrait' | 'landscape' = 'portrait';
 
+  /**
+   * Relatório em PDF **nativo**: texto vetorial, pesquisável e selecionável.
+   *
+   * Substitui a captura com html2canvas, que produzia um arquivo com 114
+   * caracteres extraíveis em 2 páginas — uma fotografia da tela colada numa
+   * folha A4, inviável como anexo do Transferegov (achado F-19).
+   */
   async exportPDF(): Promise<void> {
     if (this.exportingPDF) return;
     this.exportingPDF = true;
 
     try {
-      const reportEl = document.querySelector('.vp-report-body') as HTMLElement;
-      if (!reportEl) return;
+      const { jsPDF } = await import('jspdf');
+      const R = this.relatorioPdf;
 
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
+      const [logoIH, logoEnap] = await Promise.all([
+        R.carregarImagem('/logo-impacthub.png'),
+        R.carregarImagem('/logo-enap.png'),
       ]);
 
-      const isDark = document.body.classList.contains('dark-theme');
-      const bgColor = isDark ? '#0f172a' : '#f8fafc';
-
-      // Load logos as data URLs via canvas
-      const loadImgData = (src: string): Promise<{ data: string; w: number; h: number }> =>
-        new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            const c = document.createElement('canvas');
-            c.width = img.naturalWidth; c.height = img.naturalHeight;
-            c.getContext('2d')!.drawImage(img, 0, 0);
-            resolve({ data: c.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight });
-          };
-          img.onerror = () => resolve({ data: '', w: 0, h: 0 });
-          img.src = src;
-        });
-
-      const [logoEnap, logoIH, canvas] = await Promise.all([
-        loadImgData('/logo-enap.png'),
-        loadImgData('/logo-impacthub.png'),
-        html2canvas(reportEl, {
-          scale: 2, useCORS: true, allowTaint: true,
-          backgroundColor: bgColor, logging: false,
-          onclone: (_doc, el) => {
-            el.querySelectorAll<HTMLElement>('.vp-drag-handle').forEach(n => n.style.display = 'none');
-          },
-        }),
-      ]);
-
-      const pdf = new jsPDF({ orientation: this.pdfOrientation, unit: 'mm', format: 'a4' });
-      const margin = 14;
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW - margin * 2;
-
-      // Header heights: first page has logos (20mm), subsequent pages have slim header (12mm)
-      const firstHeaderH = 22;
-      const pageHeaderH  = 12;
-
-      const proj = this.projetoSelecionado || 'Todos os projetos';
-      const periodStr = this.inicioLabel && this.fimLabel
-        ? `${this.inicioLabel} → ${this.fimLabel}`
+      const proj = this.projetoSelecionado ?? 'Todos os projetos';
+      const periodo = this.inicioLabel && this.fimLabel
+        ? `${this.inicioLabel} a ${this.fimLabel}`
         : this.inicioLabel || this.fimLabel || 'Todo o período';
-      const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-      const drawFirstHeader = () => {
-        const logoH = 12; // mm height for logos
-        if (logoEnap.data) {
-          const w = (logoEnap.w / logoEnap.h) * logoH;
-          pdf.addImage(logoEnap.data, 'PNG', margin, 4, w, logoH);
-        }
-        if (logoIH.data) {
-          const w = (logoIH.w / logoIH.h) * logoH;
-          pdf.addImage(logoIH.data, 'PNG', pageW - margin - w, 4, w, logoH);
-        }
-        pdf.setDrawColor(226, 232, 240);
-        pdf.line(margin, firstHeaderH - 2, pageW - margin, firstHeaderH - 2);
+      const filtros: string[] = [];
+      filtros.push(this.projetoSelecionado ? `Projeto: ${proj}` : 'Projeto: todos');
+      if (this.dataInicio) filtros.push(`De ${this.inicioLabel}`);
+      if (this.dataFim) filtros.push(`Até ${this.fimLabel}`);
+
+      const cab: CabecalhoRelatorio = {
+        titulo: this.projetoSelecionado ? proj : 'Visão consolidada por projeto',
+        subtitulo: 'Parceria Impact Hub Brasil e Enap — Estratégia de Inovação Aberta da Enap',
+        periodo,
+        logoIH, logoEnap, filtros,
       };
 
-      const drawPageHeader = () => {
-        pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
-        pdf.text(`Visão por Projeto — ${proj}  ·  ${periodStr}`, margin, 6);
-        pdf.text(dateStr, pageW - margin, 6, { align: 'right' });
-        pdf.setDrawColor(226, 232, 240);
-        pdf.line(margin, 9, pageW - margin, 9);
-      };
+      // A4 retrato sempre: é o formato aceito para anexo e prestação de contas.
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      let y = R.desenharCabecalho(doc, cab, true);
 
-      // pixels-per-mm
-      const pxPerMm = canvas.width / imgW;
-      // Use 96% of available content height to reduce mid-element cuts
-      const firstContentH  = (pageH - firstHeaderH - margin) * 0.96;
-      const pageContentH   = (pageH - pageHeaderH  - margin) * 0.96;
+      // ── Situação financeira ────────────────────────────────────────────
+      const s = this.snapshot;
+      if (s) {
+        y = R.secao(doc, y, 'Situação financeira', cab);
+        y = R.kpis(doc, y, [
+          { rotulo: 'Recursos recebidos', valor: R.brl(s.entradas), base: 'créditos no período' },
+          { rotulo: 'Despesas executadas', valor: R.brl(s.saidas), base: 'débitos válidos' },
+          { rotulo: 'Saldo financeiro', valor: R.brl(s.saldo), base: 'recebido − executado' },
+          { rotulo: 'Execução', valor: `${s.execucao.toFixed(1)}%`, base: 'executado ÷ recebido' },
+        ], cab);
 
-      let yPx = 0;
-      let pageNum = 0;
-      while (yPx < canvas.height) {
-        if (pageNum > 0) pdf.addPage();
+        if (s.execucao > 100) {
+          y = R.nota(doc, y,
+            `Atenção: a execução supera o recurso recebido em ` +
+            `${R.brl(s.saidas - s.entradas)}. O percentual é calculado sobre o total ` +
+            `recebido do projeto e não foi truncado em 100%.`, cab, 'atencao');
+        }
 
-        const headerH   = pageNum === 0 ? firstHeaderH : pageHeaderH;
-        const contentH  = pageNum === 0 ? firstContentH : pageContentH;
-        const contentHpx = contentH * pxPerMm;
-
-        if (pageNum === 0) drawFirstHeader(); else drawPageHeader();
-
-        const sliceHpx = Math.min(contentHpx, canvas.height - yPx);
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = Math.ceil(sliceHpx);
-        sliceCanvas.getContext('2d')!.drawImage(canvas, 0, -yPx);
-
-        pdf.addImage(
-          sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG',
-          margin, headerH, imgW, sliceHpx / pxPerMm,
-          undefined, 'FAST'
-        );
-
-        yPx += contentHpx;
-        pageNum++;
+        y = R.nota(doc, y,
+          `Execução = despesas executadas ÷ recursos recebidos, na mesma unidade de ` +
+          `análise e no mesmo período. Pagamentos no período: ${s.numPagamentos}; ` +
+          `valor médio por pagamento: ${R.brl(s.ticketMedio)}.`, cab);
       }
 
-      const slug = proj.toLowerCase().replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
-      pdf.save(`visao-projeto-${slug}.pdf`);
+      // ── Despesas por categoria orçamentária ────────────────────────────
+      if (this.categorias.length) {
+        y = R.secao(doc, y, 'Despesas por categoria orçamentária', cab);
+        const total = this.categorias.reduce((acc, c) => acc + c.total, 0);
+        y = R.tabela(doc, y,
+          [
+            { titulo: 'Categoria', chave: 'cat', largura: 3 },
+            { titulo: 'Valor executado', chave: 'val', largura: 1.3, alinhamento: 'right' },
+            { titulo: '% do total', chave: 'pct', largura: 0.9, alinhamento: 'right' },
+          ],
+          this.categorias.map(c => ({
+            cat: c.categoria,
+            val: R.brl(c.total),
+            pct: `${c.percentual.toFixed(1)}%`,
+          })),
+          cab,
+          { cat: 'Total', val: R.brl(total), pct: '100,0%' });
+
+        y = R.nota(doc, y,
+          'Nomes conforme o Glossário de Categorias Orçamentárias. Variações de grafia ' +
+          'da base são mapeadas pelo código da categoria, sem alteração dos registros originais.',
+          cab);
+      }
+
+      // ── Movimentação mensal ────────────────────────────────────────────
+      if (this.fluxo.length) {
+        y = R.secao(doc, y, 'Movimentação mensal', cab);
+        const te = this.fluxo.reduce((a, f) => a + f.entradas, 0);
+        const ts = this.fluxo.reduce((a, f) => a + f.saidas, 0);
+        y = R.tabela(doc, y,
+          [
+            { titulo: 'Mês/ano', chave: 'mes', largura: 1 },
+            { titulo: 'Entradas', chave: 'ent', largura: 1.4, alinhamento: 'right' },
+            { titulo: 'Saídas', chave: 'sai', largura: 1.4, alinhamento: 'right' },
+            { titulo: 'Resultado', chave: 'res', largura: 1.4, alinhamento: 'right' },
+          ],
+          this.fluxo.map(f => ({
+            mes: f.mesAno,
+            ent: R.brl(f.entradas),
+            sai: R.brl(f.saidas),
+            res: R.brl(f.entradas - f.saidas),
+          })),
+          cab,
+          { mes: 'Total', ent: R.brl(te), sai: R.brl(ts), res: R.brl(te - ts) });
+      }
+
+      // ── Rendimentos atribuídos ─────────────────────────────────────────
+      if (this.rendimentosAtribuidos.length) {
+        y = R.secao(doc, y, 'Rendimentos financeiros atribuídos', cab);
+        y = R.tabela(doc, y,
+          [
+            { titulo: 'Mês/ano', chave: 'mes', largura: 1 },
+            { titulo: 'Participação', chave: 'pct', largura: 1, alinhamento: 'right' },
+            { titulo: 'Rendimento do mês', chave: 'val', largura: 1.4, alinhamento: 'right' },
+            { titulo: 'Acumulado', chave: 'acc', largura: 1.4, alinhamento: 'right' },
+          ],
+          this.rendimentosAtribuidos.map(r => ({
+            mes: r.mesAno,
+            pct: `${(r.pctParticipacao ?? 0).toFixed(1)}%`,
+            val: R.brl(r.rendimentoMes),
+            acc: R.brl(r.rendimentoAcumulado),
+          })),
+          cab,
+          { mes: 'Total atribuído', pct: '', val: R.brl(this.totalRendimentoAtribuido), acc: '' });
+
+        y = R.nota(doc, y,
+          'Atribuição proporcional ao saldo base de cada projeto no início do mês. ' +
+          'Valor atribuído economicamente — não representa aplicação já realizada.', cab);
+      }
+
+      // ── Lançamentos ────────────────────────────────────────────────────
+      if (this.transacoesRecentes.length) {
+        y = R.secao(doc, y, 'Lançamentos do período', cab);
+        y = R.tabela(doc, y,
+          [
+            { titulo: 'Mês/ano', chave: 'mes', largura: 0.9 },
+            { titulo: 'Categoria', chave: 'cat', largura: 2.2 },
+            { titulo: 'Fornecedor', chave: 'forn', largura: 2 },
+            { titulo: 'Valor', chave: 'val', largura: 1.3, alinhamento: 'right' },
+          ],
+          this.transacoesRecentes.map((t: any) => ({
+            mes: t.mesAno ?? '',
+            cat: t.categoria ?? '',
+            forn: t.fornecedor ?? '',
+            val: R.brl(t.valor ?? 0),
+          })),
+          cab);
+      }
+
+      R.desenharRodapes(doc);
+
+      const slug = proj.toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const hoje = new Date().toISOString().slice(0, 10);
+      doc.save(`visao-projeto-${slug}-${hoje}.pdf`);
     } catch (err) {
       console.error('Erro ao gerar PDF:', err);
     } finally {
