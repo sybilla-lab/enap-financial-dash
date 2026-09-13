@@ -12,23 +12,49 @@
   <div class="kpi-grid">
     <mat-card class="kpi-card card-indicator-green" appearance="outlined">
       <mat-card-content>
-        <div class="kpi-label">Total Entradas</div>
+        <div class="kpi-label">Total de entradas</div>
+        @if (isLoading) {
+        <div class="kpi-skeleton"></div>
+        } @else {
         <div class="kpi-value text-green">{{ totais.entradas | currency: "BRL":"symbol":"1.2-2" }}</div>
+        <div class="kpi-base">créditos no período filtrado</div>
+        }
       </mat-card-content>
     </mat-card>
     <mat-card class="kpi-card card-indicator-red" appearance="outlined">
       <mat-card-content>
-        <div class="kpi-label">Total Saídas</div>
+        <div class="kpi-label">Total de saídas</div>
+        @if (isLoading) {
+        <div class="kpi-skeleton"></div>
+        } @else {
         <div class="kpi-value text-red">{{ totais.saidas | currency: "BRL":"symbol":"1.2-2" }}</div>
+        <div class="kpi-base">débitos no período filtrado</div>
+        }
       </mat-card-content>
     </mat-card>
     <mat-card class="kpi-card card-indicator-orange" appearance="outlined">
       <mat-card-content>
-        <div class="kpi-label">Saldo Atual</div>
+        <div class="kpi-label">Saldo acumulado</div>
+        @if (isLoading) {
+        <div class="kpi-skeleton"></div>
+        } @else {
         <div class="kpi-value text-orange">{{ totais.saldoAtual | currency: "BRL":"symbol":"1.2-2" }}</div>
+        <div class="kpi-base">entradas − saídas</div>
+        }
       </mat-card-content>
     </mat-card>
   </div>
+
+  @if (semResultados) {
+  <div class="estado-vazio">
+    <mat-icon>filter_alt_off</mat-icon>
+    <div>
+      <strong>Nenhum lançamento no filtro atual</strong>
+      <p>Ajuste o período ou o projeto para ver a movimentação.</p>
+    </div>
+    <button class="ev-acao" (click)="limparFiltros()">Limpar filtros</button>
+  </div>
+  }
 
   <!-- ── Detalhamento Mensal (accordion, colapsado por padrão) ── -->
   <mat-card class="table-card" appearance="outlined">

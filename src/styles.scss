@@ -368,3 +368,55 @@ mat-sidenav-container { background-color: var(--bg-primary) !important; }
   opacity: 0.5;
   pointer-events: none;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Design system — escala tipográfica
+   Documento de revisão integral, 13/09/2026. Mínimo de 11 px em qualquer
+   texto: abaixo disso o rótulo deixa de ser legível em notebook e some no PDF.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --fs-micro:  11px;   /* rótulo, legenda, unidade — piso absoluto */
+  --fs-menor:  12px;   /* texto auxiliar, célula de tabela densa */
+  --fs-tabela: 13px;   /* tabela padrão */
+  --fs-corpo:  14px;   /* texto e controles */
+  --fs-card:   15px;   /* título de card */
+  --fs-secao:  18px;   /* título de seção */
+  --fs-pagina: 24px;   /* título de página */
+  --fs-kpi:    28px;   /* valor de KPI */
+
+  --lh-apertado: 1.25;
+  --lh-normal:   1.55;
+
+  --peso-normal: 400;
+  --peso-medio:  500;
+  --peso-semi:   600;
+  --peso-forte:  700;
+}
+
+/* Toda coluna numérica usa algarismos tabulares para alinhar na vertical. */
+.num, .kpi-value, [class*="-val"], [class*="-total"], td.num, th.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Foco visível: vários componentes usam all:unset, que remove o anel padrão. */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+.acc-toggle:focus-visible,
+.proj-acc-header:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Cabeçalho de tabela fixo na rolagem — o contêiner precisa ter altura máxima
+   e rolagem própria para o sticky ter referência. */
+.table-container,
+.tabela-scroll {
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--card-bg);
+  }
+}

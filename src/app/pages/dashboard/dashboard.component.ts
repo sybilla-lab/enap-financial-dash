@@ -75,26 +75,56 @@ export class DashboardComponent implements OnInit {
   execucaoChartReady = false;
   recebimentosAnoChartReady = false;
 
-  financiadoresChartData: ChartConfiguration<"doughnut">["data"] = { labels: [], datasets: [] };
-  financiadoresChartOptions: ChartConfiguration<"doughnut">["options"] = {
+  /**
+   * Barras horizontais ordenadas, não rosca.
+   *
+   * São 10 financiadores: numa rosca as fatias menores viram fios
+   * indistinguíveis e a comparação depende de decorar a legenda. Em barra
+   * ordenada a leitura é direta e o rótulo fica ao lado do dado. Cor neutra
+   * única — a identidade do financiador está no eixo, não no matiz.
+   */
+  financiadoresChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
+  financiadoresChartOptions: ChartConfiguration<"bar">["options"] = {
+    indexAxis: "y",
     responsive: true,
     maintainAspectRatio: false,
-    cutout: "60%",
+    layout: { padding: { right: 76 } },   // espaço para o rótulo de valor
     plugins: {
-      legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11, weight: "bold" }, usePointStyle: true, padding: 12 } },
-      datalabels: { display: false },
+      legend: { display: false },
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        color: "#94a3b8",
+        font: { size: 11, weight: 600 },
+        formatter: (v: number) =>
+          new Intl.NumberFormat("pt-BR", {
+            style: "currency", currency: "BRL",
+            notation: "compact", maximumFractionDigits: 1,
+          }).format(v),
+      },
       tooltip: {
         callbacks: {
           label: (ctx: any) => {
-            const total = this.indicadores.totalRecebido ||
-              (ctx.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
-            const pct = ((ctx.parsed / total) * 100).toFixed(1);
-            const val = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ctx.parsed);
-            return `  ${val}  (${pct}%)`;
-          }
-        }
-      }
-    }
+            const total = (ctx.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
+            const pct = total ? ((ctx.parsed.x / total) * 100).toFixed(1) : "0,0";
+            const val = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ctx.parsed.x);
+            return `  ${val}  (${pct}% do recebido de financiadores)`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          color: "#64748b",
+          font: { size: 11 },
+          callback: (v: any) =>
+            new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(v),
+        },
+        grid: { color: "rgba(148,163,184,0.14)" },
+      },
+      y: { ticks: { color: "#94a3b8", font: { size: 11 } }, grid: { display: false } },
+    },
   };
 
   recebimentosAnoChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
@@ -124,22 +154,40 @@ export class DashboardComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: "y",
+    layout: { padding: { right: 54 } },
     plugins: {
       legend: { display: false },
-      datalabels: { display: false },
+      // Rótulo de valor na barra: antes só dava para estimar pelo eixo.
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        color: (ctx: any) => (ctx.dataset.data[ctx.dataIndex] > 100 ? "#f59e0b" : "#94a3b8"),
+        font: { size: 11, weight: 600 },
+        formatter: (v: number) => `${v.toFixed(1)}%`,
+      },
       tooltip: {
         backgroundColor: "rgba(15,23,42,0.9)",
         titleColor: "#f8fafc",
         bodyColor: "#f8fafc",
         callbacks: {
-          label: (ctx: any) => ` ${ctx.parsed.x.toFixed(1)}%`
-        }
-      }
+          label: (ctx: any) => {
+            const p = ctx.parsed.x;
+            const base = ` ${p.toFixed(1)}% — executado ÷ recebido`;
+            return p > 100 ? [base, ` Atenção: execução acima do recebido`] : base;
+          },
+        },
+      },
     },
     scales: {
-      x: { max: 100, ticks: { color: "#64748b", callback: (v: any) => v + "%" }, grid: { display: false } },
+      // Sem max fixo em 100: truncar esconderia a ultrapassagem (FIN 05).
+      x: {
+        beginAtZero: true,
+        suggestedMax: 100,
+        ticks: { color: "#64748b", callback: (v: any) => v + "%" },
+        grid: { display: false },
+      },
       y: { ticks: { color: "#64748b" }, grid: { display: false } },
-    }
+    },
   };
 
   get config() {
@@ -306,16 +354,18 @@ export class DashboardComponent implements OnInit {
     this.getRecebimentosPorFinanciador().subscribe((f) => {
       this.financiadores = f;
       setTimeout(() => {
+        // Já vem ordenado por valor decrescente do serviço; inverte para a
+        // maior barra aparecer no topo do eixo Y.
+        const ord = [...f].reverse();
         this.financiadoresChartData = {
-          labels: f.map(x => x.financiador),
+          labels: ord.map(x => x.financiador),
           datasets: [{
-            data: f.map(x => x.valor),
-            backgroundColor: [
-              "#10b981", "#6366f1", "#f59e0b", "#3b82f6", "#ef4444",
-              "#ec4899", "#14b8a6", "#f97316", "#a855f7", "#84cc16",
-              "#06b6d4", "#e11d48", "#8b5cf6", "#22c55e", "#fb923c"
-            ],
+            data: ord.map(x => x.valor),
+            backgroundColor: "rgba(16,185,129,0.68)",
+            hoverBackgroundColor: "#10b981",
+            borderRadius: 4,
             borderWidth: 0,
+            barThickness: 16,
           }]
         };
         this.financiadoresChartReady = true;
@@ -372,16 +422,15 @@ export class DashboardComponent implements OnInit {
           labels: this.projetosAtivos.map(x => x.projeto),
           datasets: [{
             label: "Execução %",
-            data: this.projetosAtivos.map(x => Math.min(x.execucao, 100)),
+            // Valor íntegro: truncar em 100 esconderia a ultrapassagem (FIN 05).
+            data: this.projetosAtivos.map(x => x.execucao),
+            // Cor semântica, não decorativa: laranja marca o excedente,
+            // verde o curso normal. Não há mais faixa por volume.
             backgroundColor: this.projetosAtivos.map(x =>
-              x.execucao >= 90 ? "rgba(16,185,129,0.5)" :
-              x.execucao >= 60 ? "rgba(99,102,241,0.5)" :
-              x.execucao >= 30 ? "rgba(245,158,11,0.5)" : "rgba(239,68,68,0.5)"
+              x.execucao > 100 ? "rgba(245,158,11,0.55)" : "rgba(16,185,129,0.5)"
             ),
             borderColor: this.projetosAtivos.map(x =>
-              x.execucao >= 90 ? "#10b981" :
-              x.execucao >= 60 ? "#6366f1" :
-              x.execucao >= 30 ? "#f59e0b" : "#ef4444"
+              x.execucao > 100 ? "#f59e0b" : "#10b981"
             ),
             borderWidth: 1,
             borderRadius: 4,

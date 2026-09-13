@@ -41,7 +41,14 @@ export class FluxoCaixaComponent implements OnInit {
   projetos: string[] = [];
   anos: string[] = [];
   chartReady = false;
+  /** true até a primeira emissão com dados — separa "carregando" de "zero real". */
+  isLoading = true;
   totais = { entradas: 0, saidas: 0, saldoAtual: 0 };
+
+  /** Filtro aplicado que não retornou nenhum lançamento. */
+  get semResultados(): boolean {
+    return !this.isLoading && this.fluxo.length === 0;
+  }
   private srOutrosProjetos = 0;
 
   filtroAnos: string[] = [];
@@ -110,6 +117,10 @@ export class FluxoCaixaComponent implements OnInit {
   ngOnInit(): void {
     this.dataService.lancamentos$.subscribe((lancs) => {
       this.lancamentosOriginais = lancs;
+      // Enquanto a base não chega, lancs vem vazio do BehaviorSubject. Sem esta
+      // distinção a página exibia R$ 0,00 com a mesma tipografia dos valores
+      // reais, indistinguível de um zero verdadeiro (achado F-20).
+      if (lancs.length > 0) this.isLoading = false;
       this.anos = [...new Set(lancs.map(l => l.mesAno?.split("/")[1]).filter(Boolean))].sort();
       this.aplicarFiltros();
     });
