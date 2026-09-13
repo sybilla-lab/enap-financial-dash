@@ -7,6 +7,7 @@ import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { MatSelectModule } from "@angular/material/select";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatButtonModule } from "@angular/material/button";
+import { MatTooltipModule } from "@angular/material/tooltip";
 import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { DataService } from "../../services/data.service";
 import { CategoriaResumo } from "../../models/lancamento.model";
@@ -25,7 +26,8 @@ Chart.register(...registerables, ChartDataLabels);
     MatSelectModule,
     MatFormFieldModule,
     MatButtonModule,
-    BaseChartDirective
+    BaseChartDirective,
+    MatTooltipModule
   ],
   templateUrl: "./categorias.component.html",
   styleUrl: "./categorias.component.scss",
@@ -90,6 +92,19 @@ export class CategoriasComponent implements OnInit {
   };
 
   constructor(private dataService: DataService) { }
+
+  /**
+   * Descrição oficial da categoria, para ajuda contextual.
+   * Memoizada porque o template chama a cada ciclo de detecção de mudanças.
+   */
+  private _descCache = new Map<string, string>();
+  descricao(categoria: string): string {
+    const hit = this._descCache.get(categoria);
+    if (hit !== undefined) return hit;
+    const d = this.dataService.descricaoCategoria(categoria);
+    this._descCache.set(categoria, d);
+    return d;
+  }
 
   ngOnInit(): void {
     // Subscreve ao stream principal de lançamentos e projetos

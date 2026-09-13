@@ -296,6 +296,31 @@ export class DataService {
     return this.glossario$;
   }
 
+  /**
+   * Descrição oficial para uso como tooltip em gráficos e tabelas.
+   * Aceita tanto o rótulo bruto da planilha ("3.3.1 Serviço de Comunicação")
+   * quanto só o nome oficial ("Serviços de comunicação").
+   */
+  descricaoCategoria(rotuloOuNome: string): string {
+    const alvo = (rotuloOuNome || "").trim();
+    if (!alvo) return "";
+
+    const n = this.normalizarCategoria(alvo);
+    if (n.oficial) return n.oficial.descricao;
+
+    // Sem código: procura pelo nome oficial, ignorando caixa e acento.
+    const chave = this.semAcento(alvo);
+    for (const item of this.glossarioPorCodigo.values()) {
+      if (this.semAcento(item.nome) === chave) return item.descricao;
+    }
+    return "";
+  }
+
+  private semAcento(s: string): string {
+    return (s || "").toLowerCase().normalize("NFD")
+      .replace(/[̀-ͯ]/g, "").replace(/\.$/, "").trim();
+  }
+
   /** Categorias em uso na base que não encontraram correspondência no Glossário. */
   getCategoriasNaoMapeadas(): Observable<{ categoria: string; ocorrencias: number }[]> {
     return combineLatest({ lancs: this.lancamentos$, gloss: this.glossario$ }).pipe(

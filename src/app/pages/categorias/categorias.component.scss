@@ -55,3 +55,27 @@
 .num { text-align: right !important; font-variant-numeric: tabular-nums; }
 .positive { color: var(--accent-green) !important; }
 .negative { color: var(--accent-red) !important; }
+
+/* ── Ajuda contextual do Glossário ──────────────────────────────────────── */
+.cat-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: help;
+}
+.cat-info {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  opacity: .55;
+  transition: opacity .15s, color .15s;
+}
+.cat-nome:hover .cat-info { opacity: 1; color: var(--accent-primary); }
+
+::ng-deep .cat-tooltip {
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+  max-width: 360px !important;
+  padding: 10px 12px !important;
+}

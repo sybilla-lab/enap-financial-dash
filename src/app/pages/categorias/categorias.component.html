@@ -94,7 +94,18 @@
           <tbody>
             @for (c of allCategorias; track c.categoria) {
             <tr>
-              <td>{{ c.categoria }}</td>
+              <td>
+                <span class="cat-nome"
+                  [matTooltip]="descricao(c.categoria)"
+                  [matTooltipDisabled]="!descricao(c.categoria)"
+                  matTooltipClass="cat-tooltip"
+                  matTooltipPosition="right">
+                  {{ c.categoria }}
+                  @if (descricao(c.categoria)) {
+                  <mat-icon class="cat-info" aria-hidden="true">help_outline</mat-icon>
+                  }
+                </span>
+              </td>
               <td class="num negative">{{ c.total | currency: "BRL":"symbol":"1.2-2" }}</td>
               <td class="num">{{ getPercentual(c.total) | number: "1.1-1" }}%</td>
             </tr>
