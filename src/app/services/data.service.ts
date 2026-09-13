@@ -13,6 +13,8 @@ import {
   StatusProjeto,
   SaldoRemanescente,
   Rendimento,
+  CategoriaGlossario,
+  CategoriaNormalizada,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
 
@@ -23,12 +25,14 @@ export class DataService {
   private statusSubject = new BehaviorSubject<StatusProjeto[]>([]);
   private saldosSubject = new BehaviorSubject<SaldoRemanescente[]>([]);
   private rendimentosSubject = new BehaviorSubject<Rendimento[]>([]);
+  private glossarioSubject = new BehaviorSubject<CategoriaGlossario[]>([]);
 
   lancamentos$ = this.lancamentosSubject.asObservable();
   recebimentos$ = this.recebimentosSubject.asObservable();
   status$ = this.statusSubject.asObservable();
   saldos$ = this.saldosSubject.asObservable();
   rendimentos$ = this.rendimentosSubject.asObservable();
+  glossario$ = this.glossarioSubject.asObservable();
 
   // Metas financeiras
   readonly META_APORTE = 3023000;
@@ -41,6 +45,24 @@ export class DataService {
   private readonly SHEET_STATUS_PROJETOS = this.SHEET_BASE + "&gid=1699326950";
   private readonly SHEET_SALDOS = this.SHEET_BASE + "&gid=86178020";
   private readonly SHEET_RENDIMENTOS = this.SHEET_BASE + "&gid=2032068393";
+  private readonly SHEET_GLOSSARIO = this.SHEET_BASE + "&gid=806545379";
+
+  /** Categoria de entrada: não é item de despesa, não entra no Glossário. */
+  static readonly CODIGO_RECEITA = "0.0.0";
+
+  /**
+   * Categorias descontinuadas remapeadas para o código oficial.
+   * Decisão registrada em 13/09/2026: "1.1.9 Tarifas" existia só para controle
+   * interno, não consta do Plano de Trabalho nem do Transferegov. Os lançamentos
+   * passam a ser lidos como 1.1.8 Impostos; o texto original é preservado em
+   * `observacaoAuditoria` e a planilha não é alterada.
+   */
+  private readonly REMAPEAMENTO: Record<string, { para: string; motivo: string }> = {
+    "1.1.9 tarifas": {
+      para: "1.1.8",
+      motivo: "Tarifa bancária — categoria interna 1.1.9 descontinuada, remapeada para 1.1.8 Impostos",
+    },
+  };
 
   constructor(private http: HttpClient) {
     this.carregarDados();
@@ -53,8 +75,11 @@ export class DataService {
       status: this.http.get(this.SHEET_STATUS_PROJETOS, { responseType: "text" }),
       saldos: this.http.get(this.SHEET_SALDOS, { responseType: "text" }),
       rendimentos: this.http.get(this.SHEET_RENDIMENTOS, { responseType: "text" }),
+      glossario: this.http.get(this.SHEET_GLOSSARIO, { responseType: "text" }),
     }).subscribe({
-      next: ({ principal, recebimentos, status, saldos, rendimentos }) => {
+      next: ({ principal, recebimentos, status, saldos, rendimentos, glossario }) => {
+        // Glossário primeiro: a normalização de categorias depende dele.
+        this.parseGlossario(glossario);
         this.parsePrincipal(principal);
         this.parseRecebimentos(recebimentos);
         this.parseStatusProjetos(status);
@@ -175,6 +200,132 @@ export class DataService {
     this.saldosSubject.next(saldos);
   }
 
+  // ===== GLOSSÁRIO DE CATEGORIAS ORÇAMENTÁRIAS =====
+  /**
+   * Aba "Glossário de Categorias" (gid 806545379).
+   * Colunas: Meta(0) · Etapa(1) · Item de despesa(2) · Descrição(3).
+   * Meta e Etapa só aparecem na primeira linha de cada bloco — são propagadas
+   * para baixo, como numa planilha com células mescladas.
+   */
+  private parseGlossario(csvText: string): void {
+    const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = parsed.data as string[][];
+    const itens: CategoriaGlossario[] = [];
+
+    let cabecalhoVisto = false;
+    let metaAtual = "";
+    let etapaAtual = "";
+
+    for (const row of rows) {
+      if (row.length < 3) continue;
+      const c0 = (row[0] || "").trim();
+      const item = (row[2] || "").trim();
+
+      if (!cabecalhoVisto) {
+        if (c0.toLowerCase() === "meta") cabecalhoVisto = true;
+        continue;
+      }
+      if (c0) metaAtual = c0;
+      if ((row[1] || "").trim()) etapaAtual = (row[1] || "").trim();
+      if (!item) continue;
+
+      const m = item.match(/^([\d.]+?)\.?\s+(.*)$/);
+      if (!m) continue;
+
+      itens.push({
+        codigo: m[1],
+        nome: m[2].trim(),
+        rotulo: item,
+        meta: metaAtual,
+        etapa: etapaAtual,
+        descricao: (row[3] || "").trim(),
+      });
+    }
+
+    this.glossarioSubject.next(itens);
+    this.glossarioPorCodigo.clear();
+    itens.forEach(i => this.glossarioPorCodigo.set(i.codigo, i));
+  }
+
+  private glossarioPorCodigo = new Map<string, CategoriaGlossario>();
+
+  /**
+   * Resolve uma categoria bruta da planilha contra o Glossário oficial.
+   *
+   * O cruzamento é feito pelo CÓDIGO, nunca pelo texto: o código é estável e o
+   * texto varia em caixa, plural e pontuação. A planilha não é alterada —
+   * `original` guarda o lançamento como foi escrito.
+   */
+  normalizarCategoria(bruta: string): CategoriaNormalizada {
+    const original = (bruta || "").trim();
+    const m = original.match(/^([\d.]+?)\.?\s+(.*)$/);
+
+    if (!m) {
+      return { original, codigo: "", oficial: null, rotulo: original,
+               natureza: "despesa", mapeado: false };
+    }
+
+    let codigo = m[1];
+    let observacaoAuditoria: string | undefined;
+
+    // 0.0.0 Recurso é entrada, não item de despesa: fora do Glossário por decisão.
+    if (codigo === DataService.CODIGO_RECEITA) {
+      return { original, codigo, oficial: null, rotulo: original,
+               natureza: "receita", mapeado: true };
+    }
+
+    const remap = this.REMAPEAMENTO[original.toLowerCase()];
+    if (remap) {
+      codigo = remap.para;
+      observacaoAuditoria = remap.motivo;
+    }
+
+    const oficial = this.glossarioPorCodigo.get(codigo) ?? null;
+    return {
+      original,
+      codigo,
+      oficial,
+      rotulo: oficial ? oficial.rotulo : original,
+      natureza: "despesa",
+      mapeado: !!oficial,
+      observacaoAuditoria,
+    };
+  }
+
+  getGlossario(): Observable<CategoriaGlossario[]> {
+    return this.glossario$;
+  }
+
+  /** Categorias em uso na base que não encontraram correspondência no Glossário. */
+  getCategoriasNaoMapeadas(): Observable<{ categoria: string; ocorrencias: number }[]> {
+    return combineLatest({ lancs: this.lancamentos$, gloss: this.glossario$ }).pipe(
+      map(({ lancs, gloss }) => {
+        if (!gloss.length) return [];
+        const contagem = new Map<string, number>();
+        lancs.forEach(l => {
+          if (!l.categoria) return;
+          const n = this.normalizarCategoria(l.categoria);
+          if (n.natureza === "receita" || n.mapeado) return;
+          contagem.set(l.categoria, (contagem.get(l.categoria) ?? 0) + 1);
+        });
+        return Array.from(contagem.entries())
+          .map(([categoria, ocorrencias]) => ({ categoria, ocorrencias }))
+          .sort((a, b) => b.ocorrencias - a.ocorrencias);
+      })
+    );
+  }
+
+  /** Ordenação natural por código: 1.1.2 antes de 1.1.10. */
+  static compararCodigo(a: string, b: string): number {
+    const pa = a.split(".").map(Number);
+    const pb = b.split(".").map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+      if (d !== 0) return d;
+    }
+    return 0;
+  }
+
   private parseValor(valorStr: string): number {
     if (!valorStr) return 0;
     let isNegative = false;
@@ -210,7 +361,7 @@ export class DataService {
         const total = totalAporte + totalCaptacao;
         return [
           {
-            tipo: "Aporte ENAP",
+            tipo: "Aporte da Enap",
             total: totalAporte,
             percentual: total > 0 ? (totalAporte / total) * 100 : 0,
           },
@@ -259,19 +410,24 @@ export class DataService {
         const captacaoTotalPresente = captacaoRecebida + captacaoPrevista;
         const saldoACaptar = Math.max(0, this.META_CAPTACAO - captacaoTotalPresente);
         const captacaoTotal = captacaoTotalPresente + saldoACaptar;
-        const aporteRecebidoTotal = aporteRecebido + aporteInflacao;
+
+        // Correção pelo IPCA: entrou no caixa, então soma ao total recebido da
+        // Enap — mas não abate a meta original de aporte. Os dois números ficam
+        // separados para que a tela possa exibir a composição.
+        const totalRecebidoEnap = aporteRecebido + aporteInflacao;
 
         return {
           aporteRecebido,
           aporteInflacao,
-          aporteRecebidoTotal,
+          aporteRecebidoTotal: totalRecebidoEnap,
+          totalRecebidoEnap,
           aportePrevisto,
           captacaoRecebida,
           captacaoPrevista,
           captacaoTotal,
           saldoACaptar,
-          totalRecebido: aporteRecebido + captacaoRecebida,
-          totalComPrevisto: this.META_TOTAL, 
+          totalRecebido: totalRecebidoEnap + captacaoRecebida,
+          totalComPrevisto: this.META_TOTAL,
         };
       })
     );
@@ -368,21 +524,32 @@ export class DataService {
   }
 
   // ===== CATEGORIAS =====
+  /**
+   * Despesas agregadas pela categoria OFICIAL do Glossário.
+   *
+   * O agrupamento é pelo código, então variações de grafia da planilha
+   * ("Serviço de Avaliação" / "Serviços de avaliação") caem na mesma linha em
+   * vez de virarem duas. Entradas (0.0.0) ficam de fora por decisão registrada.
+   */
   getCategoriaResumos(): Observable<CategoriaResumo[]> {
-    return this.lancamentos$.pipe(
-      map((lancs) => {
-        const porCategoria = new Map<string, number>();
+    return combineLatest({ lancs: this.lancamentos$, gloss: this.glossario$ }).pipe(
+      map(({ lancs }) => {
+        const porCodigo = new Map<string, { nome: string; total: number }>();
 
         lancs
-          .filter((l) => l.categoria !== "0.0.0 Recurso" && l.categoria && l.valor < 0)
+          .filter((l) => l.categoria && l.valor < 0)
           .forEach((l) => {
-            const cleanCategoria = l.categoria.replace(/^\d+(\.\d+)*\s*/, "").trim();
-            const current = porCategoria.get(cleanCategoria) || 0;
-            porCategoria.set(cleanCategoria, current + Math.abs(l.valor));
+            const n = this.normalizarCategoria(l.categoria);
+            if (n.natureza === "receita") return;
+            const chave = n.codigo || n.original;
+            const nome = n.oficial ? n.oficial.nome : n.original.replace(/^[\d.]+\s*/, "").trim();
+            const atual = porCodigo.get(chave) ?? { nome, total: 0 };
+            atual.total += Math.abs(l.valor);
+            porCodigo.set(chave, atual);
           });
 
-        return Array.from(porCategoria.entries())
-          .map(([categoria, total]) => ({ categoria, total }))
+        return Array.from(porCodigo.values())
+          .map(({ nome, total }) => ({ categoria: nome, total }))
           .sort((a, b) => b.total - a.total);
       })
     );
@@ -541,7 +708,11 @@ export class DataService {
       map((recs) => {
         const mapa = new Map<string, number>();
         recs.forEach((r) => {
-          if (r.valor && r.status === "recebido" && r.tipoRecurso !== "Aporte") { // assumindo que tipoRecurso=="Aporte" é da ENAP, financiadores são captação.
+          // Exclui aportes: o quadro é de financiadores da captação externa.
+          // A coluna "tipo de recurso" só contém Repasse/Contrapartida, então o
+          // filtro precisa olhar a observação — era aqui que a Enap entrava
+          // indevidamente como financiadora (achado F-15).
+          if (r.valor && r.status === "recebido" && !r.observacao.toLowerCase().includes("aporte")) {
              const f = r.fornecedor || "Não identificado";
              mapa.set(f, (mapa.get(f) || 0) + r.valor);
           }

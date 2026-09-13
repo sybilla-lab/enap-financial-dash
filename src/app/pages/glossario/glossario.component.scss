@@ -1,0 +1,254 @@
+.page-container { animation: fadeIn .5s ease-out; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.gl-intro {
+  max-width: 82ch;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0 0 22px;
+  strong { color: var(--text-primary); font-weight: 600; }
+}
+
+// ─── Busca e filtros ─────────────────────────────────────────────────────────
+.gl-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.gl-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0 12px;
+  max-width: 560px;
+  transition: border-color .15s, box-shadow .15s;
+  &:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+  }
+  > mat-icon { font-size: 19px; width: 19px; height: 19px; color: var(--text-muted); flex-shrink: 0; }
+  input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    padding: 11px 0;
+    &::placeholder { color: var(--text-muted); }
+  }
+}
+
+.gl-clear-x {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  padding: 3px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+  &:hover { color: var(--text-primary); background: var(--hover-bg); }
+  &:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
+}
+
+.gl-filtros {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.gl-filtro-lbl {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-right: 2px;
+  &.gl-filtro-lbl-2 { margin-left: 10px; }
+}
+
+.gl-pill {
+  all: unset;
+  cursor: pointer;
+  padding: 5px 13px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: background .15s, border-color .15s, color .15s;
+  &:hover { border-color: var(--accent-primary); color: var(--text-primary); }
+  &:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+  &.on {
+    background: rgba(99, 102, 241, .14);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+  &.gl-pill-etapa { font-variant-numeric: tabular-nums; }
+}
+
+.gl-clear {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-red);
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &:hover { background: rgba(239, 68, 68, .1); }
+  &:focus-visible { outline: 2px solid var(--accent-red); outline-offset: 2px; }
+}
+
+.gl-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 18px;
+}
+
+// ─── Grupos por etapa ────────────────────────────────────────────────────────
+.gl-grupo {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.gl-grupo-h {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--hover-bg);
+}
+
+.gl-meta-badge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: rgba(99, 102, 241, .14);
+  color: var(--accent-primary);
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.gl-etapa {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+// ─── Tabela ──────────────────────────────────────────────────────────────────
+.scroll-x { overflow-x: auto; }
+
+.gl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 620px;
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--card-bg);
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--hover-bg); }
+}
+
+.c-cod  { width: 82px; }
+.c-nome { width: 250px; }
+.c-desc { min-width: 300px; }
+
+.gl-cod {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+
+.gl-nome {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+// ─── Estados ─────────────────────────────────────────────────────────────────
+.gl-skel {
+  height: 76px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, var(--hover-bg) 25%, var(--border-color) 50%, var(--hover-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.gl-vazio {
+  text-align: center;
+  padding: 52px 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  mat-icon { font-size: 38px; width: 38px; height: 38px; color: var(--text-muted); opacity: .55; }
+  p { margin: 12px 0 16px; color: var(--text-secondary); font-size: 14px; }
+}
+
+.gl-fonte {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 26px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+
+@media (max-width: 640px) {
+  .gl-grupo-h { flex-direction: column; gap: 7px; }
+  .c-nome { width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-container, .gl-skel { animation: none; }
+}

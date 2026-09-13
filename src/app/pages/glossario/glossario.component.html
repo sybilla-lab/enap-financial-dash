@@ -1,0 +1,105 @@
+<div class="page-container">
+  <h1 class="page-title">
+    <mat-icon>menu_book</mat-icon>
+    Glossário de categorias orçamentárias
+  </h1>
+
+  <p class="gl-intro">
+    Vocabulário oficial dos itens de despesa do Plano de Trabalho. Fonte única: aba
+    <strong>Glossário de Categorias</strong> da Base de Dados ENAP Financial Dash.
+    Os nomes aqui são os aplicados em todo o dashboard e nos relatórios.
+  </p>
+
+  <!-- Busca e filtros -->
+  <div class="gl-controls">
+    <div class="gl-search">
+      <mat-icon>search</mat-icon>
+      <input type="text" placeholder="Buscar por código, nome ou descrição…"
+        [ngModel]="busca()" (ngModelChange)="busca.set($event)"
+        aria-label="Buscar no glossário" />
+      @if (busca()) {
+      <button class="gl-clear-x" (click)="busca.set('')" aria-label="Limpar busca">
+        <mat-icon>close</mat-icon>
+      </button>
+      }
+    </div>
+
+    <div class="gl-filtros">
+      <span class="gl-filtro-lbl">Meta</span>
+      @for (m of metas(); track m) {
+      <button class="gl-pill" [class.on]="metaSel() === m" (click)="selecionarMeta(m)">
+        {{ m }}
+      </button>
+      }
+
+      @if (etapas().length > 1) {
+      <span class="gl-filtro-lbl gl-filtro-lbl-2">Etapa</span>
+      @for (e of etapas(); track e) {
+      <button class="gl-pill gl-pill-etapa" [class.on]="etapaSel() === e"
+        (click)="selecionarEtapa(e)" [title]="e">
+        {{ e.split(' ')[0] }}
+      </button>
+      }
+      }
+
+      @if (temFiltro()) {
+      <button class="gl-clear" (click)="limpar()">
+        <mat-icon>filter_alt_off</mat-icon> Limpar filtros
+      </button>
+      }
+    </div>
+  </div>
+
+  <div class="gl-count">
+    {{ filtrados().length }} de {{ totalItens() }} itens
+  </div>
+
+  <!-- Lista -->
+  @if (isLoading()) {
+  @for (i of [1,2,3,4,5,6]; track i) {
+  <div class="gl-skel"></div>
+  }
+  } @else if (filtrados().length === 0) {
+  <div class="gl-vazio">
+    <mat-icon>search_off</mat-icon>
+    <p>Nenhum item corresponde aos filtros aplicados.</p>
+    <button class="gl-clear" (click)="limpar()">Limpar filtros</button>
+  </div>
+  } @else {
+  @for (g of grupos(); track g.etapa) {
+  <section class="gl-grupo">
+    <header class="gl-grupo-h">
+      <span class="gl-meta-badge">Meta {{ g.meta }}</span>
+      <h2 class="gl-etapa">{{ g.etapa }}</h2>
+    </header>
+
+    <div class="scroll-x">
+      <table class="gl-table">
+        <thead>
+          <tr>
+            <th class="c-cod">Código</th>
+            <th class="c-nome">Item de despesa</th>
+            <th class="c-desc">Descrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (i of g.itens; track i.codigo + i.nome) {
+          <tr>
+            <td class="c-cod"><span class="gl-cod">{{ i.codigo }}</span></td>
+            <td class="c-nome"><span class="gl-nome">{{ i.nome }}</span></td>
+            <td class="c-desc">{{ i.descricao }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  }
+  }
+
+  <p class="gl-fonte">
+    <mat-icon>source</mat-icon>
+    Fonte: Base de Dados ENAP Financial Dash — aba Glossário de Categorias.
+    Termo de Colaboração Transferegov nº 943356/2023.
+  </p>
+</div>

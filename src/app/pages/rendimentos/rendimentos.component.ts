@@ -37,6 +37,28 @@ interface ProjetoHistorico {
   aberto: boolean;
 }
 
+/** Sparkline do modal — leitura descritiva do histórico já calculado. */
+interface SparkPonto { mesAno: string; valor: number; x: number; y: number; }
+interface SparkProjeto {
+  /**
+   * 'serie'   — 2+ meses, desenha a trajetória
+   * 'unico'   — projeto entrou neste mês, há valor mas não há série
+   * 'ausente' — mês fora da janela coberta pelo histórico por projeto
+   */
+  estado: 'serie' | 'unico' | 'ausente';
+  pontos: SparkPonto[];
+  linha: string;
+  area: string;
+  fim: SparkPonto | null;
+  media: number;
+  mediaY: number;
+  melhorLabel: string;
+  melhorValor: number;
+  deltaPct: number;
+  qtdMeses: number;
+  primeiroLabel: string;
+}
+
 interface CalcRendResult {
   mes: string; label: string; rend_total: number;
   proj_rend: { [k: string]: number };
@@ -149,6 +171,92 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     return Math.max(...this.detalhesRend.map(d => d.rendimentoAcumulado), 1);
   }
 
+  // ─── Sparkline por projeto (modal) ──────────────────────────────────────────
+  // Apenas apresentação: lê a série já produzida por computarHistoricoPorProjeto()
+  // e a recorta até o mês aberto no modal. Cache por projeto+mês para não
+  // recalcular a cada ciclo de detecção de mudanças.
+  private _sparkCache = new Map<string, SparkProjeto>();
+  private static readonly SPARK_AUSENTE: SparkProjeto = {
+    estado: 'ausente', pontos: [], linha: '', area: '', fim: null,
+    media: 0, mediaY: 0, melhorLabel: '', melhorValor: 0, deltaPct: 0, qtdMeses: 0,
+    primeiroLabel: '',
+  };
+
+  sparkline(projeto: string): SparkProjeto {
+    const chave = projeto + '|' + (this.mesAnoSelecionado ?? '');
+    const emCache = this._sparkCache.get(chave);
+    if (emCache) return emCache;
+
+    const ausente = RendimentosComponent.SPARK_AUSENTE;
+    const hist = this.historicoPorProjeto.find(h => h.projeto === projeto);
+    if (!hist || !this.mesAnoSelecionado) { this._sparkCache.set(chave, ausente); return ausente; }
+
+    const corte = this.compararMes(this.mesAnoSelecionado);
+    const meses = hist.meses.filter(m => this.compararMes(m.mesAno) <= corte);
+    // Meses do período já utilizado ficam fora de computarHistoricoPorProjeto(),
+    // então não há série a exibir — o painel abre explicando isso.
+    if (meses.length === 0) { this._sparkCache.set(chave, ausente); return ausente; }
+
+    // Projeto que entrou agora: há valor, mas não há série anterior.
+    if (meses.length === 1) {
+      const unico: SparkProjeto = {
+        ...ausente, estado: 'unico', qtdMeses: 1,
+        primeiroLabel: meses[0].mesAno,
+        media: meses[0].rendimentoMes,
+        melhorLabel: meses[0].mesAno,
+        melhorValor: meses[0].rendimentoMes,
+      };
+      this._sparkCache.set(chave, unico);
+      return unico;
+    }
+
+    const W = 600, H = 56, padX = 5, padTopo = 7, padBase = 8;
+    const larguraInterna = W - padX * 2;
+    const alturaInterna = H - padTopo - padBase;
+
+    const valores = meses.map(m => m.rendimentoMes);
+    const maximo = Math.max(...valores);
+    const minimo = Math.min(...valores, 0);
+    const amplitude = maximo - minimo || 1;
+    const paraY = (v: number) => padTopo + alturaInterna - ((v - minimo) / amplitude) * alturaInterna;
+
+    const pontos: SparkPonto[] = meses.map((m, i) => ({
+      mesAno: m.mesAno,
+      valor: m.rendimentoMes,
+      x: padX + (i / (meses.length - 1)) * larguraInterna,
+      y: paraY(m.rendimentoMes),
+    }));
+
+    const linha = pontos
+      .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+      .join(' ');
+    const base = H - padBase;
+    const area = `${linha} L${pontos[pontos.length - 1].x.toFixed(1)},${base} `
+               + `L${pontos[0].x.toFixed(1)},${base} Z`;
+
+    const media = valores.reduce((s, v) => s + v, 0) / valores.length;
+    const fim = pontos[pontos.length - 1];
+    let melhor = 0;
+    valores.forEach((v, i) => { if (v > valores[melhor]) melhor = i; });
+
+    const dados: SparkProjeto = {
+      estado: 'serie', pontos, linha, area, fim, media,
+      mediaY: paraY(media),
+      melhorLabel: meses[melhor].mesAno,
+      melhorValor: valores[melhor],
+      deltaPct: media > 0 ? ((fim.valor - media) / media) * 100 : 0,
+      qtdMeses: meses.length,
+      primeiroLabel: meses[0].mesAno,
+    };
+    this._sparkCache.set(chave, dados);
+    return dados;
+  }
+
+  private compararMes(mesAno: string): number {
+    const [m, a] = mesAno.split('/');
+    return parseInt(a) * 100 + parseInt(m);
+  }
+
   chartReady = false;
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
   barChartOptions: any = {
@@ -192,6 +300,14 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
   prevUtilizadoTotal = 0;
 
+  /** Primeiro e último mês do período utilizado — derivados dos dados, nunca fixos. */
+  histPrimeiroUtilizadoLabel = '';
+  histUltimoUtilizadoLabel = '';
+  get periodoUtilizadoLabel(): string {
+    if (!this.histPrimeiroUtilizadoLabel) return '';
+    return `${this.histPrimeiroUtilizadoLabel}–${this.histUltimoUtilizadoLabel}`;
+  }
+
   private deriveProjectionStart(): void {
     if (!this.resumo.porMes.length) return;
     const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -209,6 +325,15 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() === 'utilizado';
       this.prevHistTotal    = Math.round(sorted.filter(m => !isUtil(m)).reduce((s, m) => s + (m.liquido ?? 0), 0) * 100) / 100;
       this.prevUtilizadoTotal = Math.round(sorted.filter(m =>  isUtil(m)).reduce((s, m) => s + (m.liquido ?? 0), 0) * 100) / 100;
+
+      // Rótulo do período utilizado derivado dos dados — nada de "dez/23–ago/25" fixo.
+      const utilizados = sorted.filter(isUtil);
+      const rotulo = (mesAno: string) => {
+        const [mm, yyyy] = mesAno.split('/');
+        return `${MESES[parseInt(mm) - 1]}/${yyyy.slice(2)}`;
+      };
+      this.histPrimeiroUtilizadoLabel = utilizados.length ? rotulo(utilizados[0].mesAno) : '';
+      this.histUltimoUtilizadoLabel = utilizados.length ? rotulo(utilizados[utilizados.length - 1].mesAno) : '';
     }
     if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
   }
@@ -797,6 +922,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       const key = HIST_KEY_MAP[p.projeto];
       if (key) this._histAcumDynamic.set(key, p.totalAcumulado);
     });
+    // A série mudou — descarta sparklines memoizados sobre a versão anterior.
+    this._sparkCache.clear();
     if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
   }
 

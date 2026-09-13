@@ -86,7 +86,7 @@
             <span class="rhp-metric-pct">{{ pctUtilizado | number:'1.1-1' }}%</span>
           </div>
           <span class="rhp-metric-val">{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
-          <span class="rhp-metric-desc">formalizado via Transferegov</span>
+          <span class="rhp-metric-desc">complementação da Meta 2</span>
         </div>
 
         <div class="rhp-metrics-sep"></div>
@@ -103,9 +103,16 @@
       </div>
 
       <div class="rhp-note">
-        <mat-icon>info_outline</mat-icon>
-        <p>O valor utilizado foi autorizado pela ENAP e aplicado na Operação Básica em momento de ausência de caixa
-          por atraso de aporte (saldo acumulado até ago/25).</p>
+        <mat-icon>verified</mat-icon>
+        <p><strong>Destinação formal:</strong> complementação da <strong>Meta 2</strong>, conforme o
+          Plano de Trabalho, mediante autorização da Enap e vinculação ao objeto do
+          Termo de Colaboração Transferegov nº 943356/2023.</p>
+      </div>
+      <div class="rhp-note rhp-note-hist">
+        <mat-icon>history_edu</mat-icon>
+        <p><strong>Nota histórica:</strong> o saldo acumulado até {{ histUltimoUtilizadoLabel }} transitou pela
+          Operação Básica em período de ausência de caixa por atraso de aporte. O registro é apenas
+          contextual e <strong>não altera a vinculação formal à Meta 2</strong>.</p>
       </div>
     </div>
 
@@ -369,7 +376,7 @@
               <div class="pt-card pt-utilizado">
                 <mat-icon class="pt-icon">history</mat-icon>
                 <span class="pt-label">Utilizado</span>
-                <span class="pt-period">dez/23–ago/25</span>
+                <span class="pt-period">{{ periodoUtilizadoLabel }}</span>
                 <span class="pt-value">{{ prevUtilizadoTotal | currency:'BRL':'symbol':'1.2-2' }}</span>
               </div>
               <div class="pt-connector">+</div>
@@ -577,8 +584,8 @@
 
     <!-- Lista por projeto -->
     <div class="modal-proj-list">
-      @for (d of detalhesRend; track d.projeto) {
-      <div class="modal-proj-item">
+      @for (d of detalhesRend; track d.projeto; let i = $index) {
+      <div class="modal-proj-item" tabindex="0">
 
         <!-- Cabeçalho: projeto + fatia do saldo base -->
         <div class="proj-item-head">
@@ -618,6 +625,82 @@
             </div>
           </div>
         </div>
+
+        <!-- Trajetória — revelada ao passar o mouse / focar o card -->
+        @if (sparkline(d.projeto); as sp) {
+        <div class="proj-reveal">
+          <div class="proj-reveal-inner">
+            <div class="pr-content" [style.--pr-cor]="d.cor">
+
+              @if (sp.estado === 'unico') {
+              <div class="pr-primeiro">
+                <mat-icon>flag</mat-icon>
+                <div class="pr-primeiro-txt">
+                  <span class="pr-primeiro-tit">Primeiro mês de rendimento</span>
+                  <span class="pr-primeiro-sub">Este projeto passou a receber rateio em {{ sp.primeiroLabel }} —
+                    ainda não há meses anteriores para traçar a trajetória.</span>
+                </div>
+              </div>
+              } @else if (sp.estado === 'ausente') {
+              <div class="pr-primeiro">
+                <mat-icon>history_toggle_off</mat-icon>
+                <div class="pr-primeiro-txt">
+                  <span class="pr-primeiro-tit">Sem trajetória para este mês</span>
+                  <span class="pr-primeiro-sub">A série por projeto cobre apenas os meses do saldo disponível;
+                    este mês pertence ao período já utilizado.</span>
+                </div>
+              </div>
+              } @else {
+
+              <div class="pr-eyebrow">
+                <mat-icon>show_chart</mat-icon>
+                <span>Trajetória mensal</span>
+                <span class="pr-range">{{ sp.primeiroLabel }} → {{ mesAnoSelecionado }} · {{ sp.qtdMeses }} meses</span>
+              </div>
+
+              <svg class="pr-spark" viewBox="0 0 600 56" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient [attr.id]="'sparkGrad' + i" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" [attr.stop-color]="d.cor" stop-opacity="0.30" />
+                    <stop offset="100%" [attr.stop-color]="d.cor" stop-opacity="0.02" />
+                  </linearGradient>
+                </defs>
+                <line class="pr-media-line" x1="5" [attr.y1]="sp.mediaY" x2="595" [attr.y2]="sp.mediaY" />
+                <path [attr.d]="sp.area" [attr.fill]="'url(#sparkGrad' + i + ')'" />
+                <path [attr.d]="sp.linha" fill="none" [attr.stroke]="d.cor" stroke-width="2"
+                  stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+                @if (sp.fim) {
+                <circle class="pr-fim" [attr.cx]="sp.fim.x" [attr.cy]="sp.fim.y" r="3.5"
+                  [attr.fill]="d.cor" vector-effect="non-scaling-stroke" />
+                }
+              </svg>
+
+              <div class="pr-stats">
+                <div class="pr-stat">
+                  <span class="pr-stat-lbl">Média mensal</span>
+                  <span class="pr-stat-val">{{ sp.media | currency:'BRL':'symbol':'1.0-0' }}</span>
+                </div>
+                <div class="pr-stat">
+                  <span class="pr-stat-lbl">Melhor mês</span>
+                  <span class="pr-stat-val">
+                    {{ sp.melhorValor | currency:'BRL':'symbol':'1.0-0' }}
+                    <span class="pr-stat-tag">{{ sp.melhorLabel }}</span>
+                  </span>
+                </div>
+                <div class="pr-stat pr-stat-delta">
+                  <span class="pr-stat-lbl">Este mês vs. média</span>
+                  <span class="pr-stat-val" [class.pr-acima]="sp.deltaPct >= 0" [style.color]="sp.deltaPct >= 0 ? d.cor : null">
+                    <mat-icon>{{ sp.deltaPct >= 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                    {{ sp.deltaPct >= 0 ? '+' : '' }}{{ sp.deltaPct | number:'1.1-1' }}%
+                  </span>
+                </div>
+              </div>
+
+              }
+            </div>
+          </div>
+        </div>
+        }
       </div>
       }
 

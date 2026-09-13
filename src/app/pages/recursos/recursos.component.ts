@@ -37,8 +37,8 @@ import { RecursoDetalhado, Recebimento } from "../../models/lancamento.model";
 })
 export class RecursosComponent implements OnInit {
   detalhado: RecursoDetalhado = {
-    aporteRecebido: 0, aporteInflacao: 0, aporteRecebidoTotal: 0, aportePrevisto: 0,
-    captacaoRecebida: 0, captacaoPrevista: 0,
+    aporteRecebido: 0, aporteInflacao: 0, aporteRecebidoTotal: 0, totalRecebidoEnap: 0,
+    aportePrevisto: 0, captacaoRecebida: 0, captacaoPrevista: 0,
     captacaoTotal: 0, saldoACaptar: 0, totalRecebido: 0, totalComPrevisto: 0,
   };
   recebimentos: Recebimento[] = [];

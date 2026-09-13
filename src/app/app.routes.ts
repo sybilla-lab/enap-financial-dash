@@ -91,6 +91,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: "glossario",
+    loadComponent: () =>
+      import("./pages/glossario/glossario.component").then(
+        (m) => m.GlossarioComponent
+      ),
+  },
+  {
     path: "login",
     loadComponent: () =>
       import("./pages/login/login.component").then(

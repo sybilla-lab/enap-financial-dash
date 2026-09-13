@@ -442,17 +442,21 @@ export class DashboardComponent implements OnInit {
         const captacaoTotalPresente = captacaoRecebida + captacaoPrevista;
         const saldoACaptar = Math.max(0, this.dataService.META_CAPTACAO - captacaoTotalPresente);
         const captacaoTotal = captacaoTotalPresente + saldoACaptar;
+        // Mesma regra do serviço: correção pelo IPCA entra no total recebido da
+        // Enap, mas não abate a meta original de aporte.
+        const totalRecebidoEnap = aporteRecebido + aporteInflacao;
 
         return {
           aporteRecebido,
           aporteInflacao,
-          aporteRecebidoTotal: aporteRecebido + aporteInflacao,
+          aporteRecebidoTotal: totalRecebidoEnap,
+          totalRecebidoEnap,
           aportePrevisto,
           captacaoRecebida,
           captacaoPrevista,
           captacaoTotal,
           saldoACaptar,
-          totalRecebido: aporteRecebido + captacaoRecebida,
+          totalRecebido: totalRecebidoEnap + captacaoRecebida,
           totalComPrevisto: this.dataService.META_TOTAL
         };
       })

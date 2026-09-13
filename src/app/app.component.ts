@@ -56,6 +56,7 @@ export class AppComponent implements AfterViewInit {
     { label: "Visão por Projeto",    icon: "layers",          route: "/visao-projeto" },
     { label: "Saldos Remanescentes", icon: "history_edu",     route: "/saldos" },
     { label: "Rendimentos",          icon: "trending_up",     route: "/rendimentos" },
+    { label: "Glossário",            icon: "menu_book",       route: "/glossario" },
     ...(environment.features?.auditoria
       ? [{ label: "Auditoria", icon: "fact_check", route: "/auditoria" }]
       : []),
