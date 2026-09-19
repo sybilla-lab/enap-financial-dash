@@ -58,3 +58,8 @@ infrastructure/.terraform.lock.hcl
 *.key.json
 .secrets/
 sync/.env
+
+# Snapshots das planilhas antes/depois de cada sincronização.
+# Ficam só na máquina: servem para reverter uma gravação e contêm dados
+# financeiros da planilha oficial, que não devem ir para o repositório.
+sync/backups/
