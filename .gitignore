@@ -50,3 +50,11 @@ infrastructure/.terraform/
 infrastructure/*.tfstate
 infrastructure/*.tfstate.backup
 infrastructure/.terraform.lock.hcl
+
+# ── Credenciais de service account (Sheets API) ─────────────────────────────
+# Chave privada NUNCA versionada: vazamento daria escrita nas planilhas oficiais.
+*service-account*.json
+*credentials*.json
+*.key.json
+.secrets/
+sync/.env
