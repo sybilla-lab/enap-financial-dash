@@ -211,6 +211,9 @@ conferência do que a célula exibia.
 | `rateio-dashboard.js` | Réplica fiel dos métodos A e B em Node. Módulo usado pelos demais; rodando direto, compara os dois métodos para os meses pedidos. | não |
 | `checkpoint-oficio.js` | Valida o acumulado em 31/07/2026 contra o Ofício nº 04/2026. | não |
 | `reconciliar.js` | Reconcilia 09/2025–08/2026 contra o método B e corrige divergências de centavos. | **com `--write`** |
+| `movimentacoes.js` | Cria a aba de movimentações e os blocos da carteira autorizada. | **com `--write`** |
+| `conferir-carteira.js` | Confere a carteira: não-contaminação, fechamentos, teto, rastreio, proteções. | não |
+| `testar-apps-script.js` | Roda o `.gs` real em Node contra a Base e confere o método B. | não |
 | `snapshot.js` | Backup das células afetadas, em JSON. | não |
 | `sincronizar.js` | Grava o realizado e a marca `realizado`. Simula por padrão. | **com `--write`** |
 | `conferir.js` | Releitura e conferência pós-gravação. | não |
@@ -239,6 +242,71 @@ abertura, reescreve apenas a constante e preserva a fórmula.
 Em 20/09/2026 corrigiu 4 células (jan, fev e jun/2026 e a abertura da aba
 Alimenta, ±R$ 0,01 cada). Hoje acusa **0 divergências**: os doze meses fecham ao
 centavo e os acumulados das cinco abas batem com o consolidado.
+
+## Carteira autorizada — Ofício nº 04/2026
+
+A aba **"Movimentações de Rendimentos"** é um **livro memorando**: ela classifica
+rendimento que já existe, não movimenta dinheiro. A garantia é estrutural —
+nenhuma fórmula de Rendimentos, TOTAL, Resultado, Saldo Inicial ou Saldo Final
+referencia essa aba, e `conferir-carteira.js` relê a planilha para provar isso.
+
+16 colunas: as 13 originais mais `valor_com_sinal`, `status` (`vigente` /
+`cancelada` — revogar não apaga linha) e `competencia_data`. Esta última guarda
+a competência como **data**, e não texto, para o `SUMIFS` comparar direto com o
+cabeçalho da linha 5: evita `TEXT(...;"yyyy-mm")`, cujo código de formato depende
+do idioma da planilha.
+
+Validação de lista em `tipo`, `status` e `projeto_origem`. Proteção do tipo
+**aviso** nas colunas derivadas (`id_movimentacao`, `atualizado_em`,
+`valor_com_sinal`, `competencia_data`) e nos blocos de carteira — avisa ao editar
+sem travar o dono da planilha nem impedir novos lançamentos.
+
+### Regra de consumo
+
+`projeto_origem` é **obrigatório e nunca inferido**: é a cota de rendimento
+autorizada que financia o pagamento. Pode coincidir com o projeto do pagamento,
+como no caso do 10647074, mas não se deduz um do outro. Não há rateio
+proporcional, ordem automática nem fallback para outra cota — utilização acima da
+cota disponível **aborta a gravação**. Usar saldo autorizado de outro projeto
+exige uma movimentação nova, escrita explicitamente, com id próprio.
+
+### Blocos nas abas
+
+Ancorados na linha "Saldo acumulado de rendimentos", que já existia em cada aba:
+
+```
+L<acum>    Saldo acumulado de rendimentos        [existente, intocado]
+L<acum+1>  (−) Total autorizado · Ofício 04/2026
+L<acum+2>  (=) Rendimento livre / não autorizado
+L<acum+3>  Carteira autorizada · total autorizado
+L<acum+4>  (−) Utilizado da carteira autorizada
+L<acum+5>  (=) Autorizado disponível
+```
+
+O livre usa o **total originalmente autorizado**, nunca o disponível — subtrair o
+disponível devolveria ao saldo livre um valor já pago.
+
+O consolidado tem mais três linhas: saldo financeiro remanescente e duas
+conferências que devem dar zero (identidade da carteira, e soma das cinco abas
+contra o consolidado).
+
+**O saldo financeiro remanescente é ancorado no último mês realizado**
+(`=$J$31+…`, com J = ago./26), não na coluna corrente: misturar projeção de meses
+futuros com uma utilização que já aconteceu produziria número sem sentido. O
+script descobre essa coluna pela marca "realizado" da linha 4 — rodar de novo
+depois de fechar um mês reancora sozinho.
+
+```bash
+node sync/movimentacoes.js               # simula
+node sync/movimentacoes.js --write       # grava (idempotente)
+node sync/conferir-carteira.js --antes   # salva o estado das linhas de caixa
+node sync/conferir-carteira.js           # confere tudo
+```
+
+Dez testes bloqueiam a gravação, entre eles o rastreio reverso (todo
+`numero_pagamento` de utilização tem de existir na Base com mesmo valor, projeto
+e competência), o teto por projeto, e a conferência de que cada autorização é
+igual ao acumulado daquele projeto em 31/07/2026 pelo método B.
 
 ## Pendências técnicas conhecidas
 
