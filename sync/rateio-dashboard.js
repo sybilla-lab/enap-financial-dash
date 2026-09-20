@@ -323,7 +323,17 @@ function historicoPorProjeto(ctx) {
   return { meses: dispMonths, porMes: projMesRend, acum: projRendAcum };
 }
 
-/** Rateio de um mês específico segundo a série histórica. */
+/**
+ * Rateio de um mês específico segundo a série histórica.
+ *
+ * `mesLiquido` é o valor EFETIVAMENTE distribuído no mês, que nem sempre é o
+ * líquido do próprio mês: meses de líquido negativo não são distribuídos e
+ * ficam em `undistributed` até o próximo mês distribuível, que então recebe
+ * líquido + carregado. Fechar o mês contra o líquido próprio em vez do
+ * distribuído injetaria o carregado duas vezes.
+ *
+ * `liquidoOficial` guarda o líquido do mês na Base, para comparação.
+ */
 function rateioHistorico(hist, mesAno, liquido) {
   const linhas = [];
   hist.porMes.forEach((mapa, proj) => {
@@ -331,7 +341,9 @@ function rateioHistorico(hist, mesAno, liquido) {
     if (v !== undefined && v > 0.005) linhas.push({ projeto: proj, rendimentoMes: v, pctParticipacao: liquido > 0 ? (v / liquido) * 100 : 0 });
   });
   linhas.sort((a, b) => b.rendimentoMes - a.rendimentoMes);
-  return { mesAno, mesLiquido: liquido, linhas };
+  const distribuido = cent(linhas.reduce((s, l) => s + l.rendimentoMes, 0));
+  return { mesAno, mesLiquido: distribuido, liquidoOficial: cent(liquido),
+           carregado: cent(distribuido - cent(liquido)), linhas };
 }
 
 /**

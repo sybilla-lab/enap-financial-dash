@@ -70,15 +70,41 @@ node sync/checkpoint-oficio.js
 Tolerância total: R$ 0,02. O script sai com código 1 se não fechar — use-o como
 porta de entrada do procedimento.
 
+## Mês negativo: a regra de carregamento
+
+**11/2025 tem rendimento líquido negativo: −R$ 2.060,93.**
+
+O método B não rateia mês negativo sobre saldos positivos. O valor fica
+carregado (`undistributed`) e entra no **próximo mês distribuível**. Por isso
+12/2025 distribui R$ 62.630,92 e não os R$ 64.691,85 do próprio mês:
+
+```
+12/2025:  líquido 64.691,85  +  carregado de 11/2025 (−2.060,93)  =  62.630,92 distribuído
+```
+
+Consequência prática, e é a pegadinha da rotina: **o alvo de fechamento de um
+mês é o valor distribuído, nunca `porMes.liquido`.** Fechar contra o líquido do
+próprio mês reinjeta o carregado e infla o acumulado em R$ 2.060,93 — exatamente
+o erro que a reconciliação de 09/2026 encontrou. `rateioHistorico()` devolve
+`mesLiquido` já com o distribuído, e guarda `liquidoOficial` e `carregado` à
+parte para conferência.
+
+Nos meses em que nada é carregado — todos de 12/2025 em diante — distribuído e
+líquido coincidem, e o mês fecha contra o próprio total.
+
 ## Ajuste de centavos
 
-Cada valor por projeto é arredondado para centavos. Se a soma não bater com o
-líquido do mês, o resíduo (sempre ±R$ 0,01) vai para **o projeto de maior valor
-no mês**, que é a mesma regra do dashboard. Assim o mês fecha exato.
+Coisa distinta do carregamento, e não se misturam. Cada valor por projeto é
+arredondado para centavos; se a soma não bater com o valor distribuído do mês, o
+resíduo (sempre ±R$ 0,01) vai para **o projeto de maior participação naquele
+mês**, que é a mesma regra do dashboard.
 
 Exemplo: agosto/2026 arredondado dá R$ 64.710,04, um centavo acima do líquido
 real de R$ 64.710,03 — o −R$ 0,01 é absorvido por Alimenta +1000 Cidades
 (38.814,68 → 38.814,67).
+
+Nenhum resíduo vira linha de ajuste técnico na planilha: ele é absorvido dentro
+do valor do projeto.
 
 ## Estrutura da planilha de destino
 
@@ -184,6 +210,7 @@ conferência do que a célula exibia.
 |---|---|---|
 | `rateio-dashboard.js` | Réplica fiel dos métodos A e B em Node. Módulo usado pelos demais; rodando direto, compara os dois métodos para os meses pedidos. | não |
 | `checkpoint-oficio.js` | Valida o acumulado em 31/07/2026 contra o Ofício nº 04/2026. | não |
+| `reconciliar.js` | Reconcilia 09/2025–08/2026 contra o método B e corrige divergências de centavos. | **com `--write`** |
 | `snapshot.js` | Backup das células afetadas, em JSON. | não |
 | `sincronizar.js` | Grava o realizado e a marca `realizado`. Simula por padrão. | **com `--write`** |
 | `conferir.js` | Releitura e conferência pós-gravação. | não |
@@ -193,13 +220,27 @@ conferência do que a célula exibia.
 | `fuso-e-abas.js` | Confere fuso horário e nomes de abas. | não |
 | `testar-acesso.js` | Testa credencial e acesso às duas planilhas. | não |
 
-## Pendências técnicas conhecidas
+## Reconciliação do histórico
 
-**Arredondamento histórico de jan–jun/2026.** Três desses meses têm desvio de
-R$ 0,01 entre a soma das cinco abas de projeto e o total do consolidado, porque
-foram preenchidos com arredondamento simples, sem o fechamento de resíduo que
-passou a ser aplicado a partir de julho. Não é erro de metodologia e não afeta
-nenhum total consolidado. **Decisão: não corrigir por enquanto.**
+`reconciliar.js` percorre todo o período disponível (09/2025–08/2026), recalcula
+cada mês pelo método B e compara, célula a célula, com o que está na linha
+"Rendimentos" e com a abertura histórica embutida na linha "Saldo acumulado de
+rendimentos" (`=45640,79+C8` e equivalentes).
+
+```bash
+node sync/reconciliar.js            # tabela completa + lista de divergências
+node sync/reconciliar.js --write    # corrige só as células divergentes
+```
+
+Trava: recusa qualquer correção acima de R$ 0,02 — diferença maior não é
+arredondamento, é metodologia, e não se conserta por aqui. Ao corrigir uma
+abertura, reescreve apenas a constante e preserva a fórmula.
+
+Em 20/09/2026 corrigiu 4 células (jan, fev e jun/2026 e a abertura da aba
+Alimenta, ±R$ 0,01 cada). Hoje acusa **0 divergências**: os doze meses fecham ao
+centavo e os acumulados das cinco abas batem com o consolidado.
+
+## Pendências técnicas conhecidas
 
 **Julho/2026 no consolidado (I12) é valor fixo**, enquanto agosto (J12) é
 fórmula. Os dois estão corretos — R$ 70.380,05 e R$ 64.710,03. **Decisão: manter
