@@ -110,6 +110,34 @@ const REND_HIST_PROPOSTO: Record<string, Record<string, number>> = {
 })
 export class RendimentosComponent implements OnInit, OnDestroy {
   isLoading = true;
+
+  /**
+   * A página só aparece quando o painel "Rendimentos da conta" está pronto.
+   *
+   * As seções chegavam em tempos diferentes: o resumo da conta depende da aba
+   * de Rendimentos e do rateio sobre todos os lançamentos, e é o mais lento.
+   * Liberar cada bloco assim que ele ficava pronto fazia a tela montar aos
+   * pedaços, com números mudando de valor na frente do leitor enquanto o
+   * restante ainda carregava. Agora é tudo de uma vez.
+   *
+   * O evento institucional entra na conta porque as transferências alteram o
+   * rateio de agosto em diante: mostrar o histórico antes dele seria mostrar um
+   * número que muda em seguida.
+   */
+  private readonly carregado = { resumo: false, historico: false, evento: false };
+
+  /** Teto de espera: uma fonte fora do ar não pode deixar a página em branco. */
+  private static readonly ESPERA_MAXIMA_MS = 12000;
+
+  private avaliarCarregamento(): void {
+    this.carregado.resumo = this.resumo.porMes.length > 0;
+    this.carregado.historico = this.historicoPorProjeto.length > 0;
+    if (!this.isLoading) return;
+    if (this.carregado.resumo && this.carregado.historico && this.carregado.evento) {
+      // Um quadro para o gráfico terminar de montar antes de a tela trocar.
+      setTimeout(() => (this.isLoading = false), 150);
+    }
+  }
   /** Lançamentos da Base, sem ajuste. */
   lancamentosBase: any[] = [];
   /** Base + transferências internas de rendimentos — é o que o rateio consome. */
@@ -727,6 +755,10 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Teto de espera: se uma das fontes não responder, a página abre com o que
+    // tiver em vez de ficar em esqueleto para sempre.
+    setTimeout(() => (this.isLoading = false), RendimentosComponent.ESPERA_MAXIMA_MS);
+
     if (isPlatformBrowser(this.platformId)) {
       this.http.get<{ results: CalcRendResult[] }>('/calc_rendimentos.json').subscribe(data => {
         this._rawPrevResults = data.results ?? [];
@@ -748,7 +780,6 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       this.computarPorMesCorrigido();
       this.tryComputarHistorico();
       this.deriveProjectionStart();
-      setTimeout(() => (this.isLoading = false), 1200);
     });
 
     this.dataService.lancamentos$.subscribe((lancs) => {
@@ -763,6 +794,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     // isto o rateio do dashboard divergiria do da planilha a partir de ago/26.
     this.dataService.getOficioRendimentos().subscribe(o => {
       this.oficio = o;
+      // Resolvido conta como pronto mesmo vindo nulo: sem evento vigente a
+      // página não tem por que ficar esperando.
+      this.carregado.evento = true;
       this.tryComputarHistorico();
       // O gráfico pode já ter sido montado antes do evento chegar; sem
       // remontar, o marco de 08/2026 só apareceria no primeiro hover.
@@ -965,6 +999,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   private tryComputarHistorico(): void {
     if (this.resumo.porMes.length && this.lancamentosOriginais.length && this.utilizacaoPorMes.size)
       this.computarHistoricoPorProjeto();
+    // Avaliar aqui, e não em cada subscribe: toda fonte que muda o cálculo
+    // passa por este ponto, e era fácil esquecer de reavaliar em uma delas.
+    this.avaliarCarregamento();
   }
 
   private computarHistoricoPorProjeto(): void {

@@ -4,12 +4,20 @@
     Rendimentos Financeiros
   </h1>
 
-  <!-- ─── Painel de Rendimentos ────────────────────────────────── -->
+  <!-- Carregamento sincronizado: a tela inteira espera o painel "Rendimentos
+       da conta", que é a seção mais lenta. Liberar cada bloco no seu tempo
+       montava a página aos pedaços, com números trocando de valor na frente do
+       leitor enquanto o restante ainda carregava. -->
   @if (isLoading) {
-  <div style="margin-bottom:24px">
-    <div class="skeleton-box" style="height:210px;border-radius:20px;width:100%;"></div>
+  <div class="rend-skeleton" aria-busy="true" aria-live="polite">
+    <div class="skeleton-box rend-skel-painel"></div>
+    <div class="skeleton-box rend-skel-evento"></div>
+    <div class="skeleton-box rend-skel-bloco"></div>
+    <div class="skeleton-box rend-skel-bloco"></div>
+    <div class="skeleton-box rend-skel-grafico"></div>
   </div>
   } @else {
+  <!-- ─── Painel de Rendimentos ────────────────────────────────── -->
   <div class="rend-header-panel">
 
     <!-- Esquerda: cascata de cálculo -->
@@ -117,7 +125,6 @@
     </div>
 
   </div>
-  }
 
   <!-- ── Carteira de Rendimentos · Plataforma Desafios ── -->
   <app-carteira-rendimentos [oficio]="oficio"></app-carteira-rendimentos>
@@ -538,9 +545,7 @@
     </mat-card-header>
     <mat-card-content>
       <div class="chart-wrapper">
-        @if (isLoading) {
-        <div class="skeleton-box" style="width:100%;height:100%;border-radius:8px;"></div>
-        } @else if (chartReady) {
+        @if (chartReady) {
         <canvas baseChart [data]="barChartData" [options]="barChartOptions"
                 [plugins]="chartPlugins" [type]="'bar'"></canvas>
         }
@@ -548,6 +553,7 @@
     </mat-card-content>
   </mat-card>
 
+  }
 </div>
 
 <!-- ── Modal: Atribuição por Projeto ── -->
