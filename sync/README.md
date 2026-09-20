@@ -222,6 +222,10 @@ conferência do que a célula exibia.
 | `ler-estruturas.js` | Reconhecimento do layout das abas. | não |
 | `fuso-e-abas.js` | Confere fuso horário e nomes de abas. | não |
 | `testar-acesso.js` | Testa credencial e acesso às duas planilhas. | não |
+| `projecao-movimentacoes.js` | Cria/atualiza a aba técnica "Dashboard • Movimentações Rendimentos", projeção por fórmula dos treze campos do dashboard. | **sim** |
+| `testar-atualizacao-automatica.js` | Prova que o dashboard lê a planilha ao vivo: insere uma movimentação de teste, mostra o CSV publicado mudando e remove. | **sim (temporário)** |
+| `gerar-fixture-rateio.js` | Gera a fixture do teste de regressão do rateio a partir da Base. | não |
+| `exportar-oficio.js` | Gera o **fallback** `public/oficio-04-2026.json`. Não é mais a fonte do dashboard. | não |
 
 ## Reconciliação do histórico
 
@@ -307,6 +311,85 @@ Dez testes bloqueiam a gravação, entre eles o rastreio reverso (todo
 `numero_pagamento` de utilização tem de existir na Base com mesmo valor, projeto
 e competência), o teto por projeto, e a conferência de que cada autorização é
 igual ao acumulado daquele projeto em 31/07/2026 pelo método B.
+
+## Como o dashboard lê as movimentações (fonte ao vivo)
+
+O dashboard **não** depende mais de exportar JSON à mão. A aba
+**"Movimentações de Rendimentos"** da planilha de Orçamento está publicada na
+web em CSV, e o `DataService` a lê a cada carregamento:
+
+```
+environment.movimentacoesRendimentosUrls   →  DataService.getMovimentacoesRendimentos()
+```
+
+É o mesmo mecanismo das abas da Base — CSV publicado + Papa.parse. Registrou uma
+nova utilização da carteira na planilha? Ela aparece no dashboard no próximo
+carregamento, em cerca de um minuto (o CSV publicado tem cache curto do lado do
+Google). Nenhum script, nenhum deploy.
+
+**Comprovação.** `node sync/testar-atualizacao-automatica.js` insere uma
+movimentação de teste, mostra o CSV publicado mudando e remove a linha. Feito em
+20/09/2026: o utilizado foi de R$ 21.600,00 para R$ 22.834,56 e o disponível de
+R$ 128.402,11 para R$ 127.167,55 na tela, com o JSON local intocado — e voltou
+ao original quando a linha saiu.
+
+### A ordem das fontes
+
+`environment.ts` lista as fontes; são tentadas **em série** e a primeira que
+responder com o cabeçalho esperado vence:
+
+1. aba oficial "Movimentações de Rendimentos" (gid `185205069`) — a publicada hoje;
+2. aba técnica "Dashboard • Movimentações Rendimentos" (gid `96584928`);
+3. `public/oficio-04-2026.json` — fallback local.
+
+Em série, e não em paralelo, porque uma aba não publicada responde com
+redirecionamento para o login do Google: em paralelo isso vira um erro de CORS
+no console a cada carregamento, mesmo quando outra fonte atendeu.
+
+### Publicar a projeção técnica (recomendado, 2 cliques)
+
+`node sync/projecao-movimentacoes.js` já criou a aba **"Dashboard •
+Movimentações Rendimentos"** na planilha de Orçamento. Ela é uma projeção só por
+fórmula da aba oficial, com **apenas os treze campos** que o dashboard usa —
+sem `categoria`, `fornecedor` nem a observação interna de cada lançamento.
+Qualquer edição na aba oficial aparece nela no mesmo instante.
+
+Hoje o que está público é a aba oficial, com todas as colunas. Para reduzir o
+que fica exposto:
+
+1. na planilha de Orçamento: **Arquivo › Compartilhar › Publicar na web**;
+2. trocar a aba publicada de "Movimentações de Rendimentos" para
+   **"Dashboard • Movimentações Rendimentos"**, formato **CSV**.
+
+Não é preciso mexer em código nem publicar o dashboard: a primeira fonte passa a
+falhar, a segunda responde e a leitura migra sozinha.
+
+> A aba técnica **não** pôde ser criada na "Base de Dados • ENAP Financial
+> Dash", como seria o natural: a service account tem leitura na Base, não
+> escrita (`batchUpdate` devolve "The caller does not have permission"), e
+> IMPORTRANGE entre as duas planilhas exigiria a autorização de par
+> origem→destino, que só existe pelo botão "Permitir acesso" da interface. Ficar
+> na própria planilha de Orçamento dispensa IMPORTRANGE — é referência direta
+> entre abas — e evita uma segunda cópia dos dados.
+
+### Instalar os Apps Script corrigidos
+
+Os dois arquivos em `apps-script/` estão corrigidos no repositório mas **ainda
+não instalados** — o acesso ao editor de scripts não está disponível por aqui.
+
+**Até a substituição, não use o menu antigo da planilha.** O
+`calcularAtribuicao_` da versão instalada ainda reproduz o método A, que
+diverge do método B oficial.
+
+Para substituir (na planilha de Orçamento):
+
+1. **Extensões › Apps Script**;
+2. abrir o arquivo `SyncRendimentos.gs`, selecionar tudo e colar o conteúdo de
+   `apps-script/SyncRendimentos.gs` deste repositório;
+3. fazer o mesmo com `SyncExecucao.gs` e `apps-script/SyncExecucao.gs`;
+4. **Salvar** (Ctrl+S) e recarregar a planilha, para o menu ser recriado;
+5. conferir com `node sync/testar-apps-script.js`, que roda o `.gs` real contra
+   a Base e compara com o método B — tem de fechar sem divergência.
 
 ## Pendências técnicas conhecidas
 

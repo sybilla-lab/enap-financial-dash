@@ -1,12 +1,16 @@
 /**
- * Exporta a aba "Movimentações de Rendimentos" para public/oficio-04-2026.json.
+ * Gera o FALLBACK public/oficio-04-2026.json a partir da planilha.
  *
- * Fonte única: a planilha. O dashboard lê este JSON em tempo de execução, então
- * nenhum valor do Ofício fica escrito dentro de componente. Registrou uma nova
- * utilização na aba? Rode este script e publique — os números se atualizam.
+ * Não é mais a fonte do dashboard. Desde que a aba "Movimentações de
+ * Rendimentos" passou a ser publicada em CSV, o dashboard lê a planilha ao
+ * vivo (DataService.getMovimentacoesRendimentos) e uma nova utilização aparece
+ * sozinha, sem rodar nada. Este arquivo continua existindo por dois motivos:
  *
- * A aba de movimentações não está publicada como CSV, e publicar exige a
- * interface do Sheets. Enquanto não estiver, este export é a ponte.
+ *   - rede de segurança se a publicação da planilha cair;
+ *   - fixture para testar a página sem rede.
+ *
+ * Rodar depois de mudanças estruturais no evento, para o fallback não ficar
+ * defasado em relação à planilha. Rotina de utilização não precisa disto.
  *
  *   node sync/exportar-oficio.js
  */
@@ -25,11 +29,23 @@ const T_TRANSF = 'transferência interna de rendimentos';
 const T_PROPRIA = 'destinação própria';
 const T_USO = 'utilização da carteira';
 
-// Acumulado por projeto em 31/07/2026 (data-base do Ofício), do método B.
-const ATE_JULHO = {
-  'Alimenta +1000 Cidades': 387456.64, 'CAR DPG': 72847.81,
-  'Operação Básica': 37476.59, 'Co.NE': 26200.66, 'Parceria MDIC': 13477.05,
-};
+/**
+ * Fecha o resíduo de arredondamento no projeto de maior valor.
+ *
+ * Mesma regra de services/rateio-rendimentos.ts: sem ela, o acumulado da
+ * data-base fica um centavo abaixo do líquido do período — e é justamente esse
+ * total que o Ofício cita. O checkpoint é DERIVADO, nunca digitado: uma tabela
+ * fixa aqui viraria uma segunda verdade, divergindo da planilha no silêncio.
+ */
+function fecharResiduo(valores, totalEsperado) {
+  valores.forEach((v, p) => valores.set(p, R.cent(v)));
+  const soma = R.cent(Array.from(valores.values()).reduce((s, v) => s + v, 0));
+  const residuo = R.cent(totalEsperado - soma);
+  if (residuo === 0) return;
+  let maiorProj = '', maiorVal = -Infinity;
+  valores.forEach((v, p) => { if (v > maiorVal) { maiorVal = v; maiorProj = p; } });
+  if (maiorProj) valores.set(maiorProj, R.cent(valores.get(maiorProj) + residuo));
+}
 
 async function main() {
   const auth = new google.auth.GoogleAuth({ keyFile: KEY, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
@@ -82,40 +98,52 @@ async function main() {
   const [ay, am] = compEfeito.split('-');
   const chaveEfeito = Number(ay) * 100 + Number(am);
 
-  const posteriores = {};   // rendimento gerado a partir da competência de efeito
-  meses.forEach(m => {
-    const [mm, yy] = m.mesAno.split('/');
-    if (Number(yy) * 100 + Number(mm) < chaveEfeito) return;
-    const f = R.fechar(R.rateioHistorico(hist, m.mesAno, m.liquido));
-    f.valores.forEach(v => { posteriores[v.projeto] = R.cent((posteriores[v.projeto] ?? 0) + v.valor); });
+  // Série partida na competência de efeito: antes do corte vira o checkpoint da
+  // data-base, a partir dele vira o rendimento novo. Cada lado fecha contra o
+  // líquido dos seus próprios meses.
+  const ate = new Map(), depois = new Map();
+  hist.porMes.forEach((serie, proj) => {
+    let a = 0, d = 0;
+    serie.forEach((v, mesAno) => { if (R.mesKey(mesAno) < chaveEfeito) a += v; else d += v; });
+    if (a !== 0) ate.set(proj, a);
+    if (d !== 0) depois.set(proj, d);
   });
+  const totalAte = R.cent(meses.filter(m => R.mesKey(m.mesAno) < chaveEfeito).reduce((s, m) => s + m.liquido, 0));
+  const totalDepois = R.cent(meses.filter(m => R.mesKey(m.mesAno) >= chaveEfeito).reduce((s, m) => s + m.liquido, 0));
+  fecharResiduo(ate, totalAte);
+  fecharResiduo(depois, totalDepois);
 
   const soma = (tipo, campo, proj) => R.cent(mov
     .filter(m => m.tipo === tipo && m[campo] === proj && !(tipo === T_TRANSF && m.origem === m.destino))
     .reduce((s, m) => s + m.valor, 0));
 
-  const projetos = Object.keys(ATE_JULHO).map(p => {
+  const nomes = new Set([...ate.keys(), ...depois.keys()]);
+  mov.forEach(m => { nomes.add(m.origem); nomes.add(m.destino); });
+
+  const projetos = Array.from(nomes).filter(Boolean).map(p => {
+    const historico = R.cent(ate.get(p) ?? 0);
     const cedido = soma(T_TRANSF, 'origem', p);
     const recebido = soma(T_TRANSF, 'destino', p);
     const propria = R.cent(mov.filter(m => m.tipo === T_PROPRIA && m.origem === p).reduce((s, m) => s + m.valor, 0));
     const utilizado = R.cent(mov.filter(m => m.tipo === T_USO && m.origem === p).reduce((s, m) => s + m.valor, 0));
-    const novos = R.cent(posteriores[p] ?? 0);
+    const novos = R.cent(depois.get(p) ?? 0);
     return {
       projeto: p,
-      historicoAteDataBase: ATE_JULHO[p],
+      historicoAteDataBase: historico,
       destinado: R.cent(cedido + propria),
       transferidoCedido: cedido,
       transferidoRecebido: recebido,
       destinacaoPropria: propria,
-      saldoLivreAposOficio: R.cent(ATE_JULHO[p] - cedido - propria),
+      saldoLivreAposOficio: R.cent(historico - cedido - propria),
       novosRendimentos: novos,
-      saldoLivreAtual: R.cent(ATE_JULHO[p] - cedido - propria + novos),
+      saldoLivreAtual: R.cent(historico - cedido - propria + novos),
       carteiraSobGestao: R.cent(recebido + propria),
       utilizado,
       carteiraDisponivel: R.cent(recebido + propria - utilizado),
       participa: R.cent(cedido + propria) > 0 || recebido > 0,
     };
-  }).sort((a, b) => b.historicoAteDataBase - a.historicoAteDataBase);
+  }).filter(p => p.historicoAteDataBase !== 0 || p.novosRendimentos !== 0 || p.participa)
+    .sort((a, b) => b.historicoAteDataBase - a.historicoAteDataBase);
 
   const totalTransferido = R.cent(mov.filter(m => m.tipo === T_TRANSF).reduce((s, m) => s + m.valor, 0));
   const totalPropria = R.cent(mov.filter(m => m.tipo === T_PROPRIA).reduce((s, m) => s + m.valor, 0));
@@ -127,7 +155,7 @@ async function main() {
     projetoExecutor: OB,
     dataBase: mov[0]?.dataBase || '31/07/2026',
     competenciaEfeito: compEfeito,
-    checkpointDataBase: R.cent(Object.values(ATE_JULHO).reduce((s, v) => s + v, 0)),
+    checkpointDataBase: totalAte,
     totalDestinado: R.cent(totalTransferido + totalPropria),
     transferidoDeOutrosProjetos: totalTransferido,
     rendimentoProprioDestinado: totalPropria,

@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject, Observable, forkJoin, map, combineLatest, of, catchError, shareReplay } from "rxjs";
+import { BehaviorSubject, Observable, forkJoin, map, combineLatest, of, catchError, shareReplay, switchMap } from "rxjs";
 import * as Papa from "papaparse";
 import {
   Lancamento,
@@ -16,9 +16,14 @@ import {
   CategoriaGlossario,
   CategoriaNormalizada,
   OficioRendimentos,
+  ProjetoOficio,
+  MovimentacaoRendimento,
   TransferenciaRendimento,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
+import { ratearRendimentos, cortarRateio, MesRendimento } from "./rateio-rendimentos";
+
+const cent = (v: number) => Math.round(v * 100) / 100;
 
 @Injectable({ providedIn: "root" })
 export class DataService {
@@ -840,22 +845,274 @@ export class DataService {
     return this.rendimentos$;
   }
 
-  // ===== EVENTOS INSTITUCIONAIS — Ofício nº 04/2026 =====
+  // ===== EVENTOS INSTITUCIONAIS — movimentações de rendimentos =====
   /**
-   * Fonte única do evento: gerado de "Movimentações de Rendimentos" da planilha
-   * oficial por `node sync/exportar-oficio.js`. Nenhum valor do Ofício é escrito
-   * dentro de componente — registrou nova utilização na aba, roda o export.
+   * As movimentações vêm da planilha, ao vivo.
+   *
+   * Fonte proprietária: aba "Movimentações de Rendimentos" da planilha
+   * "Orçamento e Rendimentos 2026-2028". O dashboard não a lê direto: lê a
+   * projeção técnica publicada em CSV, que expõe só os treze campos do
+   * contrato — sem categoria, fornecedor ou a observação interna de cada
+   * lançamento. É o mesmo mecanismo das abas da Base: CSV publicado + Papa.
+   *
+   * A lista é tentada EM SÉRIE e a primeira que responder com o cabeçalho
+   * esperado vence — as seguintes nem chegam a ser pedidas. Em série, e não em
+   * paralelo, porque uma aba não publicada responde com redirecionamento para o
+   * login do Google: em paralelo isso vira um erro de CORS no console a cada
+   * carregamento, mesmo quando outra fonte atendeu.
+   *
+   * Ordem: a aba oficial primeiro, que é a publicada hoje. Publicar a projeção
+   * técnica e despublicar a oficial migra a leitura sozinho, sem deploy — e é
+   * justamente esse ato que tira do ar as colunas que o dashboard não usa.
+   *
+   * O JSON local é o último recurso — fixture de teste e rede de segurança,
+   * nunca a fonte. Registrar uma nova utilização na planilha basta: o
+   * dashboard reflete no próximo carregamento, sem exportar nada.
    */
+  private readonly MOVIMENTACOES_FONTES = environment.movimentacoesRendimentosUrls;
+  private readonly MOVIMENTACOES_FALLBACK = 'oficio-04-2026.json';
+
+  private readonly TIPO_TRANSFERENCIA = 'transferência interna de rendimentos';
+  private readonly TIPO_DESTINACAO_PROPRIA = 'destinação própria';
+  private readonly TIPO_UTILIZACAO = 'utilização da carteira';
+
+  private movimentacoes$?: Observable<MovimentacaoRendimento[]>;
   private oficio$?: Observable<OficioRendimentos | null>;
 
-  getOficioRendimentos(): Observable<OficioRendimentos | null> {
-    if (!this.oficio$) {
-      this.oficio$ = this.http.get<OficioRendimentos>('oficio-04-2026.json').pipe(
-        catchError(() => of(null)),
-        shareReplay(1)
+  getMovimentacoesRendimentos(): Observable<MovimentacaoRendimento[]> {
+    if (this.movimentacoes$) return this.movimentacoes$;
+
+    const doJson = this.http.get<OficioRendimentos>(this.MOVIMENTACOES_FALLBACK).pipe(
+      map(o => o?.movimentacoes ?? []),
+      catchError(() => of([] as MovimentacaoRendimento[]))
+    );
+
+    // Uma aba não publicada responde 200 com a página de login do Google, não
+    // com erro HTTP — por isso a fonte só é aceita se o CSV trouxer o cabeçalho.
+    const tentativa = (url: string): Observable<MovimentacaoRendimento[] | null> =>
+      this.http.get(url, { responseType: 'text' }).pipe(
+        map(csv => {
+          if (!csv.includes('id_movimentacao')) return null;
+          const mov = this.parseMovimentacoes(csv);
+          return mov.length ? mov : null;
+        }),
+        catchError(() => of(null))
       );
+
+    const emSerie = (fontes: string[]): Observable<MovimentacaoRendimento[] | null> =>
+      fontes.length
+        ? tentativa(fontes[0]).pipe(switchMap(mov => (mov ? of(mov) : emSerie(fontes.slice(1)))))
+        : of(null);
+
+    this.movimentacoes$ = emSerie(this.MOVIMENTACOES_FONTES).pipe(
+      switchMap(mov => (mov ? of(mov) : doJson)),
+      shareReplay(1)
+    );
+    return this.movimentacoes$;
+  }
+
+  /**
+   * Aceita "72847.81" (projeção técnica) e "R$ 72.847,81" (aba oficial).
+   *
+   * O símbolo da moeda sai antes de delegar: `parseValor` presume a string já
+   * sem prefixo e devolveria 0 para "R$ …" — um zero silencioso, que some no
+   * meio de uma soma em vez de estourar.
+   */
+  private parseValorMovimentacao(bruto: string): number {
+    const s = (bruto || '').replace(/R\$/gi, '').trim();
+    if (!s) return 0;
+    if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s);
+    return this.parseValor(s);
+  }
+
+  private parseMovimentacoes(csvText: string): MovimentacaoRendimento[] {
+    const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = parsed.data as string[][];
+    if (!rows.length) return [];
+
+    const idx = new Map<string, number>();
+    rows[0].forEach((h, i) => idx.set(String(h || '').trim().toLowerCase(), i));
+    const campo = (row: string[], ...nomes: string[]): string => {
+      for (const n of nomes) {
+        const i = idx.get(n);
+        if (i !== undefined) return (row[i] ?? '').trim();
+      }
+      return '';
+    };
+
+    const out: MovimentacaoRendimento[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const id = campo(row, 'id_movimentacao');
+      if (!id) continue;
+      out.push({
+        id,
+        dataBase: campo(row, 'data_base'),
+        dataEfetiva: campo(row, 'data_efetiva'),
+        competencia: campo(row, 'competencia', 'competência'),
+        tipo: campo(row, 'tipo'),
+        documento: campo(row, 'documento'),
+        origem: campo(row, 'projeto_origem'),
+        destino: campo(row, 'projeto_destino'),
+        valor: this.parseValorMovimentacao(campo(row, 'valor')),
+        numeroPagamento: campo(row, 'numero_pagamento') || null,
+        categoria: campo(row, 'categoria') || null,
+        fornecedor: campo(row, 'fornecedor') || null,
+        // A aba oficial chama o campo de "destinacao"; a projeção, de "finalidade".
+        finalidade: campo(row, 'finalidade', 'destinacao', 'destinação'),
+        observacao: campo(row, 'observacao', 'observação'),
+        status: campo(row, 'status') || 'vigente',
+      });
     }
+    return out;
+  }
+
+  /**
+   * Apuração do evento institucional a partir das movimentações ao vivo.
+   *
+   * Os totais movimentados (cedido, recebido, destinação própria, utilizado)
+   * são somas diretas das linhas da planilha. O checkpoint da data-base e o
+   * rendimento gerado depois do corte vêm do rateio — a mesma série da página
+   * de Rendimentos, partida na competência de efeito do documento.
+   */
+  getOficioRendimentos(): Observable<OficioRendimentos | null> {
+    if (this.oficio$) return this.oficio$;
+
+    this.oficio$ = combineLatest({
+      movimentacoes: this.getMovimentacoesRendimentos(),
+      resumo: this.getRendimentoResumo(),
+      lancamentos: this.lancamentos$,
+      rendimentos: this.rendimentos$,
+      saldos: this.saldos$,
+      status: this.status$,
+    }).pipe(
+      map(d => this.apurarOficio(d)),
+      catchError(() => of(null)),
+      shareReplay(1)
+    );
     return this.oficio$;
+  }
+
+  private apurarOficio(d: {
+    movimentacoes: MovimentacaoRendimento[];
+    resumo: { porMes: MesRendimento[] };
+    lancamentos: Lancamento[];
+    rendimentos: Rendimento[];
+    saldos: SaldoRemanescente[];
+    status: StatusProjeto[];
+  }): OficioRendimentos | null {
+    const mov = d.movimentacoes.filter(m => m.status.toLowerCase().trim() === 'vigente');
+    if (!mov.length || !d.resumo.porMes.length || !d.lancamentos.length) return null;
+
+    const transferencias = this.transferenciasDe(mov);
+    const competenciaEfeito =
+      mov.find(m => m.tipo === this.TIPO_TRANSFERENCIA)?.competencia ||
+      mov[0]?.competencia ||
+      '';
+    if (!competenciaEfeito) return null;
+
+    const utilizacaoPorMes = new Map<string, string>();
+    d.rendimentos.forEach(r => {
+      if (r.valor > 0 && !utilizacaoPorMes.has(r.mesAno)) utilizacaoPorMes.set(r.mesAno, r.utilizacao);
+    });
+    if (!utilizacaoPorMes.size) return null;
+
+    const projetosEncerrados = new Map<string, number>();
+    d.saldos.forEach(s => {
+      const p = s.data.split('/');
+      if (p.length === 3) projetosEncerrados.set(s.projeto, parseInt(p[2]) * 100 + parseInt(p[1]));
+    });
+    const projetosInativos = new Set<string>();
+    d.status.forEach(s => {
+      const st = s.status.toLowerCase();
+      if (st === 'finalizado' || st === 'encerrado') projetosInativos.add(s.projeto);
+    });
+
+    const rateio = ratearRendimentos({
+      porMes: d.resumo.porMes,
+      lancamentos: [
+        ...d.lancamentos,
+        ...transferencias.map(t => ({ projeto: t.projeto, mesAno: t.mesAno, valor: t.valor })),
+      ],
+      utilizacaoPorMes,
+      projetosEncerrados,
+      projetosInativos,
+    });
+    if (!rateio) return null;
+    const corte = cortarRateio(rateio, competenciaEfeito);
+
+    const somar = (filtro: (m: MovimentacaoRendimento) => boolean) =>
+      cent(mov.filter(filtro).reduce((s, m) => s + m.valor, 0));
+    const transferencia = (m: MovimentacaoRendimento) =>
+      m.tipo === this.TIPO_TRANSFERENCIA && m.origem !== m.destino;
+
+    const nomes = new Set<string>([...corte.ate.keys(), ...corte.depois.keys()]);
+    mov.forEach(m => { nomes.add(m.origem); nomes.add(m.destino); });
+
+    const projetos: ProjetoOficio[] = Array.from(nomes)
+      .filter(p => !!p)
+      .map(p => {
+        const cedido = somar(m => transferencia(m) && m.origem === p);
+        const recebido = somar(m => transferencia(m) && m.destino === p);
+        const propria = somar(m => m.tipo === this.TIPO_DESTINACAO_PROPRIA && m.origem === p);
+        const utilizado = somar(m => m.tipo === this.TIPO_UTILIZACAO && m.origem === p);
+        const historico = cent(corte.ate.get(p) ?? 0);
+        const novos = cent(corte.depois.get(p) ?? 0);
+        const destinado = cent(cedido + propria);
+        return {
+          projeto: p,
+          historicoAteDataBase: historico,
+          destinado,
+          transferidoCedido: cedido,
+          transferidoRecebido: recebido,
+          destinacaoPropria: propria,
+          saldoLivreAposOficio: cent(historico - destinado),
+          novosRendimentos: novos,
+          saldoLivreAtual: cent(historico - destinado + novos),
+          carteiraSobGestao: cent(recebido + propria),
+          utilizado,
+          carteiraDisponivel: cent(recebido + propria - utilizado),
+          participa: destinado > 0 || recebido > 0,
+        };
+      })
+      .filter(p => p.historicoAteDataBase !== 0 || p.novosRendimentos !== 0 || p.participa)
+      .sort((a, b) => b.historicoAteDataBase - a.historicoAteDataBase);
+
+    const totalTransferido = somar(transferencia);
+    const totalPropria = somar(m => m.tipo === this.TIPO_DESTINACAO_PROPRIA);
+    const totalUtilizado = somar(m => m.tipo === this.TIPO_UTILIZACAO);
+    const referencia = mov.find(m => m.tipo === this.TIPO_TRANSFERENCIA) ?? mov[0];
+
+    return {
+      documento: referencia.documento,
+      finalidade: referencia.finalidade,
+      projetoExecutor: referencia.destino || 'Operação Básica',
+      dataBase: referencia.dataBase,
+      competenciaEfeito,
+      checkpointDataBase: corte.totalAte,
+      totalDestinado: cent(totalTransferido + totalPropria),
+      transferidoDeOutrosProjetos: totalTransferido,
+      rendimentoProprioDestinado: totalPropria,
+      utilizado: totalUtilizado,
+      disponivel: cent(totalTransferido + totalPropria - totalUtilizado),
+      saldoLivreTotal: cent(projetos.reduce((s, p) => s + p.saldoLivreAtual, 0)),
+      projetos,
+      movimentacoes: mov,
+      geradoEm: new Date().toISOString(),
+    };
+  }
+
+  private transferenciasDe(mov: MovimentacaoRendimento[]): TransferenciaRendimento[] {
+    const out: TransferenciaRendimento[] = [];
+    mov
+      .filter(m => m.tipo === this.TIPO_TRANSFERENCIA && m.origem !== m.destino)
+      .forEach(m => {
+        const [ano, mes] = String(m.competencia).split('-');
+        const mesAno = `${mes}/${ano}`;
+        out.push({ mesAno, projeto: m.origem, valor: -m.valor, documento: m.documento });
+        out.push({ mesAno, projeto: m.destino, valor: m.valor, documento: m.documento });
+      });
+    return out;
   }
 
   /**
@@ -864,20 +1121,8 @@ export class DataService {
    * financeiro real — a Principal só registra movimento real.
    */
   getTransferenciasRendimentos(): Observable<TransferenciaRendimento[]> {
-    return this.getOficioRendimentos().pipe(
-      map(o => {
-        if (!o) return [];
-        const out: TransferenciaRendimento[] = [];
-        o.movimentacoes
-          .filter(m => m.tipo === 'transferência interna de rendimentos' && m.origem !== m.destino)
-          .forEach(m => {
-            const [ano, mes] = String(m.competencia).split('-');
-            const mesAno = `${mes}/${ano}`;
-            out.push({ mesAno, projeto: m.origem, valor: -m.valor, documento: m.documento });
-            out.push({ mesAno, projeto: m.destino, valor: m.valor, documento: m.documento });
-          });
-        return out;
-      })
+    return this.getMovimentacoesRendimentos().pipe(
+      map(mov => this.transferenciasDe(mov.filter(m => m.status.toLowerCase().trim() === 'vigente')))
     );
   }
 
