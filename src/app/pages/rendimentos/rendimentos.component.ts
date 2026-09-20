@@ -9,7 +9,7 @@ import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { RelatorioPdfService, CabecalhoRelatorio } from '../../services/relatorio-pdf.service';
-import { Rendimento } from "../../models/lancamento.model";
+import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento } from "../../models/lancamento.model";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -107,7 +107,30 @@ const REND_HIST_PROPOSTO: Record<string, Record<string, number>> = {
 })
 export class RendimentosComponent implements OnInit, OnDestroy {
   isLoading = true;
+  /** Lançamentos da Base, sem ajuste. */
+  lancamentosBase: any[] = [];
+  /** Base + transferências internas de rendimentos — é o que o rateio consome. */
   lancamentosOriginais: any[] = [];
+  transferencias: TransferenciaRendimento[] = [];
+  oficio: OficioRendimentos | null = null;
+
+  private aplicarTransferencias(): void {
+    this.lancamentosOriginais = [
+      ...this.lancamentosBase,
+      ...this.transferencias.map(t => ({
+        categoria: 'TRANSFERÊNCIA INTERNA', observacao: t.documento,
+        projeto: t.projeto, mesAno: t.mesAno, valor: t.valor, fornecedor: '', numPag: '',
+      })),
+    ];
+  }
+
+  /** Projetos que cederam ou receberam no evento, para a faixa institucional. */
+  get oficioPorProjeto(): ProjetoOficio[] {
+    return this.oficio ? this.oficio.projetos : [];
+  }
+  get oficioParticipantes(): ProjetoOficio[] {
+    return this.oficioPorProjeto.filter(p => p.participa);
+  }
 
   resumo = {
     totalBruto: 0,
@@ -618,7 +641,22 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     });
 
     this.dataService.lancamentos$.subscribe((lancs) => {
-      this.lancamentosOriginais = lancs;
+      this.lancamentosBase = lancs;
+      this.aplicarTransferencias();
+      this.tryComputarHistorico();
+    });
+
+    // Evento institucional (Ofício nº 04/2026). As transferências internas não
+    // estão na aba Principal — ela só registra movimento financeiro real — e
+    // por isso entram aqui como ajuste de saldo na competência de efeito. Sem
+    // isto o rateio do dashboard divergiria do da planilha a partir de ago/26.
+    this.dataService.getOficioRendimentos().subscribe(o => {
+      this.oficio = o;
+      this.tryComputarHistorico();
+    });
+    this.dataService.getTransferenciasRendimentos().subscribe(t => {
+      this.transferencias = t;
+      this.aplicarTransferencias();
       this.tryComputarHistorico();
     });
 

@@ -117,3 +117,66 @@ export interface CategoriaNormalizada {
   /** Preenchido quando o lançamento foi remapeado para outro código (ex.: Tarifas → 1.1.8). */
   observacaoAuditoria?: string;
 }
+
+// ── Evento institucional: destinação de rendimentos ──────────────────────────
+// Espelha public/oficio-04-2026.json, gerado da aba "Movimentações de
+// Rendimentos" da planilha oficial por `node sync/exportar-oficio.js`.
+
+export interface MovimentacaoRendimento {
+  id: string;
+  dataBase: string;
+  dataEfetiva: string;
+  competencia: string;          // "2026-08"
+  tipo: string;                 // transferência interna | destinação própria | utilização da carteira
+  documento: string;            // "Ofício nº 04/2026"
+  origem: string;
+  destino: string;
+  valor: number;
+  numeroPagamento: string | null;
+  categoria: string | null;
+  fornecedor: string | null;
+  finalidade: string;
+  observacao: string;
+  status: string;               // vigente | cancelada
+}
+
+export interface ProjetoOficio {
+  projeto: string;
+  historicoAteDataBase: number;   // rendimento gerado até a data-base
+  destinado: number;              // cedido + destinação própria
+  transferidoCedido: number;
+  transferidoRecebido: number;
+  destinacaoPropria: number;
+  saldoLivreAposOficio: number;   // logo após o corte
+  novosRendimentos: number;       // gerados a partir da competência de efeito
+  saldoLivreAtual: number;
+  carteiraSobGestao: number;
+  utilizado: number;
+  carteiraDisponivel: number;
+  participa: boolean;
+}
+
+export interface OficioRendimentos {
+  documento: string;
+  finalidade: string;
+  projetoExecutor: string;
+  dataBase: string;               // "31/07/2026"
+  competenciaEfeito: string;      // "2026-08"
+  checkpointDataBase: number;
+  totalDestinado: number;
+  transferidoDeOutrosProjetos: number;
+  rendimentoProprioDestinado: number;
+  utilizado: number;
+  disponivel: number;
+  saldoLivreTotal: number;
+  projetos: ProjetoOficio[];
+  movimentacoes: MovimentacaoRendimento[];
+  geradoEm: string;
+}
+
+export interface TransferenciaRendimento {
+  mesAno: string;                 // "08/2026"
+  projeto: string;
+  valor: number;                  // negativo no cedente, positivo no destinatário
+  documento: string;
+}

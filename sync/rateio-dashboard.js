@@ -157,8 +157,19 @@ function contexto(dados) {
   let srOutrosProjetos = 0;
   remanescente.forEach((v, p) => { if (p !== 'Operação Básica') srOutrosProjetos += v; });
 
+  // Transferências internas de rendimentos (Ofício nº 04/2026 e futuros).
+  // Não estão na aba Principal de propósito — não são movimento financeiro real,
+  // e a Principal só registra movimento real. Entram aqui como ajuste de saldo
+  // na competência de efeito, de modo que o rateio dos meses seguintes use a
+  // posição realocada. Sem isto, planilha e dashboard divergem.
+  const transferencias = dados.transferencias || [];
+
   return { porMes, utilizacaoPorMes, projetosEncerrados, projetosInativos, srOutrosProjetos,
-           lancamentos: dados.lancamentos };
+           transferencias,
+           lancamentos: [...dados.lancamentos, ...transferencias.map(t => ({
+             categoria: 'TRANSFERÊNCIA INTERNA', projeto: t.projeto,
+             mesAno: t.mesAno, valor: t.valor,
+           }))] };
 }
 
 const isDisp = (ctx, mesAno) => (ctx.utilizacaoPorMes.get(mesAno) ?? '').toLowerCase().trim() !== 'utilizado';

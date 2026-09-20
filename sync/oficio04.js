@@ -184,11 +184,11 @@ async function main() {
     `até ${DATA_BASE} destinado à ${FINALIDADE}, sob execução da ${OB}. Não é receita nem despesa: ` +
     `entra no roll-forward como transferência e soma zero no consolidado.`;
   TRANSFERENCIAS.forEach(t => linhas.push([
-    `${ID_BASE_MOV}|TRANSF|${chave(t.origem)}`, DATA_BASE, DATA_EFETIVA, '2026-08', TIPO.TRANSF, DOC,
+    `${ID_BASE_MOV}|TRANSF|${chave(t.origem)}`, DATA_BASE, DATA_EFETIVA, "'2026-08", TIPO.TRANSF, DOC,
     t.origem, OB, t.valor, t.valor, '', '', '', FINALIDADE, obsTransf, 'vigente', agora, dia1('2026-08'),
   ]));
   linhas.push([
-    `${ID_BASE_MOV}|PROPRIA|${chave(OB)}`, DATA_BASE, DATA_EFETIVA, '2026-08', TIPO.PROPRIA, DOC,
+    `${ID_BASE_MOV}|PROPRIA|${chave(OB)}`, DATA_BASE, DATA_EFETIVA, "'2026-08", TIPO.PROPRIA, DOC,
     OB, OB, PROPRIA.valor, PROPRIA.valor, '', '', '', FINALIDADE,
     `Destinação própria: o saldo já pertencia à ${OB}. Muda de livre para destinado, ` +
     `sem transferência de caixa e sem entrada nova. Não somar aos ${brl(TOTAL_TRANSF)} recebidos.`,
@@ -196,7 +196,7 @@ async function main() {
   ]);
   linhas.push([
     `${ID_BASE_MOV}|USO|${UTILIZACAO.numeroPagamento}`, UTILIZACAO.data, UTILIZACAO.data,
-    UTILIZACAO.competencia, TIPO.USO, DOC, OB, OB, UTILIZACAO.valor, -UTILIZACAO.valor,
+    "'" + UTILIZACAO.competencia, TIPO.USO, DOC, OB, OB, UTILIZACAO.valor, -UTILIZACAO.valor,
     UTILIZACAO.numeroPagamento, UTILIZACAO.categoria, UTILIZACAO.fornecedor, FINALIDADE,
     `Pagamento ${UTILIZACAO.numeroPagamento} já lançado como débito na aba Principal da Base ` +
     `(competência ${UTILIZACAO.competencia}). Aqui só o vínculo com a carteira — não lançar de novo. ` +

@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject, Observable, forkJoin, map, combineLatest } from "rxjs";
+import { BehaviorSubject, Observable, forkJoin, map, combineLatest, of, catchError, shareReplay } from "rxjs";
 import * as Papa from "papaparse";
 import {
   Lancamento,
@@ -15,6 +15,8 @@ import {
   Rendimento,
   CategoriaGlossario,
   CategoriaNormalizada,
+  OficioRendimentos,
+  TransferenciaRendimento,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
 
@@ -836,6 +838,47 @@ export class DataService {
 
   getRendimentos(): Observable<Rendimento[]> {
     return this.rendimentos$;
+  }
+
+  // ===== EVENTOS INSTITUCIONAIS — Ofício nº 04/2026 =====
+  /**
+   * Fonte única do evento: gerado de "Movimentações de Rendimentos" da planilha
+   * oficial por `node sync/exportar-oficio.js`. Nenhum valor do Ofício é escrito
+   * dentro de componente — registrou nova utilização na aba, roda o export.
+   */
+  private oficio$?: Observable<OficioRendimentos | null>;
+
+  getOficioRendimentos(): Observable<OficioRendimentos | null> {
+    if (!this.oficio$) {
+      this.oficio$ = this.http.get<OficioRendimentos>('oficio-04-2026.json').pipe(
+        catchError(() => of(null)),
+        shareReplay(1)
+      );
+    }
+    return this.oficio$;
+  }
+
+  /**
+   * Transferências internas no formato que o rateio consome: ajuste de saldo na
+   * competência de efeito. Não estão na aba Principal porque não são movimento
+   * financeiro real — a Principal só registra movimento real.
+   */
+  getTransferenciasRendimentos(): Observable<TransferenciaRendimento[]> {
+    return this.getOficioRendimentos().pipe(
+      map(o => {
+        if (!o) return [];
+        const out: TransferenciaRendimento[] = [];
+        o.movimentacoes
+          .filter(m => m.tipo === 'transferência interna de rendimentos' && m.origem !== m.destino)
+          .forEach(m => {
+            const [ano, mes] = String(m.competencia).split('-');
+            const mesAno = `${mes}/${ano}`;
+            out.push({ mesAno, projeto: m.origem, valor: -m.valor, documento: m.documento });
+            out.push({ mesAno, projeto: m.destino, valor: m.valor, documento: m.documento });
+          });
+        return out;
+      })
+    );
   }
 
   // ===== ORÇAMENTO — Planilha DFC (rendimentos projetados por mês) =====
