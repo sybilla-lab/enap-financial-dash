@@ -13,6 +13,8 @@ import { Lancamento, StatusProjeto, ProjetoResumo, Rendimento, SaldoRemanescente
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 import { RelatorioPdfService, CabecalhoRelatorio } from "../../services/relatorio-pdf.service";
+import { EventoInstitucionalComponent } from "../../components/evento-institucional/evento-institucional.component";
+import { OficioRendimentos } from "../../models/lancamento.model";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -109,12 +111,16 @@ interface RendAtribuido {
     MatTooltipModule,
     BaseChartDirective,
     DragDropModule,
+    EventoInstitucionalComponent,
   ],
   templateUrl: "./visao-projeto.component.html",
   styleUrl: "./visao-projeto.component.scss",
 })
 export class VisaoProjetoComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+
+  /** Evento institucional vigente; null enquanto carrega ou se não houver. */
+  oficio: OficioRendimentos | null = null;
 
   projetos: string[] = [];
   projetoSelecionado: string | null = null;
@@ -337,6 +343,10 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const projetoFromUrl = this.route.snapshot.queryParamMap.get('p');
+
+    this.dataService.getOficioRendimentos()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(o => { this.oficio = o; });
 
     combineLatest({
       lancs: this.dataService.lancamentos$,
@@ -565,7 +575,7 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         y = R.kpis(doc, y, [
           { rotulo: 'Recursos recebidos', valor: R.brl(s.entradas), base: 'créditos no período' },
           { rotulo: 'Despesas executadas', valor: R.brl(s.saidas), base: 'débitos válidos' },
-          { rotulo: 'Saldo financeiro', valor: R.brl(s.saldo), base: 'recebido − executado' },
+          { rotulo: 'Saldo financeiro', valor: R.brl(s.saldo), base: 'recebido - executado' },
           { rotulo: 'Execução', valor: `${s.execucao.toFixed(1)}%`, base: 'executado ÷ recebido' },
         ], cab);
 
@@ -581,6 +591,16 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
           `análise e no mesmo período. Pagamentos no período: ${s.numPagamentos}; ` +
           `valor médio por pagamento: ${R.brl(s.ticketMedio)}.`, cab);
       }
+
+      // ── Evento institucional ───────────────────────────────────────────
+      // Respeita projeto e período filtrados, e some quando não se aplica.
+      // Vem antes das despesas de propósito: é contexto de saldo, não despesa,
+      // e o pagamento vinculado é contado uma única vez, no quadro de despesas.
+      y = R.eventosInstitucionais(doc, y, cab, this.oficio, {
+        projeto: this.projetoSelecionado,
+        inicio: this.dataInicio || null,
+        fim: this.dataFim || null,
+      });
 
       // ── Despesas por categoria orçamentária ────────────────────────────
       if (this.categorias.length) {

@@ -1,0 +1,137 @@
+@if (oficio) {
+<section class="of-wrap" aria-labelledby="of-titulo">
+  <header class="of-head">
+    <div>
+      <div class="of-eyebrow">
+        <mat-icon>account_balance</mat-icon>
+        <span>Evento institucional</span>
+      </div>
+      <h2 class="of-title" id="of-titulo">Carteira de Rendimentos — Plataforma Desafios</h2>
+      <p class="of-sub">
+        {{ oficio.documento }} · destinação dos saldos acumulados de rendimentos à
+        {{ oficio.finalidade }}, sob execução da <strong>{{ oficio.projetoExecutor }}</strong>.
+      </p>
+    </div>
+    <div class="of-datas">
+      <div class="of-data">
+        <span class="of-data-k">Data-base da apuração</span>
+        <span class="of-data-v">{{ oficio.dataBase }}</span>
+      </div>
+      <div class="of-data">
+        <span class="of-data-k">Efeito a partir de</span>
+        <span class="of-data-v">{{ oficio.competenciaEfeito | date:'MM/yyyy' }}</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="of-cards">
+    <div class="of-card of-card-destaque">
+      <span class="of-card-k">Saldo destinado</span>
+      <span class="of-card-v">{{ oficio.totalDestinado | currency:'BRL':'symbol':'1.2-2' }}</span>
+      <span class="of-card-h">carteira total sob gestão da {{ oficio.projetoExecutor }}</span>
+    </div>
+    <div class="of-card of-c-transf">
+      <span class="of-card-k">
+        Transferido de outros projetos
+        <mat-icon class="of-i"
+          matTooltip="Movimento real de caixa entre projetos: sai de CAR DPG, Co.NE e Parceria MDIC e entra na Operação Básica. Soma zero no consolidado.">help_outline</mat-icon>
+      </span>
+      <span class="of-card-v">{{ oficio.transferidoDeOutrosProjetos | currency:'BRL':'symbol':'1.2-2' }}</span>
+      <span class="of-card-h">entrada líquida interprojetos</span>
+    </div>
+    <div class="of-card of-c-propria">
+      <span class="of-card-k">
+        Rendimento próprio destinado
+        <mat-icon class="of-i"
+          matTooltip="Saldo que já pertencia à Operação Básica. Muda de livre para destinado, sem transferência de caixa — por isso não se soma à entrada interprojetos.">help_outline</mat-icon>
+      </span>
+      <span class="of-card-v">{{ oficio.rendimentoProprioDestinado | currency:'BRL':'symbol':'1.2-2' }}</span>
+      <span class="of-card-h">reclassificação, não entrada nova</span>
+    </div>
+    <div class="of-card of-c-usado">
+      <span class="of-card-k">Utilizado</span>
+      <span class="of-card-v">{{ oficio.utilizado | currency:'BRL':'symbol':'1.2-2' }}</span>
+      <span class="of-card-h">pagamentos vinculados à carteira</span>
+    </div>
+    <div class="of-card of-c-disp">
+      <span class="of-card-k">Disponível</span>
+      <span class="of-card-v">{{ oficio.disponivel | currency:'BRL':'symbol':'1.2-2' }}</span>
+      <span class="of-card-h">saldo da carteira ainda não utilizado</span>
+    </div>
+  </div>
+
+  <p class="of-nota">
+    O histórico de rendimentos <strong>não foi apagado</strong>: o que passou a zero na abertura de
+    {{ oficio.competenciaEfeito | date:'MM/yyyy' }} foi o saldo <em>livre</em> acumulado até
+    {{ oficio.dataBase }} dos quatro projetos de origem. A partir dessa competência, cada projeto
+    voltou a acumular rendimento proporcionalmente.
+  </p>
+
+  <div class="of-tabela-wrap">
+    <table class="of-tabela">
+      <thead>
+        <tr>
+          <th scope="col">Projeto</th>
+          <th scope="col" class="num">Histórico<br><small>até {{ oficio.dataBase }}</small></th>
+          <th scope="col" class="num">Destinado<br><small>pelo Ofício</small></th>
+          <th scope="col" class="num">Livre<br><small>após o corte</small></th>
+          <th scope="col" class="num">Novos<br><small>desde {{ oficio.competenciaEfeito | date:'MM/yyyy' }}</small></th>
+          <th scope="col" class="num">Livre atual</th>
+          <th scope="col" class="num">Carteira</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of oficioPorProjeto; track p.projeto) {
+        <tr [class.of-linha-exec]="p.carteiraSobGestao > 0">
+          <td>
+            <span class="of-proj">{{ p.projeto }}</span>
+            @if (!p.participa) {
+            <span class="of-tag of-tag-preserv" matTooltip="Não participou da realocação. Saldo preservado integralmente.">preservado</span>
+            } @else if (p.carteiraSobGestao > 0) {
+            <span class="of-tag of-tag-exec">executor</span>
+            } @else {
+            <span class="of-tag of-tag-cede">destinou</span>
+            }
+          </td>
+          <td class="num" [attr.data-rotulo]="'Até ' + oficio.dataBase">{{ p.historicoAteDataBase | currency:'BRL':'symbol':'1.2-2' }}</td>
+          <td class="num" data-rotulo="Destinado pelo Ofício" [class.of-zero]="!p.destinado">
+            {{ p.destinado ? (p.destinado | currency:'BRL':'symbol':'1.2-2') : '—' }}
+          </td>
+          <!-- O zero aqui é o ponto do evento: quem destinou, destinou tudo. A
+               leitura vem da etiqueta do projeto e do parágrafo acima — repetir
+               "destinado integralmente" em cada linha era ruído. -->
+          <td class="num" data-rotulo="Livre após o corte" [class.of-zero]="!p.saldoLivreAposOficio"
+              [matTooltip]="p.destinado && !p.saldoLivreAposOficio ? 'Destinado integralmente na abertura de ' + (oficio.competenciaEfeito | date:'MM/yyyy') : ''">
+            {{ p.saldoLivreAposOficio | currency:'BRL':'symbol':'1.2-2' }}
+          </td>
+          <td class="num" data-rotulo="Novos rendimentos">{{ p.novosRendimentos | currency:'BRL':'symbol':'1.2-2' }}</td>
+          <td class="num of-livre" data-rotulo="Saldo livre atual">{{ p.saldoLivreAtual | currency:'BRL':'symbol':'1.2-2' }}</td>
+          <td class="num of-carteira" data-rotulo="Carteira" [class.of-zero]="!p.carteiraSobGestao">
+            {{ p.carteiraSobGestao ? (p.carteiraSobGestao | currency:'BRL':'symbol':'1.2-2') : '—' }}
+          </td>
+        </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td class="num" [attr.data-rotulo]="'Até ' + oficio.dataBase">{{ oficio.checkpointDataBase | currency:'BRL':'symbol':'1.2-2' }}</td>
+          <td class="num" data-rotulo="Destinado pelo Ofício">{{ oficio.totalDestinado | currency:'BRL':'symbol':'1.2-2' }}</td>
+          <td class="num of-vazia"></td>
+          <td class="num of-vazia"></td>
+          <td class="num of-livre" data-rotulo="Saldo livre atual">{{ oficio.saldoLivreTotal | currency:'BRL':'symbol':'1.2-2' }}</td>
+          <td class="num of-carteira" data-rotulo="Carteira">{{ oficio.totalDestinado | currency:'BRL':'symbol':'1.2-2' }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <p class="of-rodape">
+    Saldo livre {{ oficio.saldoLivreTotal | currency:'BRL':'symbol':'1.2-2' }} +
+    carteira {{ oficio.totalDestinado | currency:'BRL':'symbol':'1.2-2' }} =
+    <strong>{{ (oficio.saldoLivreTotal + oficio.totalDestinado) | currency:'BRL':'symbol':'1.2-2' }}</strong>
+    de rendimento realizado. A carteira só é reduzida por pagamentos com vínculo explícito pelo
+    número — nenhum outro débito da {{ oficio.projetoExecutor }} a consome automaticamente.
+  </p>
+</section>
+}

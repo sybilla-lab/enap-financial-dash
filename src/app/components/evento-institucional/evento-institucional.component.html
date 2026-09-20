@@ -1,0 +1,36 @@
+@if (dados(); as d) {
+<section class="ev-faixa" [attr.data-papel]="d.papel" aria-label="Evento institucional">
+  <div class="ev-marca" aria-hidden="true"></div>
+
+  <div class="ev-corpo">
+    <div class="ev-topo">
+      <span class="ev-eyebrow">
+        <mat-icon>account_balance</mat-icon>
+        Evento institucional
+      </span>
+      <span class="ev-doc">{{ d.documento }}</span>
+      <span class="ev-sep" aria-hidden="true">·</span>
+      <span class="ev-meta">data-base {{ d.dataBase }}</span>
+      <span class="ev-sep" aria-hidden="true">·</span>
+      <span class="ev-meta">efeito em {{ d.competenciaEfeito | date:'MM/yyyy' }}</span>
+    </div>
+
+    <h3 class="ev-titulo">{{ d.titulo }}</h3>
+    <p class="ev-texto">{{ d.texto }}</p>
+
+    <dl class="ev-itens">
+      @for (i of d.itens; track i.rotulo) {
+      <div class="ev-item" [attr.data-tom]="i.tom">
+        <dt>
+          {{ i.rotulo }}
+          @if (i.ajuda) {
+          <mat-icon class="ev-i" [matTooltip]="i.ajuda">help_outline</mat-icon>
+          }
+        </dt>
+        <dd>{{ i.valor | currency:'BRL':'symbol':'1.2-2' }}</dd>
+      </div>
+      }
+    </dl>
+  </div>
+</section>
+}

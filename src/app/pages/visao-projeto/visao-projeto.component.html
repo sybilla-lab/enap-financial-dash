@@ -138,6 +138,15 @@
   @if (snapshot) {
   <div class="vp-report-body">
 
+    <!-- EVENTO INSTITUCIONAL — some sozinho quando o projeto ou o período
+         filtrado não tem relação com o evento. -->
+    <app-evento-institucional
+      [oficio]="oficio"
+      [projeto]="projetoSelecionado"
+      [dataInicio]="dataInicio"
+      [dataFim]="dataFim">
+    </app-evento-institucional>
+
     <!-- STATUS + BARRA DE EXECUÇÃO -->
     <div class="vp-status-bar">
       <span class="vp-status-badge" [ngClass]="getStatusClass(snapshot.status)">

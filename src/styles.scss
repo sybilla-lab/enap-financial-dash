@@ -10,6 +10,21 @@
   --accent-blue: #6366f1;
   --glass-blur: blur(12px);
   --glass-border: rgba(255, 255, 255, 0.1);
+
+  /* ── Eventos institucionais (destinação de rendimentos entre projetos) ────
+     Cada papel do evento tem uma cor fixa, usada igual na página de
+     Rendimentos, na visão por projeto, nos gráficos e nos PDFs: um valor
+     âmbar é sempre "cedido", um azul é sempre "carteira". Ficam aqui, e não
+     no SCSS de um componente, justamente para não divergirem entre telas.
+     Tons calibrados para fundo claro; o bloco dark logo abaixo os clareia. */
+  --ev-livre:   #067a55;   /* saldo livre, não destinado          */
+  --ev-transf:  #a05a06;   /* transferência cedida / recebida     */
+  --ev-propria: #6b7280;   /* destinação própria (reclassificação)*/
+  --ev-usado:   #6d4ecb;   /* utilização da carteira              */
+  --ev-disp:    #2563eb;   /* carteira disponível                 */
+  /* Superfícies derivadas do texto: acompanham o tema sem token próprio. */
+  --ev-surface: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  --ev-border:  color-mix(in srgb, var(--text-primary) 12%, transparent);
   --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
 
   /* KPI Icons: Light Mode Defaults (Soft Tint) */
@@ -31,6 +46,16 @@
 
 /* Dark Mode Overrides for KPI Icons (Neon Style) */
 body.dark-theme {
+  /* Os tons de fundo claro ficam pesados sobre o fundo escuro — mesma
+     semântica, luminosidade suficiente para texto pequeno em negrito. */
+  --ev-livre:   #34d399;
+  --ev-transf:  #f0b45f;
+  --ev-propria: #9ca3af;
+  --ev-usado:   #b9a4f5;
+  --ev-disp:    #7dabff;
+  --ev-surface: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  --ev-border:  color-mix(in srgb, var(--text-primary) 16%, transparent);
+
   --kpi-green-bg: linear-gradient(135deg, #10b981, #059669);
   --kpi-green-icon: #ffffff;
   --kpi-red-bg: linear-gradient(135deg, #ef4444, #dc2626);

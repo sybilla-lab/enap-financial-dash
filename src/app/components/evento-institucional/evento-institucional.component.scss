@@ -1,0 +1,147 @@
+/* Faixa de evento institucional.
+
+   Discreta por decisão: é contexto, não indicador de desempenho. Uma faixa
+   horizontal de uma borda colorida, um texto curto e os números em linha —
+   nunca uma fileira de cards, que competiria com os KPIs da própria página.
+   Cores e superfícies vêm dos tokens --ev-* de styles.scss, os mesmos da
+   página de Rendimentos e dos gráficos. */
+
+:host { display: block; }
+
+.ev-faixa {
+  display: flex;
+  margin: 0 0 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--card-bg);
+  /* Sem cor explícita o texto herda a do mat-drawer, escura nos dois temas. */
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+/* Faixa vertical de 4px: identifica o papel sem pedir atenção. */
+.ev-marca { flex: 0 0 4px; background: var(--ev-propria); }
+.ev-faixa[data-papel='executor']   .ev-marca { background: var(--ev-disp); }
+.ev-faixa[data-papel='cedente']    .ev-marca { background: var(--ev-transf); }
+.ev-faixa[data-papel='preservado'] .ev-marca { background: var(--ev-livre); }
+.ev-faixa[data-papel='consolidado'].ev-faixa .ev-marca { background: var(--ev-transf); }
+
+.ev-corpo { flex: 1 1 auto; min-width: 0; padding: 16px 20px 14px; }
+
+.ev-topo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.ev-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--ev-transf);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+.ev-doc { font-weight: 600; color: var(--text-primary); }
+.ev-sep { opacity: .5; }
+.ev-meta { font-variant-numeric: tabular-nums; }
+
+.ev-titulo {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.ev-texto {
+  margin: 0 0 14px;
+  max-width: 82ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* Grade fluida: cabe de 1 a 5 itens sem sobrar buraco nem cortar texto. */
+.ev-itens {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 10px 18px;
+  margin: 0;
+}
+
+.ev-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--ev-border);
+
+  dt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+  dd {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    /* O valor pode ser longo (R$ 387.456,64) em coluna estreita: quebra em vez
+       de vazar para fora do cartão. */
+    overflow-wrap: anywhere;
+  }
+}
+
+.ev-item[data-tom='livre']   dd { color: var(--ev-livre); }
+.ev-item[data-tom='transf']  dd { color: var(--ev-transf); }
+.ev-item[data-tom='propria'] dd { color: var(--text-primary); }
+.ev-item[data-tom='usado']   dd { color: var(--ev-usado); }
+.ev-item[data-tom='disp']    dd { color: var(--ev-disp); }
+
+.ev-item[data-tom='livre']   { border-left-color: var(--ev-livre); }
+.ev-item[data-tom='transf']  { border-left-color: var(--ev-transf); }
+.ev-item[data-tom='usado']   { border-left-color: var(--ev-usado); }
+.ev-item[data-tom='disp']    { border-left-color: var(--ev-disp); }
+
+.ev-i {
+  font-size: 13px;
+  width: 13px;
+  height: 13px;
+  color: var(--text-muted);
+  cursor: help;
+}
+
+@media (max-width: 640px) {
+  .ev-faixa { border-radius: 14px; }
+  .ev-corpo { padding: 14px 15px 12px; }
+  .ev-titulo { font-size: 14px; }
+  .ev-itens { grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .ev-item dd { font-size: 15px; }
+  /* Com o topo quebrando em duas linhas, o "·" sobra sozinho no fim da
+     primeira. Sem ele a linha continua legível — é só pontuação. */
+  .ev-sep { display: none; }
+  .ev-topo { gap: 4px 10px; }
+}
+
+@media (max-width: 400px) {
+  .ev-itens { grid-template-columns: 1fr; }
+}
+
+/* No PDF gerado por captura, a faixa não deve ser partida ao meio. */
+@media print {
+  .ev-faixa { break-inside: avoid; page-break-inside: avoid; }
+}

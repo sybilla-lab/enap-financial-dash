@@ -10,6 +10,8 @@ import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { RelatorioPdfService, CabecalhoRelatorio } from '../../services/relatorio-pdf.service';
 import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento } from "../../models/lancamento.model";
+import { ratearRendimentos } from "../../services/rateio-rendimentos";
+import { CarteiraRendimentosComponent } from "../../components/carteira-rendimentos/carteira-rendimentos.component";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -101,6 +103,7 @@ const REND_HIST_PROPOSTO: Record<string, Record<string, number>> = {
     MatDividerModule,
     MatTooltipModule,
     BaseChartDirective,
+    CarteiraRendimentosComponent,
   ],
   templateUrl: "./rendimentos.component.html",
   styleUrl: "./rendimentos.component.scss",
@@ -283,6 +286,109 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
   chartReady = false;
   barChartData: ChartConfiguration<"bar">["data"] = { labels: [], datasets: [] };
+
+  /**
+   * Marco institucional no gráfico de evolução.
+   *
+   * A série de saldo acumulado tem uma ruptura em 08/2026 que, sem explicação,
+   * parece perda de recurso. Uma linha vertical na competência de efeito e um
+   * rodapé no tooltip daquele mês contam o que de fato aconteceu: o acumulado
+   * até julho saiu do saldo livre e virou carteira destinada, e o rendimento
+   * voltou a acumular do zero. A transferência não é receita nem despesa.
+   */
+  private readonly marcoInstitucional = {
+    id: 'marcoInstitucional',
+    afterDatasetsDraw: (chart: any) => {
+      const rotulo = this.marcoLabel;
+      if (!rotulo) return;
+      const i = (chart.data.labels || []).indexOf(rotulo);
+      if (i < 0) return;
+
+      const { ctx, chartArea } = chart;
+      const x = chart.scales['x'].getPixelForValue(i);
+      // Meio caminho entre a barra do corte e a anterior: a linha marca a
+      // ABERTURA da competência, não o fechamento do mês.
+      const largura = chart.scales['x'].getPixelForValue(1) - chart.scales['x'].getPixelForValue(0);
+      const px = i > 0 ? x - largura / 2 : x;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([5, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(240,180,95,0.85)';
+      ctx.moveTo(px, chartArea.top);
+      ctx.lineTo(px, chartArea.bottom);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.font = '600 10px Inter, Roboto, sans-serif';
+      ctx.textBaseline = 'top';
+      const texto = this.oficio?.documento ?? 'Evento institucional';
+      const larguraTexto = ctx.measureText(texto).width;
+      // Perto da borda direita o rótulo vira para a esquerda em vez de cortar.
+      const alinhaEsquerda = px + larguraTexto + 14 > chartArea.right;
+      const tx = alinhaEsquerda ? px - larguraTexto - 8 : px + 8;
+
+      ctx.fillStyle = 'rgba(240,180,95,0.16)';
+      ctx.fillRect(tx - 5, chartArea.top + 2, larguraTexto + 10, 16);
+      ctx.fillStyle = 'rgb(240,180,95)';
+      ctx.fillText(texto, tx, chartArea.top + 5);
+      ctx.restore();
+    },
+  };
+  readonly chartPlugins = [this.marcoInstitucional];
+
+  /** mesAno do corte ("08/2026") ou null enquanto o evento não carregou. */
+  private get marcoLabel(): string | null {
+    if (!this.oficio?.competenciaEfeito) return null;
+    const [ano, mes] = this.oficio.competenciaEfeito.split('-');
+    return mes ? `${mes}/${ano}` : null;
+  }
+
+  /**
+   * Rodapé do tooltip: separa o que o gráfico sozinho não distingue.
+   *
+   * As barras mostram rendimento gerado; a linha, o acumulado. Nenhum dos dois
+   * mostra que parte do acumulado deixou de ser saldo livre e virou carteira
+   * destinada, nem que houve pagamento consumindo essa carteira. O rodapé só
+   * aparece nos meses em que isso aconteceu.
+   */
+  private rodapeTooltip(mesAno: string | undefined): string[] {
+    const o = this.oficio;
+    if (!o || !mesAno) return [];
+    const linhas: string[] = [];
+
+    if (mesAno === this.marcoLabel) {
+      linhas.push(
+        `${o.documento} — abertura de ${mesAno}`,
+        `Transferência cedida: ${this.brl(o.transferidoDeOutrosProjetos)}`,
+        `Transferência recebida: ${this.brl(o.transferidoDeOutrosProjetos)} (${o.projetoExecutor})`,
+        `Saldo destinado: ${this.brl(o.totalDestinado)}`,
+        `Saldo livre dos projetos: ${this.brl(o.saldoLivreTotal)}`,
+        'Transferência entre projetos — não é receita nem despesa.',
+      );
+    }
+
+    const usos = o.movimentacoes.filter(
+      m => m.tipo === 'utilização da carteira' && this.competenciaParaMesAno(m.competencia) === mesAno
+    );
+    usos.forEach(m => linhas.push(
+      `Utilização da carteira: ${this.brl(m.valor)}` +
+      (m.numeroPagamento ? ` (pagamento ${m.numeroPagamento})` : '')
+    ));
+
+    return linhas;
+  }
+
+  private competenciaParaMesAno(competencia: string): string {
+    const [ano, mes] = String(competencia).split('-');
+    return mes ? `${mes}/${ano}` : competencia;
+  }
+
+  private brl(v: number): string {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  }
+
   barChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
@@ -293,11 +399,16 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         backgroundColor: "rgba(15,23,42,0.9)",
         titleColor: "#f8fafc",
         bodyColor: "#f8fafc",
+        footerColor: "#f0b45f",
+        footerFont: { weight: "normal" as const, size: 11 },
         callbacks: {
           label: (ctx: any) => {
+            // Nomes explícitos: "rendimento gerado" é o que a conta rendeu no
+            // mês; "saldo livre" é o que sobra depois do que foi destinado.
             const label = ctx.dataset.label || "";
-            return `${label}: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ctx.parsed.y)}`;
-          }
+            return `${label}: ${this.brl(ctx.parsed.y)}`;
+          },
+          footer: (itens: any[]) => this.rodapeTooltip(itens?.[0]?.label),
         }
       }
     },
@@ -653,6 +764,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     this.dataService.getOficioRendimentos().subscribe(o => {
       this.oficio = o;
       this.tryComputarHistorico();
+      // O gráfico pode já ter sido montado antes do evento chegar; sem
+      // remontar, o marco de 08/2026 só apareceria no primeiro hover.
+      if (o && this.resumo.porMes.length) this.buildChart(this.resumo.porMes);
     });
     this.dataService.getTransferenciasRendimentos().subscribe(t => {
       this.transferencias = t;
@@ -854,82 +968,21 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   }
 
   private computarHistoricoPorProjeto(): void {
-    const allSorted = [...this.resumo.porMes].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
-    const firstDispMc = allSorted.reduce((acc, m) => {
-      const isD = (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
-      return isD && acc === Infinity ? mesKey(m.mesAno) : acc;
-    }, Infinity);
-    if (firstDispMc === Infinity) return;
-
-    const dispMonths = allSorted.filter(m =>
-      mesKey(m.mesAno) >= firstDispMc &&
-      (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado'
-    );
-    if (!dispMonths.length) return;
-    const lastCutoff = mesKey(dispMonths[dispMonths.length - 1].mesAno);
-
-    const lancsSorted = [...this.lancamentosOriginais]
-      .filter(l => l.mesAno).sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
-
-    const runningBalance = new Map<string, number>();
-    const projRendAcum  = new Map<string, number>();
-    const projMesRend   = new Map<string, Map<string, number>>();
-    let lIdx = 0, undistributed = 0;
-
-    for (const mes of dispMonths) {
-      const mc = mesKey(mes.mesAno);
-      while (lIdx < lancsSorted.length && mesKey(lancsSorted[lIdx].mesAno) <= mc) {
-        const l = lancsSorted[lIdx++];
-        if (!l.projeto) continue;
-        runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
-      }
-      this.projetosEncerrados.forEach((closedMc, proj) => {
-        if (mc > closedMc) {
-          const bal = runningBalance.get(proj) ?? 0;
-          if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
-          runningBalance.set(proj, 0);
-        }
-      });
-      const totalPos   = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
-      const toDistribute = mes.liquido + undistributed;
-      if (totalPos > 0 && toDistribute > 0) {
-        runningBalance.forEach((saldo, proj) => {
-          if (saldo > 0) {
-            const rendMes = toDistribute * (saldo / totalPos);
-            projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + rendMes);
-            if (!projMesRend.has(proj)) projMesRend.set(proj, new Map());
-            projMesRend.get(proj)!.set(mes.mesAno, (projMesRend.get(proj)!.get(mes.mesAno) ?? 0) + rendMes);
-          }
-        });
-        undistributed = 0;
-      } else { undistributed += mes.liquido; }
-    }
-
-    const isInativo = (proj: string) =>
-      this.projetosInativos.has(proj) ||
-      (this.projetosEncerrados.has(proj) && lastCutoff >= this.projetosEncerrados.get(proj)!);
-
-    projRendAcum.forEach((rend, proj) => {
-      if (proj !== 'Operação Básica' && isInativo(proj) && rend > 0) {
-        projRendAcum.set('Operação Básica', (projRendAcum.get('Operação Básica') ?? 0) + rend);
-        const opMap = projMesRend.get('Operação Básica') ?? new Map<string, number>();
-        projMesRend.get(proj)?.forEach((v, m) => opMap.set(m, (opMap.get(m) ?? 0) + v));
-        projMesRend.set('Operação Básica', opMap);
-        projRendAcum.delete(proj);
-        projMesRend.delete(proj);
-      }
+    // O rateio em si vive em services/rateio-rendimentos.ts — o DataService usa
+    // a mesma função para apurar o evento institucional. Aqui fica só o que é
+    // apresentação: cor, percentual, série mês a mês e a verificação da soma.
+    const rateio = ratearRendimentos({
+      porMes: this.resumo.porMes,
+      lancamentos: this.lancamentosOriginais,
+      utilizacaoPorMes: this.utilizacaoPorMes,
+      projetosEncerrados: this.projetosEncerrados,
+      projetosInativos: this.projetosInativos,
     });
-
-    // Arredondamento e correção de resíduo
-    projRendAcum.forEach((rend, proj) => projRendAcum.set(proj, Math.round(rend * 100) / 100));
-    const expectedTotal = Math.round(dispMonths.reduce((s, m) => s + m.liquido, 0) * 100) / 100;
-    const actualSum     = Math.round(Array.from(projRendAcum.values()).reduce((s, v) => s + v, 0) * 100) / 100;
-    const residuo = Math.round((expectedTotal - actualSum) * 100) / 100;
-    if (residuo !== 0) {
-      let maxProj = ''; let maxRend = -Infinity;
-      projRendAcum.forEach((rend, proj) => { if (rend > maxRend) { maxRend = rend; maxProj = proj; } });
-      if (maxProj) projRendAcum.set(maxProj, Math.round((projRendAcum.get(maxProj)! + residuo) * 100) / 100);
-    }
+    if (!rateio) return;
+    const dispMonths = rateio.meses;
+    const projMesRend = rateio.porProjetoMes;
+    const projRendAcum = rateio.acumulado;
+    const expectedTotal = rateio.totalEsperado;
 
     this.historicoPorProjeto = Array.from(projRendAcum.keys())
       .filter(p => (projRendAcum.get(p) ?? 0) > 0.01)
@@ -1007,7 +1060,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     y = R.kpis(doc, y, [
       { rotulo: 'Rendimento bruto', valor: R.brl(this.resumo.totalBruto), base: 'créditos de aplicação' },
       { rotulo: 'Impostos retidos', valor: R.brl(this.resumo.totalImpostos), base: 'IOF e IR' },
-      { rotulo: 'Rendimento líquido', valor: R.brl(this.resumo.saldoLiquido), base: 'bruto − impostos' },
+      { rotulo: 'Rendimento líquido', valor: R.brl(this.resumo.saldoLiquido), base: 'bruto - impostos' },
     ], cab);
     y = R.kpis(doc, y, [
       { rotulo: 'Autorizado e aplicado', valor: R.brl(this.resumo.totalUtilizado),
@@ -1045,6 +1098,11 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         cab,
         { mes: 'Total', bruto: R.brl(tb), imp: R.brl(ti), liq: R.brl(tb + ti), sit: '' });
     }
+
+    // ── Evento institucional ───────────────────────────────────────────
+    // Depois do detalhamento mensal: o leitor já viu a série e agora entende
+    // por que o saldo livre muda de patamar na competência de efeito.
+    y = R.eventosInstitucionais(doc, y, cab, this.oficio);
 
     // ── Atribuição por projeto ─────────────────────────────────────────
     if (this.historicoPorProjeto.length) {
@@ -1120,7 +1178,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(180, 180, 210);
-    doc.text('Histórico mensal — período disponível (set/2025 a jun/2026)', margin, 16);
+    // Período derivado da série, não fixo no código: o texto antigo ainda dizia
+    // "set/2025 a jun/2026" depois de a base já ter avançado dois meses.
+    doc.text(`Histórico mensal — período disponível (${this.periodoHistoricoLabel})`, margin, 16);
     const dataGer = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     doc.setFontSize(7); doc.setTextColor(140, 150, 185);
     doc.text(`Gerado em ${dataGer}`, margin, 21);
@@ -1140,6 +1200,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.text(brl(this.somaVerificacao.totalGeral), margin + 4, y + 12);
     doc.text(brl(this.somaVerificacao.totalProjetos), margin + 60, y + 12);
     y += 22;
+
+    y = this.desenharEventoInstitucional(doc, y, W, margin, brl);
 
     // ── Tabela por projeto ──
     for (const p of this.historicoPorProjeto) {
@@ -1227,6 +1289,68 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     doc.save(`rendimentos-por-projeto-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
+  /** Primeiro e último mês da série rateada, para o subtítulo do relatório. */
+  private get periodoHistoricoLabel(): string {
+    const meses = this.porMesCorrigido.length ? this.porMesCorrigido : this.resumo.porMes;
+    if (!meses.length) return 'sem período';
+    const ord = [...meses].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
+    return `${ord[0].mesAno} a ${ord[ord.length - 1].mesAno}`;
+  }
+
+  /**
+   * Bloco compacto do evento institucional no relatório por projeto.
+   *
+   * Esse PDF tem layout próprio (autoTable), e não o do RelatorioPdfService —
+   * por isso a seção é desenhada aqui, no mesmo idioma visual do arquivo, em
+   * vez de importar um cabeçalho que brigaria com o dele. O pagamento entra
+   * como vínculo, nunca como despesa: ele já está no quadro de despesas.
+   */
+  private desenharEventoInstitucional(
+    doc: jsPDF, y: number, W: number, margin: number, brl: (v: number) => string,
+  ): number {
+    const o = this.oficio;
+    if (!o || !o.movimentacoes.length) return y;
+
+    const mesAno = (c: string) => {
+      const [a, m] = String(c).split('-');
+      return m ? `${m}/${a}` : c;
+    };
+
+    doc.setTextColor(20, 20, 40);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Eventos institucionais no período', margin, y);
+    y += 4;
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Documento', 'Data-base', 'Compet.', 'Tipo', 'Origem', 'Destino', 'Valor', 'Finalidade']],
+      body: o.movimentacoes.map(m => [
+        m.documento, m.dataBase, mesAno(m.competencia), m.tipo, m.origem, m.destino,
+        brl(m.valor), m.finalidade + (m.numeroPagamento ? ` · pagto ${m.numeroPagamento}` : ''),
+      ]),
+      styles: { fontSize: 6.8, cellPadding: 2, font: 'helvetica', textColor: [30, 30, 50] },
+      headStyles: { fillColor: [55, 65, 81], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
+      columnStyles: { 6: { halign: 'right', fontStyle: 'bold' } },
+      tableLineColor: [220, 225, 235],
+      tableLineWidth: 0.2,
+    });
+    y = (doc as any).lastAutoTable.finalY + 4;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(110, 110, 135);
+    const nota =
+      `Carteira destinada ${brl(o.totalDestinado)} · utilizado ${brl(o.utilizado)} · ` +
+      `disponível ${brl(o.disponivel)}. Transferência interna entre projetos do mesmo instrumento: ` +
+      `não é receita nem despesa e soma zero no consolidado. O pagamento vinculado já consta no ` +
+      `quadro de despesas pela aba Principal e não é lançado novamente aqui.`;
+    const linhas = doc.splitTextToSize(nota, W - margin * 2) as string[];
+    linhas.forEach((l, i) => doc.text(l, margin, y + i * 3.2));
+    return y + linhas.length * 3.2 + 6;
+  }
+
   private computarPorMesCorrigido(): void {
     if (this.resumo.porMes.length === 0) return;
     let acc = 0;
@@ -1254,9 +1378,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       this.barChartData = {
         labels: porMes.map((m) => m.mesAno),
         datasets: [
-          { type: "bar", label: "Rendimento Bruto", data: porMes.map((m) => m.bruto), backgroundColor: "rgba(16,185,129,0.45)", borderColor: "#10b981", borderWidth: 1, borderRadius: 4, yAxisID: "y" },
-          { type: "bar", label: "Impostos", data: porMes.map((m) => m.imposto), backgroundColor: "rgba(239,68,68,0.4)", borderColor: "#ef4444", borderWidth: 1, borderRadius: 4, yAxisID: "y" },
-          { type: "line", label: "Saldo Líquido Acumulado", data: acumuladoNorm, borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,0.08)", borderWidth: 2, pointBackgroundColor: "#6366f1", pointRadius: 3, pointHoverRadius: 5, fill: true, tension: 0.4, yAxisID: "y" } as any,
+          // Rótulos explícitos: o tooltip precisa deixar claro que a barra é o
+          // rendimento GERADO no mês e a linha é o acumulado — nenhum dos dois
+          // é "saldo livre", que só o rodapé do evento informa.
+          { type: "bar", label: "Rendimento gerado (bruto)", data: porMes.map((m) => m.bruto), backgroundColor: "rgba(16,185,129,0.45)", borderColor: "#10b981", borderWidth: 1, borderRadius: 4, yAxisID: "y" },
+          { type: "bar", label: "IOF / IR", data: porMes.map((m) => m.imposto), backgroundColor: "rgba(239,68,68,0.4)", borderColor: "#ef4444", borderWidth: 1, borderRadius: 4, yAxisID: "y" },
+          { type: "line", label: "Rendimento líquido acumulado", data: acumuladoNorm, borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,0.08)", borderWidth: 2, pointBackgroundColor: "#6366f1", pointRadius: 3, pointHoverRadius: 5, fill: true, tension: 0.4, yAxisID: "y" } as any,
         ],
       };
       this.chartReady = true;
