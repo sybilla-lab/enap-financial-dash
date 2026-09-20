@@ -22,6 +22,32 @@ export interface CabecalhoRelatorio {
   filtros?: string[];
 }
 
+/**
+ * Só o que o relatório usa do evento — estruturalmente igual a
+ * `OficioRendimentos`, declarado aqui para o serviço de PDF não depender do
+ * modelo de domínio do dashboard.
+ */
+export interface EventoParaRelatorio {
+  documento: string;
+  dataBase: string;
+  competenciaEfeito: string;
+  checkpointDataBase: number;
+  saldoLivreTotal: number;
+  totalDestinado: number;
+  utilizado: number;
+  disponivel: number;
+  projetos: {
+    projeto: string; historicoAteDataBase: number; destinado: number;
+    novosRendimentos: number; carteiraSobGestao: number;
+    utilizado: number; carteiraDisponivel: number;
+  }[];
+  movimentacoes: {
+    documento: string; dataBase: string; competencia: string; tipo: string;
+    origem: string; destino: string; valor: number;
+    numeroPagamento: string | null; finalidade: string;
+  }[];
+}
+
 export interface ColunaTabela {
   titulo: string;
   chave: string;
@@ -49,6 +75,23 @@ export class RelatorioPdfService {
   readonly MARGEM = 18;          // mm — exigido pelo padrão de relatório
   private readonly TOPO_CONTEUDO = 34;
   private readonly RODAPE = 16;
+
+  /**
+   * Troca caracteres que a fonte padrão do jsPDF não tem por equivalentes.
+   *
+   * As fontes embutidas usam WinAnsi. Um U+2212 (sinal de menos "matemático")
+   * ou um U+2192 sai como lixo — foi o que aconteceu com "recebido − executado",
+   * impresso como `r e c e b i d o "`. Em vez de caçar caso a caso, todo texto
+   * passa por aqui antes de ir para o papel.
+   */
+  private seguro(s: string): string {
+    return (s ?? '')
+      .replace(/−/g, '-')        // menos matemático
+      .replace(/[–—]/g, '—')  // en dash → em dash (existe no WinAnsi)
+      .replace(/→/g, '>')        // seta
+      .replace(/[≤≥]/g, m => (m === '≤' ? '<=' : '>='))
+      .replace(/ /g, ' ');       // espaço não separável
+  }
 
   /** Formata em BRL sem quebrar linha. */
   brl(v: number, casas = 2): string {
@@ -150,13 +193,19 @@ export class RelatorioPdfService {
     return this.desenharCabecalho(doc, cab, false);
   }
 
-  /** Título de seção. Nunca fica órfão no pé da página. */
+  /**
+   * Título de seção. Nunca fica órfão no pé da página.
+   *
+   * O espaço exigido cobre o título mais o cabeçalho da tabela e a primeira
+   * linha: com folga menor, o título cabia no rodapé e o conteúdo começava só
+   * na página seguinte.
+   */
   secao(doc: jsPDF, y: number, texto: string, cab: CabecalhoRelatorio): number {
-    y = this.garantirEspaco(doc, y, 16, cab);
+    y = this.garantirEspaco(doc, y, 28, cab);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...COR.tinta);
-    doc.text(texto, this.MARGEM, y);
+    doc.text(this.seguro(texto), this.MARGEM, y);
     return y + 6;
   }
 
@@ -176,16 +225,16 @@ export class RelatorioPdfService {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(...COR.tinta3);
-      doc.text(k.rotulo.toUpperCase(), x, y + 5.5);
+      doc.text(this.seguro(k.rotulo).toUpperCase(), x, y + 5.5);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(...COR.tinta);
-      doc.text(k.valor, x, y + 12);
+      doc.text(this.seguro(k.valor), x, y + 12);
       if (k.base) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6.5);
         doc.setTextColor(...COR.tinta3);
-        doc.text(k.base, x, y + 16);
+        doc.text(this.seguro(k.base), x, y + 16);
       }
       if (i > 0) {
         doc.setDrawColor(...COR.linha);
@@ -217,7 +266,7 @@ export class RelatorioPdfService {
       let x = this.MARGEM;
       colunas.forEach((c, i) => {
         const dir = c.alinhamento === "right";
-        doc.text(c.titulo.toUpperCase(), dir ? x + larguras[i] - 2 : x + 2, yy + 4.8,
+        doc.text(this.seguro(c.titulo).toUpperCase(), dir ? x + larguras[i] - 2 : x + 2, yy + 4.8,
                  { align: dir ? "right" : "left" });
         x += larguras[i];
       });
@@ -227,32 +276,54 @@ export class RelatorioPdfService {
       return yy + ALTURA;
     };
 
+    /**
+     * Quebra cada célula na largura da coluna e devolve a altura da linha.
+     *
+     * Com altura fixa, um texto que não coubesse era desenhado em várias linhas
+     * que invadiam a linha de baixo — e um valor em BRL chegava a ser partido no
+     * meio ("R$ 72.84 7,81"). A linha agora cresce com o conteúdo, e colunas
+     * alinhadas à direita nunca quebram: número partido é sempre erro.
+     */
+    const ENTRELINHA = 3.6;
+    const preparar = (linha: Record<string, string>) => {
+      doc.setFontSize(8);
+      const celulas = colunas.map((c, i) => {
+        const txt = this.seguro(linha[c.chave] ?? "");
+        if (c.alinhamento === "right") return [txt];
+        return doc.splitTextToSize(txt, larguras[i] - 4) as string[];
+      });
+      const maxLinhas = celulas.reduce((m, c) => Math.max(m, c.length), 1);
+      return { celulas, altura: Math.max(ALTURA, maxLinhas * ENTRELINHA + 3.2) };
+    };
+
     y = this.garantirEspaco(doc, y, ALTURA * 3, cab);
     y = cabecalhoTabela(y);
 
     for (const linha of linhas) {
-      if (y + ALTURA > doc.internal.pageSize.getHeight() - this.RODAPE - 4) {
+      const { celulas, altura } = preparar(linha);
+      if (y + altura > doc.internal.pageSize.getHeight() - this.RODAPE - 4) {
         doc.addPage();
         y = this.desenharCabecalho(doc, cab, false);
         y = cabecalhoTabela(y);   // repete o cabeçalho na página nova
       }
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      doc.setTextColor(...COR.tinta);
       let x = this.MARGEM;
       colunas.forEach((c, i) => {
         const dir = c.alinhamento === "right";
-        const txt = linha[c.chave] ?? "";
-        if (txt.startsWith("-") || txt.startsWith("(")) doc.setTextColor(...COR.saida);
+        const partes = celulas[i];
+        if ((partes[0] ?? "").startsWith("-") || (partes[0] ?? "").startsWith("(")) doc.setTextColor(...COR.saida);
         else doc.setTextColor(...COR.tinta);
-        doc.text(txt, dir ? x + larguras[i] - 2 : x + 2, y + 4.8,
-                 { align: dir ? "right" : "left", maxWidth: larguras[i] - 4 });
+        partes.forEach((parte, k) => {
+          doc.text(parte, dir ? x + larguras[i] - 2 : x + 2, y + 4.8 + k * ENTRELINHA,
+                   { align: dir ? "right" : "left" });
+        });
         x += larguras[i];
       });
       doc.setDrawColor(...COR.linha);
       doc.setLineWidth(0.1);
-      doc.line(this.MARGEM, y + ALTURA, L - this.MARGEM, y + ALTURA);
-      y += ALTURA;
+      doc.line(this.MARGEM, y + altura, L - this.MARGEM, y + altura);
+      y += altura;
     }
 
     if (totalizador) {
@@ -265,7 +336,7 @@ export class RelatorioPdfService {
       let x = this.MARGEM;
       colunas.forEach((c, i) => {
         const dir = c.alinhamento === "right";
-        const txt = totalizador[c.chave] ?? "";
+        const txt = this.seguro(totalizador[c.chave] ?? "");
         doc.text(txt, dir ? x + larguras[i] - 2 : x + 2, y + 4.8,
                  { align: dir ? "right" : "left" });
         x += larguras[i];
@@ -275,6 +346,123 @@ export class RelatorioPdfService {
     return y + 5;
   }
 
+  /**
+   * Seção "Eventos institucionais no período".
+   *
+   * Desenha o evento de destinação de rendimentos quando ele for pertinente à
+   * visão que o relatório retrata: fora do período filtrado, ou num projeto que
+   * não participou nem preservou saldo, a seção simplesmente não existe — em
+   * vez de um título com tabela vazia.
+   *
+   * O pagamento que consome a carteira NÃO entra como despesa aqui: ele já está
+   * lançado na aba Principal e aparece uma vez só, no quadro de despesas. Aqui
+   * ele consta apenas como vínculo, pelo número.
+   *
+   * `projeto` nulo = visão consolidada. `inicio`/`fim` em "YYYY-MM".
+   */
+  eventosInstitucionais(
+    doc: jsPDF, y: number, cab: CabecalhoRelatorio,
+    oficio: EventoParaRelatorio | null,
+    opcoes: { projeto?: string | null; inicio?: string | null; fim?: string | null } = {},
+  ): number {
+    if (!oficio) return y;
+
+    const chave = (c: string | null | undefined): number | null => {
+      const m = (c || '').match(/^(\d{4})-(\d{2})$/);
+      return m ? parseInt(m[1]) * 100 + parseInt(m[2]) : null;
+    };
+    const efeito = chave(oficio.competenciaEfeito);
+    const ini = chave(opcoes.inicio);
+    const fim = chave(opcoes.fim);
+    if (efeito === null) return y;
+    if (ini !== null && efeito < ini) return y;
+    if (fim !== null && efeito > fim) return y;
+
+    const projeto = opcoes.projeto ?? null;
+    const mov = oficio.movimentacoes.filter(m =>
+      !projeto || m.origem === projeto || m.destino === projeto
+    );
+    const p = projeto ? oficio.projetos.find(x => x.projeto === projeto) : null;
+    // Um projeto sem movimentação e sem saldo no corte não tem o que contar.
+    if (projeto && !mov.length && !(p && p.historicoAteDataBase > 0)) return y;
+
+    const mesAno = (c: string) => {
+      const [a, m] = String(c).split('-');
+      return m ? `${m}/${a}` : c;
+    };
+
+    y = this.secao(doc, y, 'Eventos institucionais no período', cab);
+
+    const linhas = mov.map(m => ({
+      documento: m.documento,
+      dataBase: m.dataBase,
+      competencia: mesAno(m.competencia),
+      origem: m.origem,
+      destino: m.destino,
+      tipo: m.tipo,
+      valor: this.brl(m.valor),
+      finalidade: m.finalidade + (m.numeroPagamento ? ` · pagamento ${m.numeroPagamento}` : ''),
+    }));
+
+    if (linhas.length) {
+      // Pesos em milímetros de A4 retrato (174 mm úteis), somando 174 para
+      // leitura direta. Datas e valores não podem quebrar — uma data partida
+      // em "31/07/20 26" é erro de leitura, não economia de espaço —, então
+      // cada uma leva a largura do seu próprio título de coluna.
+      y = this.tabela(doc, y, [
+        { titulo: 'Documento', chave: 'documento', largura: 24 },
+        { titulo: 'Data-base', chave: 'dataBase', largura: 20 },
+        { titulo: 'Compet.', chave: 'competencia', largura: 15 },
+        { titulo: 'Tipo', chave: 'tipo', largura: 24 },
+        { titulo: 'Origem', chave: 'origem', largura: 22 },
+        { titulo: 'Destino', chave: 'destino', largura: 22 },
+        { titulo: 'Valor', chave: 'valor', largura: 25, alinhamento: 'right' },
+        { titulo: 'Finalidade', chave: 'finalidade', largura: 22 },
+      ], linhas, cab);
+    }
+
+    // Utilizado e disponível só quando a visão inclui quem executa a carteira.
+    const executor = projeto
+      ? (p && p.carteiraSobGestao > 0 ? p : null)
+      : { carteiraSobGestao: oficio.totalDestinado, utilizado: oficio.utilizado, carteiraDisponivel: oficio.disponivel };
+    if (executor) {
+      y = this.kpis(doc, y, [
+        { rotulo: 'Carteira destinada', valor: this.brl(executor.carteiraSobGestao),
+          base: `data-base ${oficio.dataBase} · efeito ${mesAno(oficio.competenciaEfeito)}` },
+        { rotulo: 'Utilizado', valor: this.brl(executor.utilizado), base: 'pagamentos vinculados pelo número' },
+        { rotulo: 'Disponível', valor: this.brl(executor.carteiraDisponivel), base: 'saldo da carteira não utilizado' },
+      ], cab);
+    }
+
+    // No consolidado, fecha a conta que o evento conta: o acumulado da
+    // data-base se reparte entre carteira destinada e saldo livre.
+    if (!projeto) {
+      y = this.kpis(doc, y, [
+        { rotulo: `Acumulado até ${oficio.dataBase}`, valor: this.brl(oficio.checkpointDataBase),
+          base: 'rendimento realizado na data-base' },
+        { rotulo: 'Destinado pelo documento', valor: this.brl(oficio.totalDestinado),
+          base: 'transferido + destinação própria' },
+        { rotulo: 'Saldo livre dos projetos', valor: this.brl(oficio.saldoLivreTotal),
+          base: `livre após o corte + rendimento desde ${mesAno(oficio.competenciaEfeito)}` },
+      ], cab);
+    }
+
+    if (p && !p.destinado && p.historicoAteDataBase > 0) {
+      y = this.nota(doc, y,
+        `${p.projeto} não participou da realocação: o saldo de ${this.brl(p.historicoAteDataBase)} acumulado até ` +
+        `${oficio.dataBase} foi preservado no corte de ${mesAno(oficio.competenciaEfeito)} e os rendimentos ` +
+        `posteriores seguem acumulando — ${this.brl(p.novosRendimentos)} desde então.`, cab);
+    }
+
+    y = this.nota(doc, y,
+      'Transferência interna de rendimentos entre projetos do mesmo instrumento: não é receita nem despesa e ' +
+      'soma zero no consolidado. A destinação própria apenas reclassifica saldo que já pertencia ao projeto, ' +
+      'de livre para destinado. O pagamento vinculado à carteira já consta no quadro de despesas pela aba ' +
+      'Principal e não é lançado novamente aqui.', cab);
+
+    return y;
+  }
+
   /** Nota de rodapé de seção: metodologia, fórmula ou ressalva. */
   nota(doc: jsPDF, y: number, texto: string, cab: CabecalhoRelatorio,
        tom: "neutro" | "atencao" = "neutro"): number {
@@ -282,7 +470,7 @@ export class RelatorioPdfService {
     const largura = L - this.MARGEM * 2 - 6;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    const linhas = doc.splitTextToSize(texto, largura) as string[];
+    const linhas = doc.splitTextToSize(this.seguro(texto), largura) as string[];
     const altura = linhas.length * 3.6 + 5;
     y = this.garantirEspaco(doc, y, altura + 3, cab);
 
