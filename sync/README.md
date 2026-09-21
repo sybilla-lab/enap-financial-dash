@@ -213,7 +213,6 @@ conferência do que a célula exibia.
 | `reconciliar.js` | Reconcilia 09/2025–08/2026 contra o método B e corrige divergências de centavos. | **com `--write`** |
 | `movimentacoes.js` | Cria a aba de movimentações e os blocos da carteira autorizada. | **com `--write`** |
 | `conferir-carteira.js` | Confere a carteira: não-contaminação, fechamentos, teto, rastreio, proteções. | não |
-| `testar-apps-script.js` | Roda o `.gs` real em Node contra a Base e confere o método B. | não |
 | `snapshot.js` | Backup das células afetadas, em JSON. | não |
 | `sincronizar.js` | Grava o realizado e a marca `realizado`. Simula por padrão. | **com `--write`** |
 | `conferir.js` | Releitura e conferência pós-gravação. | não |
@@ -372,24 +371,42 @@ falhar, a segunda responde e a leitura migra sozinha.
 > na própria planilha de Orçamento dispensa IMPORTRANGE — é referência direta
 > entre abas — e evita uma segunda cópia dos dados.
 
-### Instalar os Apps Script corrigidos
+### Apps Script descontinuados (21/09/2026)
 
-Os dois arquivos em `apps-script/` estão corrigidos no repositório mas **ainda
-não instalados** — o acesso ao editor de scripts não está disponível por aqui.
+`apps-script/SyncRendimentos.gs` e `apps-script/SyncExecucao.gs` foram
+**removidos do repositório**, junto com `sync/testar-apps-script.js`, que existia
+só para exercitá-los. Continuam recuperáveis pelo histórico do Git.
 
-**Até a substituição, não use o menu antigo da planilha.** O
-`calcularAtribuicao_` da versão instalada ainda reproduz o método A, que
-diverge do método B oficial.
+**Por quê.** Eles pertenciam ao desenho anterior, em que a planilha era o destino
+do realizado e o dashboard dependia de uma exportação. Nos dois pontos em que
+ainda tocavam o fluxo, hoje existe coisa melhor:
 
-Para substituir (na planilha de Orçamento):
+- **gravação do realizado** — a rotina do menu reescrevia todos os meses de
+  todas as abas de uma vez, sem seleção de competência nem confirmação. Já estava
+  desativada por isso (`SINCRONIZACAO_ATIVA = false`). A gravação controlada vive
+  em `sync/sincronizar.js`, com simulação, backup e conferência;
+- **registro das movimentações** — o item "Registrar Ofício nº 04/2026" escrevia
+  na aba "Movimentações de Rendimentos", que desde então virou a fonte que o
+  dashboard lê ao vivo. E escrevia errado: montava **13 colunas**
+  (`id, data, competencia, tipo, …`) contra as **18** da aba
+  (`id, data_base, data_efetiva, competencia, tipo, …`). Tudo entraria deslocado
+  a partir da segunda coluna. Como os ids também mudaram de forma
+  (`|AUT|` contra `|TRANSF|`), ele não sobrescreveria as linhas existentes:
+  acrescentaria cinco linhas embaralhadas no fim da aba oficial. A nomenclatura
+  também ficou para trás — usava `autorização` e `utilização da autorização`,
+  enquanto a aba usa `transferência interna de rendimentos`, `destinação própria`
+  e `utilização da carteira`.
 
-1. **Extensões › Apps Script**;
-2. abrir o arquivo `SyncRendimentos.gs`, selecionar tudo e colar o conteúdo de
-   `apps-script/SyncRendimentos.gs` deste repositório;
-3. fazer o mesmo com `SyncExecucao.gs` e `apps-script/SyncExecucao.gs`;
-4. **Salvar** (Ctrl+S) e recarregar a planilha, para o menu ser recriado;
-5. conferir com `node sync/testar-apps-script.js`, que roda o `.gs` real contra
-   a Base e compara com o método B — tem de fechar sem divergência.
+O registro de movimentações passa a ser feito pelo fluxo controlado em
+`sync/*.js`, e as movimentações chegam ao dashboard pela leitura ao vivo do CSV
+publicado, descrita acima.
+
+> **A remoção do repositório não desinstala nada.** Se ainda houver uma cópia
+> antiga desses scripts na planilha de Orçamento, o menu "Rendimentos ENAP"
+> continua aparecendo e continua perigoso — em especial "Registrar Ofício nº
+> 04/2026", pelo desalinhamento de colunas acima. **Não use esse menu.** Para
+> tirá-lo de vez: Extensões › Apps Script, apagar os arquivos do projeto e
+> recarregar a planilha. Nada do fluxo atual depende disso.
 
 ## Pendências técnicas conhecidas
 
