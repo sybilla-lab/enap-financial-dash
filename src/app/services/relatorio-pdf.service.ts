@@ -257,23 +257,46 @@ export class RelatorioPdfService {
     const larguras = colunas.map(c => ((c.largura ?? 1) / somaPesos) * util);
     const ALTURA = 7;
 
+    /**
+     * O cabeçalho quebra em duas linhas quando o título não cabe na coluna.
+     *
+     * Antes o título era desenhado inteiro, transbordando por cima do vizinho:
+     * "UTILIZADO NO MÊS" e "SALDO DISPONÍVEL ACUMULADO" saíam grudados, sem
+     * qualquer sinal de que algo tinha dado errado.
+     */
+    const ENTRELINHA_TITULO = 3.4;
+    const titulos = colunas.map((c, i) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      return doc.splitTextToSize(this.seguro(c.titulo).toUpperCase(), larguras[i] - 4) as string[];
+    });
+    const alturaCabecalho = Math.max(
+      ALTURA,
+      titulos.reduce((m, t) => Math.max(m, t.length), 1) * ENTRELINHA_TITULO + 3.4
+    );
+
     const cabecalhoTabela = (yy: number): number => {
       doc.setFillColor(...COR.faixa);
-      doc.rect(this.MARGEM, yy, util, ALTURA, "F");
+      doc.rect(this.MARGEM, yy, util, alturaCabecalho, "F");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       doc.setTextColor(...COR.tinta2);
       let x = this.MARGEM;
       colunas.forEach((c, i) => {
         const dir = c.alinhamento === "right";
-        doc.text(this.seguro(c.titulo).toUpperCase(), dir ? x + larguras[i] - 2 : x + 2, yy + 4.8,
-                 { align: dir ? "right" : "left" });
+        // Alinhado ao pé da célula: títulos de uma e de duas linhas ficam na
+        // mesma base, como numa tabela de imprensa.
+        const base = yy + alturaCabecalho - 2.4 - (titulos[i].length - 1) * ENTRELINHA_TITULO;
+        titulos[i].forEach((linha, k) => {
+          doc.text(linha, dir ? x + larguras[i] - 2 : x + 2, base + k * ENTRELINHA_TITULO,
+                   { align: dir ? "right" : "left" });
+        });
         x += larguras[i];
       });
       doc.setDrawColor(...COR.linha);
       doc.setLineWidth(0.2);
-      doc.line(this.MARGEM, yy + ALTURA, L - this.MARGEM, yy + ALTURA);
-      return yy + ALTURA;
+      doc.line(this.MARGEM, yy + alturaCabecalho, L - this.MARGEM, yy + alturaCabecalho);
+      return yy + alturaCabecalho;
     };
 
     /**
@@ -296,7 +319,7 @@ export class RelatorioPdfService {
       return { celulas, altura: Math.max(ALTURA, maxLinhas * ENTRELINHA + 3.2) };
     };
 
-    y = this.garantirEspaco(doc, y, ALTURA * 3, cab);
+    y = this.garantirEspaco(doc, y, alturaCabecalho + ALTURA * 2, cab);
     y = cabecalhoTabela(y);
 
     for (const linha of linhas) {
@@ -354,7 +377,7 @@ export class RelatorioPdfService {
    * não participou nem preservou saldo, a seção simplesmente não existe — em
    * vez de um título com tabela vazia.
    *
-   * O pagamento que consome a carteira NÃO entra como despesa aqui: ele já está
+   * O pagamento que consome o saldo destinado NÃO entra como despesa aqui: ele já está
    * lançado na aba Principal e aparece uma vez só, no quadro de despesas. Aqui
    * ele consta apenas como vínculo, pelo número.
    *
@@ -421,28 +444,28 @@ export class RelatorioPdfService {
       ], linhas, cab);
     }
 
-    // Utilizado e disponível só quando a visão inclui quem executa a carteira.
+    // Utilizado e saldo a utilizar só quando a visão inclui quem executa a destinação.
     const executor = projeto
       ? (p && p.carteiraSobGestao > 0 ? p : null)
       : { carteiraSobGestao: oficio.totalDestinado, utilizado: oficio.utilizado, carteiraDisponivel: oficio.disponivel };
     if (executor) {
       y = this.kpis(doc, y, [
-        { rotulo: 'Carteira destinada', valor: this.brl(executor.carteiraSobGestao),
+        { rotulo: 'Valor destinado', valor: this.brl(executor.carteiraSobGestao),
           base: `data-base ${oficio.dataBase} · efeito ${mesAno(oficio.competenciaEfeito)}` },
-        { rotulo: 'Utilizado', valor: this.brl(executor.utilizado), base: 'pagamentos vinculados pelo número' },
-        { rotulo: 'Disponível', valor: this.brl(executor.carteiraDisponivel), base: 'saldo da carteira não utilizado' },
+        { rotulo: 'Utilizado', valor: this.brl(executor.utilizado), base: 'pagamentos já realizados' },
+        { rotulo: 'Saldo a utilizar', valor: this.brl(executor.carteiraDisponivel), base: 'destinado e ainda não pago' },
       ], cab);
     }
 
     // No consolidado, fecha a conta que o evento conta: o acumulado da
-    // data-base se reparte entre carteira destinada e saldo livre.
+    // data-base se reparte entre o destinado e o livre nos projetos.
     if (!projeto) {
       y = this.kpis(doc, y, [
         { rotulo: `Acumulado até ${oficio.dataBase}`, valor: this.brl(oficio.checkpointDataBase),
           base: 'rendimento realizado na data-base' },
         { rotulo: 'Destinado pelo documento', valor: this.brl(oficio.totalDestinado),
           base: 'transferido + destinação própria' },
-        { rotulo: 'Saldo livre dos projetos', valor: this.brl(oficio.saldoLivreTotal),
+        { rotulo: 'Livre nos projetos', valor: this.brl(oficio.saldoLivreTotal),
           base: `livre após o corte + rendimento desde ${mesAno(oficio.competenciaEfeito)}` },
       ], cab);
     }
@@ -457,7 +480,8 @@ export class RelatorioPdfService {
     y = this.nota(doc, y,
       'Transferência interna de rendimentos entre projetos do mesmo instrumento: não é receita nem despesa e ' +
       'soma zero no consolidado. A destinação própria apenas reclassifica saldo que já pertencia ao projeto, ' +
-      'de livre para destinado. O pagamento vinculado à carteira já consta no quadro de despesas pela aba ' +
+      'de livre para destinado. O saldo destinado é subdivisão do saldo disponível e não se soma a ele. ' +
+      'O pagamento vinculado já consta no quadro de despesas pela aba ' +
       'Principal e não é lançado novamente aqui.', cab);
 
     return y;

@@ -20,10 +20,15 @@ export interface ItemFaixa {
  * Faixa discreta de evento institucional, para as páginas filtradas por projeto.
  *
  * Mostra o mesmo evento da página de Rendimentos, mas do ponto de vista de um
- * projeto só: quem cedeu vê o que cedeu; quem executa vê a carteira, o
- * utilizado e o disponível; quem ficou de fora vê que ficou de fora e com
+ * projeto só: quem cedeu vê o que cedeu; quem executa vê o destinado, o
+ * utilizado e o saldo a utilizar; quem ficou de fora vê que ficou de fora e com
  * quanto. Aparece apenas quando o projeto tem o que dizer sobre o evento e
  * quando a competência de efeito cai dentro do período filtrado.
+ *
+ * Vocabulário fixo em toda a página: "utilizado" é o que já foi pago,
+ * "destinado" é o reservado ainda não pago, "disponível" é tudo o que ainda
+ * não foi utilizado e "livre" é a parcela disponível sem destinação. O saldo
+ * destinado é subdivisão do disponível — nunca uma carteira à parte a somar.
  */
 @Component({
   selector: 'app-evento-institucional',
@@ -100,15 +105,18 @@ export class EventoInstitucionalComponent {
     return {
       ...this.base(o),
       papel: 'consolidado' as PapelEvento,
-      titulo: `Carteira de Rendimentos — ${o.finalidade}`,
+      titulo: `Destinação de rendimentos — ${o.finalidade}`,
       texto:
         `Saldos de rendimentos acumulados até ${o.dataBase} destinados à ${o.finalidade}, ` +
         `sob execução da ${o.projetoExecutor}. Transferência entre projetos: não é receita nem despesa.`,
       itens: [
-        { rotulo: 'Carteira destinada', valor: o.totalDestinado, tom: 'transf' as const },
-        { rotulo: 'Utilizado', valor: o.utilizado, tom: 'usado' as const },
-        { rotulo: 'Disponível', valor: o.disponivel, tom: 'disp' as const },
-        { rotulo: 'Saldo livre dos projetos', valor: o.saldoLivreTotal, tom: 'livre' as const },
+        { rotulo: 'Valor destinado', valor: o.totalDestinado, tom: 'transf' as const },
+        { rotulo: 'Utilizado', valor: o.utilizado, tom: 'usado' as const,
+          ajuda: 'Pagamentos já realizados com o saldo destinado.' },
+        { rotulo: 'Saldo a utilizar', valor: o.disponivel, tom: 'disp' as const,
+          ajuda: 'Parte do saldo disponível: reservado à finalidade, ainda não pago.' },
+        { rotulo: 'Livre nos projetos', valor: o.saldoLivreTotal, tom: 'livre' as const,
+          ajuda: 'Saldo disponível sem destinação específica.' },
       ] as ItemFaixa[],
     };
   }
@@ -117,18 +125,20 @@ export class EventoInstitucionalComponent {
     return {
       ...this.base(o),
       papel: 'executor' as PapelEvento,
-      titulo: `Executa a carteira da ${o.finalidade}`,
+      titulo: `Executa a destinação para ${o.finalidade}`,
       texto:
         `Recebeu saldos de rendimentos de outros projetos e destinou rendimento próprio à ${o.finalidade}. ` +
-        `A carteira só diminui com pagamento vinculado pelo número — nenhum outro débito a consome.`,
+        `O saldo destinado só diminui com pagamento vinculado pelo número — nenhum outro débito o consome.`,
       itens: [
         { rotulo: 'Recebido de outros projetos', valor: p.transferidoRecebido, tom: 'transf' as const,
           ajuda: 'Entrada líquida interprojetos. Não é receita nova do convênio.' },
         { rotulo: 'Rendimento próprio destinado', valor: p.destinacaoPropria, tom: 'propria' as const,
           ajuda: 'Saldo que já era do projeto e mudou de livre para destinado. Não somar ao recebido.' },
-        { rotulo: 'Carteira total', valor: p.carteiraSobGestao, tom: 'transf' as const },
-        { rotulo: 'Utilizado', valor: p.utilizado, tom: 'usado' as const },
-        { rotulo: 'Disponível', valor: p.carteiraDisponivel, tom: 'disp' as const },
+        { rotulo: 'Total destinado', valor: p.carteiraSobGestao, tom: 'transf' as const },
+        { rotulo: 'Utilizado', valor: p.utilizado, tom: 'usado' as const,
+          ajuda: 'Pagamentos já realizados com o saldo destinado.' },
+        { rotulo: 'Saldo a utilizar', valor: p.carteiraDisponivel, tom: 'disp' as const,
+          ajuda: 'Reservado à finalidade e ainda não pago. Já faz parte do saldo disponível — não se soma de novo.' },
       ] as ItemFaixa[],
     };
   }

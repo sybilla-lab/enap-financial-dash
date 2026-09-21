@@ -10,8 +10,7 @@ import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { RelatorioPdfService, CabecalhoRelatorio } from '../../services/relatorio-pdf.service';
 import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento } from "../../models/lancamento.model";
-import { ratearRendimentos } from "../../services/rateio-rendimentos";
-import { CarteiraRendimentosComponent } from "../../components/carteira-rendimentos/carteira-rendimentos.component";
+import { ratearRendimentos, comporSaldo } from "../../services/rateio-rendimentos";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -35,8 +34,18 @@ interface ProjetoHistorico {
   projeto: string;
   cor: string;
   meses: MesProjHistorico[];
+  /** Rendimento gerado pelo projeto no período — o histórico, que não muda. */
   totalAcumulado: number;
   pctTotal: number;
+  /**
+   * Saldo livre atual: o que sobrou do gerado depois do que foi destinado.
+   * Para quem destinou em 31/07/2026, é só o rendimento posterior ao corte.
+   */
+  saldoLivre: number;
+  /** Participação no saldo livre total — a base da leitura da seção. */
+  pctLivre: number;
+  /** Quanto o projeto destinou no evento institucional; 0 para quem não participou. */
+  destinado: number;
   aberto: boolean;
 }
 
@@ -74,6 +83,7 @@ interface ProjetoPrev { projeto: string; cor: string; histAcum: number; projTota
 
 const PALETTE = ['#6366f1','#10b981','#f59e0b','#ec4899','#06b6d4','#8b5cf6','#ef4444','#14b8a6','#f97316','#84cc16'];
 const mesKey = (s: string) => { const [m, y] = s.split('/'); return parseInt(y) * 100 + parseInt(m); };
+const cent = (v: number) => Math.round(v * 100) / 100;
 
 /**
  * Rateio proporcional PROPOSTO (EM REVISÃO — aguarda validação pelo Impact Hub).
@@ -103,7 +113,6 @@ const REND_HIST_PROPOSTO: Record<string, Record<string, number>> = {
     MatDividerModule,
     MatTooltipModule,
     BaseChartDirective,
-    CarteiraRendimentosComponent,
   ],
   templateUrl: "./rendimentos.component.html",
   styleUrl: "./rendimentos.component.scss",
@@ -176,11 +185,15 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   mesAnoSelecionado: string | null = null;
   detalhesRend: DetalheRend[] = [];
   utilizacaoPorMes = new Map<string, string>();
-  porMesCorrigido: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] = [];
+  /** `acumulado` aqui é o saldo DISPONÍVEL: acumulado do período menos o utilizado. */
+  porMesCorrigido: {
+    mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number;
+    utilizadoNoMes: number; rotuloUtilizacao: string; detalheUtilizacao: string;
+  }[] = [];
 
   histAberto = false;
   historicoPorProjeto: ProjetoHistorico[] = [];
-  somaVerificacao = { totalProjetos: 0, totalGeral: 0, bate: true };
+  somaVerificacao = { totalProjetos: 0, totalGeral: 0, bate: true, somaLivre: 0, livreEsperado: 0, livreBate: true };
 
   private readonly platformId = inject(PLATFORM_ID);
 
@@ -321,8 +334,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
    * A série de saldo acumulado tem uma ruptura em 08/2026 que, sem explicação,
    * parece perda de recurso. Uma linha vertical na competência de efeito e um
    * rodapé no tooltip daquele mês contam o que de fato aconteceu: o acumulado
-   * até julho saiu do saldo livre e virou carteira destinada, e o rendimento
-   * voltou a acumular do zero. A transferência não é receita nem despesa.
+   * até julho saiu do saldo livre e passou a destinado, e o rendimento voltou
+   * a acumular do zero. A transferência não é receita nem despesa.
    */
   private readonly marcoInstitucional = {
     id: 'marcoInstitucional',
@@ -377,8 +390,8 @@ export class RendimentosComponent implements OnInit, OnDestroy {
    * Rodapé do tooltip: separa o que o gráfico sozinho não distingue.
    *
    * As barras mostram rendimento gerado; a linha, o acumulado. Nenhum dos dois
-   * mostra que parte do acumulado deixou de ser saldo livre e virou carteira
-   * destinada, nem que houve pagamento consumindo essa carteira. O rodapé só
+   * mostra que parte do acumulado deixou de ser saldo livre e passou a
+   * destinado, nem que houve pagamento consumindo esse saldo. O rodapé só
    * aparece nos meses em que isso aconteceu.
    */
   private rodapeTooltip(mesAno: string | undefined): string[] {
@@ -392,7 +405,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         `Transferência cedida: ${this.brl(o.transferidoDeOutrosProjetos)}`,
         `Transferência recebida: ${this.brl(o.transferidoDeOutrosProjetos)} (${o.projetoExecutor})`,
         `Saldo destinado: ${this.brl(o.totalDestinado)}`,
-        `Saldo livre dos projetos: ${this.brl(o.saldoLivreTotal)}`,
+        `Livre nos projetos: ${this.brl(o.saldoLivreTotal)}`,
         'Transferência entre projetos — não é receita nem despesa.',
       );
     }
@@ -401,7 +414,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       m => m.tipo === 'utilização da carteira' && this.competenciaParaMesAno(m.competencia) === mesAno
     );
     usos.forEach(m => linhas.push(
-      `Utilização da carteira: ${this.brl(m.valor)}` +
+      `Utilizado no mês: ${this.brl(m.valor)}` +
       (m.numeroPagamento ? ` (pagamento ${m.numeroPagamento})` : '')
     ));
 
@@ -797,6 +810,10 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       // Resolvido conta como pronto mesmo vindo nulo: sem evento vigente a
       // página não tem por que ficar esperando.
       this.carregado.evento = true;
+      // A tabela mensal desconta as utilizações da carteira, que só existem
+      // depois que o evento chega — sem recomputar, o saldo do último mês
+      // ficaria sem a subtração.
+      this.computarPorMesCorrigido();
       this.tryComputarHistorico();
       // O gráfico pode já ter sido montado antes do evento chegar; sem
       // remontar, o marco de 08/2026 só apareceria no primeiro hover.
@@ -1035,15 +1052,33 @@ export class RendimentosComponent implements OnInit, OnDestroy {
             return { mesAno: m.mesAno, rendimentoMes: rendMes, rendimentoAcumulado: acumRun,
                      pctParticipacao: m.liquido > 0 ? (rendMes / m.liquido) * 100 : 0 } as MesProjHistorico;
           });
+        const doEvento = this.oficio?.projetos.find(x => x.projeto === proj);
+        const gerado = projRendAcum.get(proj)!;
         return { projeto: proj, cor: PALETTE[i % PALETTE.length], meses,
-                 totalAcumulado: projRendAcum.get(proj)!,
-                 pctTotal: expectedTotal > 0 ? (projRendAcum.get(proj)! / expectedTotal) * 100 : 0,
+                 totalAcumulado: gerado,
+                 pctTotal: expectedTotal > 0 ? (gerado / expectedTotal) * 100 : 0,
+                 // Sem evento vigente, o saldo livre é o próprio rendimento gerado.
+                 saldoLivre: doEvento ? doEvento.saldoLivreAtual : gerado,
+                 pctLivre: 0,
+                 destinado: doEvento?.destinado ?? 0,
                  aberto: false } as ProjetoHistorico;
       });
 
+    // A seção é lida pelo saldo livre, então a participação também é sobre ele.
+    const somaLivre = cent(this.historicoPorProjeto.reduce((s, p) => s + p.saldoLivre, 0));
+    this.historicoPorProjeto.forEach(p => {
+      p.pctLivre = somaLivre > 0 ? (p.saldoLivre / somaLivre) * 100 : 0;
+    });
+    this.historicoPorProjeto.sort((a, b) => b.saldoLivre - a.saldoLivre);
+
     const somaProj = Math.round(this.historicoPorProjeto.reduce((s, p) => s + p.totalAcumulado, 0) * 100) / 100;
+    // Duas conferências: o gerado tem de fechar com o líquido do período, e o
+    // livre com o saldo livre total do evento.
+    const livreEsperado = cent(this.oficio?.saldoLivreTotal ?? expectedTotal);
     this.somaVerificacao = { totalProjetos: somaProj, totalGeral: expectedTotal,
-                              bate: Math.abs(somaProj - expectedTotal) < 0.02 };
+                              bate: Math.abs(somaProj - expectedTotal) < 0.02,
+                              somaLivre, livreEsperado,
+                              livreBate: Math.abs(somaLivre - livreEsperado) < 0.02 };
 
     // Atualiza o acumulado histórico por projeto para a seção de previsão
     const HIST_KEY_MAP: Record<string, string> = {
@@ -1099,14 +1134,24 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       { rotulo: 'Impostos retidos', valor: R.brl(this.resumo.totalImpostos), base: 'IOF e IR' },
       { rotulo: 'Rendimento líquido', valor: R.brl(this.resumo.saldoLiquido), base: 'bruto - impostos' },
     ], cab);
+    const c = this.composicao;
     y = R.kpis(doc, y, [
-      { rotulo: 'Autorizado e aplicado', valor: R.brl(this.resumo.totalUtilizado),
-        base: `complementação da Meta 2 · ${this.periodoUtilizadoLabel}` },
-      { rotulo: 'Saldo disponível', valor: R.brl(this.resumo.saldoDisponivel),
-        base: 'sem destinação definida' },
+      { rotulo: 'Utilizado', valor: R.brl(c.utilizado), base: 'pagamentos já realizados' },
+      { rotulo: 'Disponível', valor: R.brl(c.disponivel), base: 'saldo ainda não utilizado' },
     ], cab);
+    // Subdivisão do disponível, não um terceiro bloco de dinheiro.
+    if (c.destinado > 0) {
+      y = R.kpis(doc, y, [
+        { rotulo: 'Destinado', valor: R.brl(c.destinado), base: 'reservado, ainda não pago' },
+        { rotulo: 'Livre nos projetos', valor: R.brl(c.livre), base: 'disponível sem destinação' },
+      ], cab);
+    }
 
     y = R.nota(doc, y,
+      `Utilizado = pagamentos já realizados (${R.brl(c.primeiroCiclo)} na complementação da Meta 2, ` +
+      `${R.brl(c.daDestinacao)} da destinação vigente). Disponível = saldo ainda não utilizado, do qual ` +
+      `${R.brl(c.destinado)} está destinado e ${R.brl(c.livre)} segue livre nos projetos. O destinado é ` +
+      `subdivisão do disponível e não se soma a ele. ` +
       `Destinação formal do valor autorizado: complementação da Meta 2, conforme o Plano de ` +
       `Trabalho, mediante autorização da Enap e vinculação ao objeto do Termo de Colaboração. ` +
       `Nota histórica: o saldo transitou pela Operação Básica em período de ausência de caixa ` +
@@ -1117,23 +1162,33 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       y = R.secao(doc, y, 'Detalhamento mensal', cab);
       const tb = this.porMesCorrigido.reduce((s, m) => s + m.bruto, 0);
       const ti = this.porMesCorrigido.reduce((s, m) => s + m.imposto, 0);
+      const tu = this.porMesCorrigido.reduce((s, m) => s + m.utilizadoNoMes, 0);
+      // Mesmas colunas da tela: a utilização é valor na linha, não rótulo.
       y = R.tabela(doc, y,
         [
-          { titulo: 'Mês/ano', chave: 'mes', largura: 1 },
-          { titulo: 'Bruto', chave: 'bruto', largura: 1.3, alinhamento: 'right' },
-          { titulo: 'Impostos', chave: 'imp', largura: 1.2, alinhamento: 'right' },
-          { titulo: 'Líquido', chave: 'liq', largura: 1.3, alinhamento: 'right' },
-          { titulo: 'Situação', chave: 'sit', largura: 1.1 },
+          { titulo: 'Mês/ano', chave: 'mes', largura: 20 },
+          { titulo: 'Rendimento bruto', chave: 'bruto', largura: 30, alinhamento: 'right' },
+          { titulo: 'Impostos', chave: 'imp', largura: 27, alinhamento: 'right' },
+          { titulo: 'Rendimento líquido', chave: 'liq', largura: 30, alinhamento: 'right' },
+          { titulo: 'Utilizado no mês', chave: 'uso', largura: 29, alinhamento: 'right' },
+          { titulo: 'Saldo disponível acumulado', chave: 'saldo', largura: 38, alinhamento: 'right' },
         ],
         this.porMesCorrigido.map(m => ({
           mes: m.mesAno,
           bruto: R.brl(m.bruto),
           imp: R.brl(m.imposto),
           liq: R.brl(m.liquido),
-          sit: this.isUtilizado(m.mesAno) ? 'Aplicado' : 'Disponível',
+          uso: m.utilizadoNoMes > 0 ? `-${R.brl(m.utilizadoNoMes)}` : '—',
+          saldo: R.brl(m.acumulado),
         })),
         cab,
-        { mes: 'Total', bruto: R.brl(tb), imp: R.brl(ti), liq: R.brl(tb + ti), sit: '' });
+        { mes: 'Total', bruto: R.brl(tb), imp: R.brl(ti), liq: R.brl(tb + ti),
+          uso: `-${R.brl(tu)}`, saldo: R.brl(c.disponivel) });
+
+      y = R.nota(doc, y,
+        'Saldo disponível acumulado = rendimento líquido acumulado menos o que já foi utilizado. ' +
+        'As linhas com valor em "utilizado no mês" são as utilizações de rendimentos: o saldo cai ' +
+        'porque foi subtraído, não porque a série recomeça.', cab);
     }
 
     // ── Evento institucional ───────────────────────────────────────────
@@ -1143,27 +1198,34 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
     // ── Atribuição por projeto ─────────────────────────────────────────
     if (this.historicoPorProjeto.length) {
-      y = R.secao(doc, y, 'Rendimentos atribuídos por projeto', cab);
+      y = R.secao(doc, y, 'Saldo livre por projeto', cab);
+      // Gerado e livre lado a lado: o histórico não muda, o que muda é quanto
+      // dele continua livre depois do que foi destinado.
       y = R.tabela(doc, y,
         [
-          { titulo: 'Projeto', chave: 'proj', largura: 2.4 },
-          { titulo: 'Participação', chave: 'pct', largura: 1, alinhamento: 'right' },
-          { titulo: 'Rendimento acumulado', chave: 'val', largura: 1.5, alinhamento: 'right' },
+          { titulo: 'Projeto', chave: 'proj', largura: 52 },
+          { titulo: 'Rendimento gerado', chave: 'ger', largura: 32, alinhamento: 'right' },
+          { titulo: 'Destinado', chave: 'dest', largura: 30, alinhamento: 'right' },
+          { titulo: 'Saldo livre', chave: 'livre', largura: 32, alinhamento: 'right' },
+          { titulo: '% do livre', chave: 'pct', largura: 28, alinhamento: 'right' },
         ],
         this.historicoPorProjeto.map(p => ({
           proj: p.projeto,
-          pct: `${p.pctTotal.toFixed(1)}%`,
-          val: R.brl(p.totalAcumulado),
+          ger: R.brl(p.totalAcumulado),
+          dest: p.destinado > 0 ? R.brl(p.destinado) : '—',
+          livre: R.brl(p.saldoLivre),
+          pct: `${p.pctLivre.toFixed(1)}%`,
         })),
         cab,
-        { proj: 'Total atribuído', pct: '100,0%',
-          val: R.brl(this.somaVerificacao.totalProjetos) });
+        { proj: 'Total', ger: R.brl(this.somaVerificacao.totalProjetos),
+          dest: R.brl(this.oficio?.totalDestinado ?? 0),
+          livre: R.brl(this.somaVerificacao.somaLivre), pct: '100,0%' });
 
       y = R.nota(doc, y,
         'Metodologia: atribuição proporcional ao saldo base de cada projeto no início de cada ' +
-        'mês. Valor atribuído economicamente — não representa aplicação já realizada. ' +
-        'O resíduo de arredondamento é lançado no projeto de maior rendimento para que a soma ' +
-        'das partes reconcilie com o total.', cab);
+        'mês. Rendimento gerado é o histórico do projeto, que não muda; saldo livre é o que dele ' +
+        'segue disponível sem destinação específica. O resíduo de arredondamento é lançado no ' +
+        'projeto de maior rendimento para que a soma das partes reconcilie com o total.', cab);
     }
 
     // ── Projeção ───────────────────────────────────────────────────────
@@ -1388,19 +1450,128 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     return y + linhas.length * 3.2 + 6;
   }
 
+  /**
+   * Série mensal com a conta de verdade: saldo disponível = acumulado − utilizado.
+   *
+   * A versão anterior zerava o acumulado no primeiro mês disponível e mostrava
+   * uma coluna "Utilização" só classificatória — o zero aparecia sem que nada
+   * na linha explicasse de onde ele vinha. Agora a utilização é um valor na
+   * própria linha, e o saldo cai porque foi subtraído, não porque a série
+   * recomeçou. O histórico dos meses não muda: só ganha a coluna que faltava.
+   */
   private computarPorMesCorrigido(): void {
     if (this.resumo.porMes.length === 0) return;
-    let acc = 0;
-    let resetado = false;
+    const utilizacoes = this.utilizacoesPorMes();
+
+    let saldo = 0;
     this.porMesCorrigido = this.resumo.porMes.map(m => {
-      const isDisponivel = (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
-      if (isDisponivel && !resetado) {
-        acc = 0;
-        resetado = true;
-      }
-      acc += m.liquido;
-      return { ...m, acumulado: acc };
+      saldo = cent(saldo + m.liquido);
+      const u = utilizacoes.get(m.mesAno);
+      const utilizadoNoMes = u?.valor ?? 0;
+      saldo = cent(saldo - utilizadoNoMes);
+      return {
+        ...m,
+        acumulado: saldo,
+        utilizadoNoMes,
+        rotuloUtilizacao: u?.rotulo ?? '',
+        detalheUtilizacao: u?.detalhe ?? '',
+      };
     });
+  }
+
+  /**
+   * Mês a mês, quanto de rendimento foi efetivamente pago.
+   *
+   * Duas origens, que nunca se sobrepõem:
+   *
+   *   - o primeiro ciclo, encerrado quando o saldo acumulado até então foi
+   *     aplicado na complementação da Meta 2. A aba de Rendimentos marca os
+   *     meses consumidos; a saída é lançada no último deles;
+   *   - as utilizações da carteira destinada, cada uma na sua competência.
+   *
+   * Uma utilização com competência posterior ao último mês apurado aparece no
+   * último mês da série — senão sumiria da tabela, e com ela o saldo deixaria
+   * de fechar. O texto de apoio informa a data real do pagamento.
+   */
+  private utilizacoesPorMes(): Map<string, { valor: number; rotulo: string; detalhe: string }> {
+    const mapa = new Map<string, { valor: number; rotulo: string; detalhe: string }>();
+    const ordenados = [...this.resumo.porMes].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
+    if (!ordenados.length) return mapa;
+
+    const somar = (mesAno: string, valor: number, rotulo: string, detalhe: string) => {
+      const atual = mapa.get(mesAno);
+      mapa.set(mesAno, atual
+        ? { valor: cent(atual.valor + valor), rotulo: atual.rotulo, detalhe: `${atual.detalhe} · ${detalhe}` }
+        : { valor: cent(valor), rotulo, detalhe });
+    };
+
+    const doPrimeiroCiclo = ordenados.filter(m => this.isUtilizado(m.mesAno));
+    if (doPrimeiroCiclo.length) {
+      const total = cent(doPrimeiroCiclo.reduce((s, m) => s + m.liquido, 0));
+      const ultimo = doPrimeiroCiclo[doPrimeiroCiclo.length - 1].mesAno;
+      somar(ultimo, total, 'Utilização de rendimentos',
+        `Encerramento do primeiro ciclo: o acumulado de ${doPrimeiroCiclo[0].mesAno} a ${ultimo} ` +
+        `foi aplicado na complementação da Meta 2. A acumulação recomeça na competência seguinte.`);
+    }
+
+    const ultimoApurado = ordenados[ordenados.length - 1].mesAno;
+    (this.oficio?.movimentacoes ?? [])
+      .filter(m => m.tipo === 'utilização da carteira')
+      .forEach(m => {
+        const competencia = this.competenciaParaMesAno(m.competencia);
+        const dentroDaSerie = ordenados.some(x => x.mesAno === competencia);
+        const alvo = dentroDaSerie ? competencia : ultimoApurado;
+        const pagamento = m.numeroPagamento ? `pagamento ${m.numeroPagamento}` : 'pagamento vinculado';
+        somar(alvo, m.valor, 'Utilização de rendimentos',
+          `${pagamento} de ${m.dataEfetiva}, do saldo destinado à ${m.finalidade}` +
+          (dentroDaSerie ? '' : ` (competência ${competencia}, apresentado no último mês apurado)`));
+      });
+
+    return mapa;
+  }
+
+  /**
+   * Composição do saldo líquido, em dois níveis.
+   *
+   * Utilizado e disponível repartem o líquido total; dentro do disponível, o
+   * que está destinado e o que segue livre. O destinado NÃO é uma carteira
+   * paralela a somar ao saldo dos projetos — é uma subdivisão do disponível, e
+   * somá-lo de novo contaria o mesmo dinheiro duas vezes.
+   */
+  get composicao() {
+    const c = comporSaldo({
+      liquido: this.resumo.saldoLiquido,
+      utilizadoPrimeiroCiclo: this.resumo.totalUtilizado,
+      utilizadoDaDestinacao: this.oficio?.utilizado ?? 0,
+      destinadoARealizar: this.oficio?.disponivel ?? 0,
+    });
+    const pct = (v: number) => (c.liquido > 0 ? (v / c.liquido) * 100 : 0);
+    return {
+      ...c,
+      pctUtilizado: pct(c.utilizado),
+      pctDisponivel: pct(c.disponivel),
+      pctDestinadoNoDisponivel: c.disponivel > 0 ? (c.destinado / c.disponivel) * 100 : 0,
+      pctLivreNoDisponivel: c.disponivel > 0 ? (c.livre / c.disponivel) * 100 : 0,
+    };
+  }
+
+  /** Quadro compacto da destinação vigente. `null` quando não há evento. */
+  get plataforma() {
+    const o = this.oficio;
+    if (!o || !o.totalDestinado) return null;
+    return {
+      // "atualização da Plataforma Desafios" → "Plataforma Desafios": em
+      // rótulo curto, o objeto da destinação diz mais que o verbo.
+      titulo: o.finalidade.replace(/^\s*(atualiza[çc][ãa]o|implanta[çc][ãa]o|aquisi[çc][ãa]o|contrata[çc][ãa]o|manuten[çc][ãa]o)\s+d[aoe]s?\s+/i, ''),
+      tituloCompleto: o.finalidade,
+      documento: o.documento,
+      dataBase: o.dataBase,
+      destinado: o.totalDestinado,
+      utilizado: o.utilizado,
+      aUtilizar: o.disponivel,
+      /** Não vem da planilha: é o prazo acordado para a execução da destinação. */
+      previsao: 'até outubro de 2026',
+    };
   }
 
   pctBarRend(valor: number): number {

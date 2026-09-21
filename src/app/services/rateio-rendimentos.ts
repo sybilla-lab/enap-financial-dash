@@ -163,6 +163,48 @@ export function ratearRendimentos(e: EntradaRateio): ResultadoRateio | null {
   return { meses: dispMonths, porProjetoMes: projMesRend, acumulado: projRendAcum, totalEsperado };
 }
 
+export interface ComposicaoSaldo {
+  liquido: number;
+  /** Já pago: primeiro ciclo + utilizações da destinação vigente. */
+  utilizado: number;
+  primeiroCiclo: number;
+  daDestinacao: number;
+  /** Ainda não utilizado — e do qual `destinado` é subdivisão, não adição. */
+  disponivel: number;
+  destinado: number;
+  livre: number;
+}
+
+/**
+ * Reparte o rendimento líquido em utilizado e disponível, e o disponível em
+ * destinado e livre.
+ *
+ * O destinado é uma subdivisão do disponível, nunca uma carteira paralela:
+ * somá-lo ao saldo dos projetos contaria o mesmo dinheiro duas vezes. Daí as
+ * duas identidades que o teste trava:
+ *
+ *     utilizado + disponível = líquido
+ *     destinado + livre      = disponível
+ */
+export function comporSaldo(entrada: {
+  liquido: number;
+  /** Rendimento consumido no encerramento do primeiro ciclo. */
+  utilizadoPrimeiroCiclo: number;
+  /** Pagamentos já feitos com o saldo destinado. */
+  utilizadoDaDestinacao: number;
+  /** Saldo destinado ainda não pago. */
+  destinadoARealizar: number;
+}): ComposicaoSaldo {
+  const liquido = cent(entrada.liquido);
+  const primeiroCiclo = cent(entrada.utilizadoPrimeiroCiclo);
+  const daDestinacao = cent(entrada.utilizadoDaDestinacao);
+  const utilizado = cent(primeiroCiclo + daDestinacao);
+  const disponivel = cent(liquido - utilizado);
+  const destinado = cent(entrada.destinadoARealizar);
+  const livre = cent(disponivel - destinado);
+  return { liquido, utilizado, primeiroCiclo, daDestinacao, disponivel, destinado, livre };
+}
+
 export interface CorteRateio {
   /** projeto → rendimento acumulado ATÉ a competência anterior ao corte (exclusive). */
   ate: Map<string, number>;

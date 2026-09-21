@@ -1,4 +1,4 @@
-import { ratearRendimentos, cortarRateio } from './rateio-rendimentos';
+import { ratearRendimentos, cortarRateio, comporSaldo } from './rateio-rendimentos';
 import { entradaDeTeste } from './rateio-rendimentos.fixture';
 
 /**
@@ -93,5 +93,56 @@ describe('rateio de rendimentos', () => {
     const r = ratearRendimentos(e)!;
     const rateados = new Set(r.meses.map(m => m.mesAno));
     utilizados.forEach(m => expect(rateados.has(m.mesAno)).toBe(false));
+  });
+});
+
+/**
+ * Composição do saldo líquido, com os números do Ofício nº 04/2026.
+ *
+ * As duas identidades abaixo são o coração da leitura da página: se alguma
+ * quebrar, algum valor passou a ser contado duas vezes ou deixou de ser
+ * contado. São exatamente as conferências pedidas na revisão de 21/09/2026.
+ */
+describe('composição do saldo líquido', () => {
+  const ENTRADA = {
+    liquido: 832244.40,
+    utilizadoPrimeiroCiclo: 230075.62,   // ciclo encerrado em 08/2025
+    utilizadoDaDestinacao: 21600.00,     // pagamento 10647074
+    destinadoARealizar: 128402.11,       // destinado e ainda não pago
+  };
+
+  it('reparte o líquido nos valores conferidos', () => {
+    const c = comporSaldo(ENTRADA);
+    expect(c.utilizado).toBe(251675.62);
+    expect(c.disponivel).toBe(580568.78);
+    expect(c.destinado).toBe(128402.11);
+    expect(c.livre).toBe(452166.67);
+  });
+
+  it('utilizado + disponível fecha o líquido total', () => {
+    const c = comporSaldo(ENTRADA);
+    expect(Math.round((c.utilizado + c.disponivel) * 100) / 100).toBe(832244.40);
+  });
+
+  it('destinado + livre fecha o disponível — o destinado não é saldo à parte', () => {
+    const c = comporSaldo(ENTRADA);
+    expect(Math.round((c.destinado + c.livre) * 100) / 100).toBe(580568.78);
+  });
+
+  it('o saldo livre bate com a soma dos projetos do rateio', () => {
+    const c = comporSaldo(ENTRADA);
+    const corte = cortarRateio(ratearRendimentos(entradaDeTeste())!, '2026-08');
+    const porProjeto = new Map<string, number>();
+    [...corte.ate.keys(), ...corte.depois.keys()].forEach(p => porProjeto.set(p, 0));
+    // Saldo livre do projeto = o que gerou até o corte, menos o que destinou,
+    // mais o que gerou depois. Os destinos vêm do evento.
+    const DESTINADO: Record<string, number> = {
+      'CAR DPG': 72847.81, 'Co.NE': 26200.66, 'Parceria MDIC': 13477.05, 'Operação Básica': 37476.59,
+    };
+    let soma = 0;
+    porProjeto.forEach((_, p) => {
+      soma += (corte.ate.get(p) ?? 0) - (DESTINADO[p] ?? 0) + (corte.depois.get(p) ?? 0);
+    });
+    expect(Math.round(soma * 100) / 100).toBe(c.livre);
   });
 });

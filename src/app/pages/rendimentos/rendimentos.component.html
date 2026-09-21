@@ -80,10 +80,10 @@
       </div>
 
       <div class="rhp-bar">
-        <div class="rhp-bar-used" [style.width.%]="pctUtilizado"
-          [matTooltip]="'Utilizado: ' + (resumo.totalUtilizado | currency:'BRL':'symbol':'1.2-2')"></div>
-        <div class="rhp-bar-avail" [style.width.%]="pctDisponivel"
-          [matTooltip]="'Disponível: ' + (resumo.saldoDisponivel | currency:'BRL':'symbol':'1.2-2')"></div>
+        <div class="rhp-bar-used" [style.width.%]="composicao.pctUtilizado"
+          [matTooltip]="'Utilizado: ' + (composicao.utilizado | currency:'BRL':'symbol':'1.2-2')"></div>
+        <div class="rhp-bar-avail" [style.width.%]="composicao.pctDisponivel"
+          [matTooltip]="'Disponível: ' + (composicao.disponivel | currency:'BRL':'symbol':'1.2-2')"></div>
       </div>
 
       <div class="rhp-metrics">
@@ -91,10 +91,10 @@
           <div class="rhp-metric-head">
             <mat-icon>task_alt</mat-icon>
             <span class="rhp-metric-lbl">Utilizado</span>
-            <span class="rhp-metric-pct">{{ pctUtilizado | number:'1.1-1' }}%</span>
+            <span class="rhp-metric-pct">{{ composicao.pctUtilizado | number:'1.1-1' }}%</span>
           </div>
-          <span class="rhp-metric-val">{{ resumo.totalUtilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
-          <span class="rhp-metric-desc">complementação da Meta 2</span>
+          <span class="rhp-metric-val">{{ composicao.utilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="rhp-metric-desc">pagamentos já realizados</span>
         </div>
 
         <div class="rhp-metrics-sep"></div>
@@ -103,12 +103,38 @@
           <div class="rhp-metric-head">
             <mat-icon>savings</mat-icon>
             <span class="rhp-metric-lbl">Disponível</span>
-            <span class="rhp-metric-pct">{{ pctDisponivel | number:'1.1-1' }}%</span>
+            <span class="rhp-metric-pct">{{ composicao.pctDisponivel | number:'1.1-1' }}%</span>
           </div>
-          <span class="rhp-metric-val">{{ resumo.saldoDisponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
-          <span class="rhp-metric-desc">sem destino definido</span>
+          <span class="rhp-metric-val">{{ composicao.disponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
+          <span class="rhp-metric-desc">saldo ainda não utilizado</span>
         </div>
       </div>
+
+      <!-- Subdivisão do disponível. Não é um terceiro bloco de dinheiro: o
+           destinado já está dentro do disponível, e somá-lo outra vez contaria
+           o mesmo saldo duas vezes. -->
+      @if (plataforma) {
+      <div class="rhp-sub">
+        <div class="rhp-sub-head">
+          <span class="rhp-sub-titulo">Dentro do disponível</span>
+          <span class="rhp-sub-total">{{ composicao.disponivel | currency:'BRL':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="rhp-sub-bar">
+          <div class="rhp-sub-bar-dest" [style.width.%]="composicao.pctDestinadoNoDisponivel"></div>
+          <div class="rhp-sub-bar-livre" [style.width.%]="composicao.pctLivreNoDisponivel"></div>
+        </div>
+        <div class="rhp-sub-itens">
+          <div class="rhp-sub-item rhp-sub-dest">
+            <span class="rhp-sub-k">Destinado à {{ plataforma.titulo }}</span>
+            <span class="rhp-sub-v">{{ composicao.destinado | currency:'BRL':'symbol':'1.2-2' }}</span>
+          </div>
+          <div class="rhp-sub-item rhp-sub-livre">
+            <span class="rhp-sub-k">Livre nos projetos</span>
+            <span class="rhp-sub-v">{{ composicao.livre | currency:'BRL':'symbol':'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+      }
 
       <div class="rhp-note">
         <mat-icon>verified</mat-icon>
@@ -126,9 +152,6 @@
 
   </div>
 
-  <!-- ── Carteira de Rendimentos · Plataforma Desafios ── -->
-  <app-carteira-rendimentos [oficio]="oficio"></app-carteira-rendimentos>
-
   <!-- ── Detalhamento Mensal (accordion) ── -->
   <mat-card class="table-card" appearance="outlined">
     <button class="acc-toggle" (click)="tabelaAberta = !tabelaAberta">
@@ -145,12 +168,12 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Mês/Ano</th>
-              <th class="num">Rendimento Bruto</th>
+              <th>Mês/ano</th>
+              <th class="num">Rendimento bruto</th>
               <th class="num">Impostos</th>
-              <th class="num">Líquido</th>
-              <th class="num">Acumulado</th>
-              <th>Utilização</th>
+              <th class="num">Rendimento líquido</th>
+              <th class="num">Utilizado no mês</th>
+              <th class="num">Saldo disponível acumulado</th>
               <th class="num"></th>
             </tr>
           </thead>
@@ -181,16 +204,29 @@
             }
             } @else {
             @for (m of porMesCorrigido; track m.mesAno) {
-            <tr class="row-clickable" (click)="abrirDetalhe(m.mesAno)">
-              <td><span class="mes-label">{{ m.mesAno }}</span></td>
+            <tr class="row-clickable" [class.row-utilizacao]="m.utilizadoNoMes > 0"
+                (click)="abrirDetalhe(m.mesAno)">
+              <td>
+                <span class="mes-label">{{ m.mesAno }}</span>
+                @if (m.utilizadoNoMes > 0) {
+                <span class="badge-utilizacao" [matTooltip]="m.detalheUtilizacao">{{ m.rotuloUtilizacao }}</span>
+                }
+              </td>
               <td class="num positive">{{ m.bruto | currency:"BRL":"symbol":"1.2-2" }}</td>
               <td class="num" [class.negative]="m.imposto !== 0">{{ m.imposto | currency:"BRL":"symbol":"1.2-2" }}</td>
               <td class="num" [class.positive]="m.liquido >= 0" [class.negative]="m.liquido < 0">
                 {{ m.liquido | currency:"BRL":"symbol":"1.2-2" }}
               </td>
+              <td class="num">
+                @if (m.utilizadoNoMes > 0) {
+                <span class="val-utilizado">−{{ m.utilizadoNoMes | currency:"BRL":"symbol":"1.2-2" }}</span>
+                } @else {
+                <span class="val-vazio">—</span>
+                }
+              </td>
               <td class="num cell-acumulado">
                 <div class="acum-wrap">
-                  <span [class.positive]="m.acumulado >= 0" [class.negative]="m.acumulado < 0">
+                  <span [class.positive]="m.acumulado > 0" [class.negative]="m.acumulado < 0">
                     {{ m.acumulado | currency:"BRL":"symbol":"1.2-2" }}
                   </span>
                   <div class="acum-bar-track">
@@ -199,13 +235,6 @@
                     </div>
                   </div>
                 </div>
-              </td>
-              <td>
-                @if (isUtilizado(m.mesAno)) {
-                <span class="badge-used">utilizado</span>
-                } @else {
-                <span class="badge-disponivel">disponível</span>
-                }
               </td>
               <td class="num"><mat-icon class="row-arrow">chevron_right</mat-icon></td>
             </tr>
@@ -236,11 +265,11 @@
         <button class="acc-toggle" (click)="histAberto = !histAberto">
           <div class="acc-toggle-left">
             <mat-icon>stacked_bar_chart</mat-icon>
-            <span>Rendimento por Projeto</span>
-            <span class="acc-hint">histórico mensal — período disponível</span>
+            <span>Saldo livre por projeto</span>
+            <span class="acc-hint">histórico mensal preservado — abra um projeto para ver</span>
           </div>
           <div class="hist-toggle-right">
-            @if (!isLoading && !somaVerificacao.bate) {
+            @if (!isLoading && (!somaVerificacao.bate || !somaVerificacao.livreBate)) {
             <span class="verif-badge err">
               <mat-icon>warning</mat-icon>divergência detectada
             </span>
@@ -260,6 +289,43 @@
       <div class="acc-body" [class.open]="histAberto">
         <div class="acc-body-inner">
           <div class="hist-body">
+
+            <!-- Destinação vigente, em quadro compacto. O saldo a utilizar já
+                 está dentro do disponível total — não se soma de novo. -->
+            @if (!isLoading && plataforma) {
+            <div class="pd-quadro">
+              <div class="pd-head">
+                <mat-icon>flag</mat-icon>
+                <span class="pd-titulo" [matTooltip]="plataforma.tituloCompleto">{{ plataforma.titulo }}</span>
+                <span class="pd-doc">{{ plataforma.documento }} · data-base {{ plataforma.dataBase }}</span>
+              </div>
+              <dl class="pd-itens">
+                <div class="pd-item">
+                  <dt>Valor destinado</dt>
+                  <dd>{{ plataforma.destinado | currency:'BRL':'symbol':'1.2-2' }}</dd>
+                </div>
+                <div class="pd-item pd-usado">
+                  <dt>Utilizado</dt>
+                  <dd>{{ plataforma.utilizado | currency:'BRL':'symbol':'1.2-2' }}</dd>
+                </div>
+                <div class="pd-item pd-restante">
+                  <dt>Saldo a utilizar</dt>
+                  <dd>{{ plataforma.aUtilizar | currency:'BRL':'symbol':'1.2-2' }}</dd>
+                </div>
+                <div class="pd-item">
+                  <dt>Previsão de utilização</dt>
+                  <dd class="pd-previsao">{{ plataforma.previsao }}</dd>
+                </div>
+              </dl>
+              <p class="pd-nota">
+                Já incluído no saldo disponível de
+                {{ composicao.disponivel | currency:'BRL':'symbol':'1.2-2' }}: os saldos livres
+                abaixo somam {{ composicao.livre | currency:'BRL':'symbol':'1.2-2' }}, e o destinado
+                não entra de novo na conta.
+              </p>
+            </div>
+            }
+
             @if (isLoading) {
             @for (i of [1,2,3,4]; track i) {
             <div class="proj-acc-skel"></div>
@@ -274,12 +340,18 @@
                   <span class="proj-dot" [style.background]="p.cor"></span>
                   <span class="proj-acc-name">{{ p.projeto }}</span>
                   <span class="proj-pct-pill" [style.background]="p.cor + '22'" [style.color]="p.cor">
-                    {{ p.pctTotal | number:'1.1-1' }}%
+                    {{ p.pctLivre | number:'1.1-1' }}%
                   </span>
+                  @if (p.destinado > 0) {
+                  <span class="proj-tag-corte"
+                    [matTooltip]="'Destinou ' + (p.destinado | currency:'BRL':'symbol':'1.2-2') + ' em ' + (oficio?.dataBase ?? '') + '. O saldo livre mostra o rendimento gerado depois do corte.'">
+                    destinou
+                  </span>
+                  }
                 </div>
                 <div class="proj-acc-right">
                   <span class="proj-acum-total">
-                    +{{ p.totalAcumulado | currency:'BRL':'symbol':'1.2-2' }}
+                    {{ p.saldoLivre | currency:'BRL':'symbol':'1.2-2' }}
                   </span>
                   <mat-icon class="proj-chevron" [class.open]="p.aberto">expand_more</mat-icon>
                 </div>
@@ -287,7 +359,7 @@
 
               <!-- Barra de participação do projeto -->
               <div class="proj-pct-bar-wrap">
-                <div class="proj-pct-bar-fill" [style.width.%]="p.pctTotal"
+                <div class="proj-pct-bar-fill" [style.width.%]="p.pctLivre"
                   [style.background]="'linear-gradient(90deg,' + p.cor + 'cc,' + p.cor + '55)'">
                 </div>
               </div>
@@ -354,15 +426,18 @@
             <div class="hist-footer">
               <div class="hist-footer-left">
                 <mat-icon>functions</mat-icon>
-                <span>Soma de todos os projetos</span>
+                <span>Soma dos saldos livres</span>
               </div>
-              <div class="hist-footer-right" [class.ok]="somaVerificacao.bate" [class.err]="!somaVerificacao.bate">
-                <span class="soma-val">{{ somaVerificacao.totalProjetos | currency:'BRL':'symbol':'1.2-2' }}</span>
-                @if (somaVerificacao.bate) {
-                <span class="soma-eq">= saldo disponível {{ somaVerificacao.totalGeral | currency:'BRL':'symbol':'1.2-2'
+              <!-- A conferência é sobre o livre, que é o que a seção exibe. O
+                   destinado fica de fora aqui de propósito: ele aparece no
+                   quadro acima e já está contado no disponível total. -->
+              <div class="hist-footer-right" [class.ok]="somaVerificacao.livreBate" [class.err]="!somaVerificacao.livreBate">
+                <span class="soma-val">{{ somaVerificacao.somaLivre | currency:'BRL':'symbol':'1.2-2' }}</span>
+                @if (somaVerificacao.livreBate) {
+                <span class="soma-eq">= saldo livre total {{ somaVerificacao.livreEsperado | currency:'BRL':'symbol':'1.2-2'
                   }} ✓</span>
                 } @else {
-                <span class="soma-eq">≠ saldo disponível {{ somaVerificacao.totalGeral | currency:'BRL':'symbol':'1.2-2'
+                <span class="soma-eq">≠ saldo livre total {{ somaVerificacao.livreEsperado | currency:'BRL':'symbol':'1.2-2'
                   }} ✗</span>
                 }
               </div>
@@ -391,12 +466,16 @@
           <div class="prev-body">
 
             <div class="prev-totais">
-              @if (prevUtilizadoTotal > 0) {
+              <!-- Utilizado e disponível repartem o líquido já realizado; as
+                   projeções vêm depois. A soma dos dois primeiros cards é o
+                   mesmo total de sempre — muda só onde cai a linha divisória,
+                   agora que a utilização da destinação também é desconto. -->
+              @if (composicao.utilizado > 0) {
               <div class="pt-card pt-utilizado">
                 <mat-icon class="pt-icon">history</mat-icon>
                 <span class="pt-label">Utilizado</span>
-                <span class="pt-period">{{ periodoUtilizadoLabel }}</span>
-                <span class="pt-value">{{ prevUtilizadoTotal | currency:'BRL':'symbol':'1.2-2' }}</span>
+                <span class="pt-period">até {{ projLastHistLabel }}</span>
+                <span class="pt-value">{{ composicao.utilizado | currency:'BRL':'symbol':'1.2-2' }}</span>
               </div>
               <div class="pt-connector">+</div>
               }
@@ -404,7 +483,7 @@
                 <mat-icon class="pt-icon">check_circle</mat-icon>
                 <span class="pt-label">Disponível</span>
                 <span class="pt-period">set/25–{{ projLastHistLabel }}</span>
-                <span class="pt-value">{{ prevTotais.hist | currency:'BRL':'symbol':'1.2-2' }}</span>
+                <span class="pt-value">{{ composicao.disponivel | currency:'BRL':'symbol':'1.2-2' }}</span>
               </div>
               <div class="pt-connector">+</div>
               <div class="pt-card pt-proj26">
