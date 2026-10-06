@@ -80,15 +80,33 @@ async function carregar(sheets) {
     if (categoria || projeto) lancamentos.push({ categoria, projeto, mesAno, valor });
   }
 
-  // ── Rendimentos (DataService.parseRendimentos) ────────────────────────────
+  // ── Rendimentos — bloco A:C da aba (DataService.parseRendimentos) ─────────
+  //
+  // A aba traz três blocos lado a lado: A:C lançamentos, F:G resumo mensal e
+  // J:L utilizações. Aqui só o primeiro interessa; os outros são o mesmo
+  // dinheiro sob outra forma, e somá-los dobraria o total.
+  //
+  // Linha sem competência é total, não lançamento. Sem esse descarte, o total
+  // de C entrava na série como um mês "Sem data" de R$ 889.655,76 e
+  // contaminava o rateio inteiro.
   const rendimentos = [];
-  for (const row of (await get(ABAS.rendimentos, 'A1:D2000', 4)).slice(1)) {
-    if (row.length < 3) continue;
+  for (const row of (await get(ABAS.rendimentos, 'A1:C2000', 3)).slice(1)) {
     const categoria = (row[0] || '').trim();
-    const valor = parseValor((row[2] || '').trim());
-    const utilizacao = (row[3] || '').trim();
-    if (!categoria && valor === 0) continue;
-    rendimentos.push({ categoria, mesAno: extrairMesAno((row[1] || '').trim()), valor, utilizacao });
+    const data = (row[1] || '').trim();
+    const bruto = (row[2] || '').trim();
+    if (!bruto || !data) continue;
+    const valor = parseValor(bruto);
+    if (valor === 0 && !categoria) continue;
+    rendimentos.push({ categoria, mesAno: extrairMesAno(data), valor, utilizacao: '' });
+  }
+
+  // ── Utilizações e destinações — bloco J:L da mesma aba ────────────────────
+  const utilizacoes = [];
+  for (const row of (await get(ABAS.rendimentos, 'J1:L200', 3)).slice(1)) {
+    const ano = parseInt((row[0] || '').trim(), 10);
+    const valor = parseValor((row[1] || '').trim());
+    if (!ano || !valor) continue;
+    utilizacoes.push({ ano, valor, projeto: (row[2] || '').trim() });
   }
 
   // ── Saldos remanescentes (DataService.parseSaldos) ────────────────────────
@@ -111,14 +129,15 @@ async function carregar(sheets) {
     if (projeto) status.push({ projeto, status: st });
   }
 
-  return { lancamentos, rendimentos, saldos, status };
+  return { lancamentos, rendimentos, utilizacoes, saldos, status };
 }
 
 /** DataService.getRendimentoResumo().porMes */
 function porMesDe(rendimentos) {
   const map = new Map();
   rendimentos.forEach(r => {
-    const key = r.mesAno || 'Sem data';
+    const key = r.mesAno;
+    if (!key) return;   // sem competência não entra na série
     if (!map.has(key)) map.set(key, { bruto: 0, imposto: 0 });
     const m = map.get(key);
     if (r.valor > 0) m.bruto += r.valor; else m.imposto += r.valor;
@@ -131,10 +150,29 @@ function porMesDe(rendimentos) {
 function contexto(dados) {
   const porMes = porMesDe(dados.rendimentos);
 
+  // Quais meses já foram consumidos por um encerramento de ciclo.
+  //
+  // O rótulo "utilizado/não utilizado" por linha não existe mais na aba. A
+  // informação equivalente está no bloco J:L: uma utilização cujo valor bate
+  // com o acumulado até certo mês consumiu tudo o que havia até ali — é um
+  // encerramento de ciclo. Uma destinação parcial não encerra nada.
   const utilizacaoPorMes = new Map();
-  dados.rendimentos.forEach(r => {
-    if (r.valor > 0 && !utilizacaoPorMes.has(r.mesAno)) utilizacaoPorMes.set(r.mesAno, r.utilizacao);
-  });
+  {
+    const ordenados = [...porMes].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
+    let ultimoEncerramento = -Infinity;
+    (dados.utilizacoes || []).forEach(u => {
+      let acumulado = 0;
+      for (const m of ordenados) {
+        acumulado = cent(acumulado + m.liquido);
+        const ano = parseInt(m.mesAno.split('/')[1], 10);
+        if (ano === u.ano && Math.abs(acumulado - u.valor) < 0.02) {
+          ultimoEncerramento = Math.max(ultimoEncerramento, mesKey(m.mesAno));
+          return;
+        }
+      }
+    });
+    ordenados.forEach(m => utilizacaoPorMes.set(m.mesAno, mesKey(m.mesAno) <= ultimoEncerramento ? 'utilizado' : ''));
+  }
 
   const projetosEncerrados = new Map();
   dados.saldos.forEach(s => {

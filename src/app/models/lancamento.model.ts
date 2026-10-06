@@ -87,7 +87,31 @@ export interface Rendimento {
   data: string;
   mesAno: string;  // derivado de data
   valor: number;
-  utilizacao: string; // preenchido = utilizado; vazio = disponível
+  /**
+   * Resquício do layout anterior da aba, que trazia uma coluna classificatória
+   * "utilização". Hoje as utilizações vivem no bloco J:L, em
+   * `UtilizacaoRendimento`. Mantido vazio para não quebrar leitores antigos.
+   */
+  utilizacao: string;
+}
+
+/**
+ * Utilização ou destinação de rendimentos — bloco J:L da aba "Rendimentos".
+ *
+ * A planilha registra só o ano; `competencia` é recuperada dos registros
+ * existentes (ver DataService.competenciasDasUtilizacoes) e fica nula quando
+ * não há como recuperá-la sem inventar mês.
+ */
+export interface UtilizacaoRendimento {
+  ano: number;
+  valor: number;
+  /** Nome normalizado — a Base grafa "Operação Báisca". */
+  projeto: string;
+  /** Grafia original da planilha, preservada para auditoria. */
+  projetoOriginal: string;
+  /** "08/2025" quando recuperável; `null` quando só o ano é conhecido. */
+  competencia: string | null;
+  origemCompetencia?: string;
 }
 
 /**

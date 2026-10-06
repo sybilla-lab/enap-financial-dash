@@ -13,6 +13,7 @@ import {
   StatusProjeto,
   SaldoRemanescente,
   Rendimento,
+  UtilizacaoRendimento,
   CategoriaGlossario,
   CategoriaNormalizada,
   OficioRendimentos,
@@ -32,6 +33,18 @@ export class DataService {
   private statusSubject = new BehaviorSubject<StatusProjeto[]>([]);
   private saldosSubject = new BehaviorSubject<SaldoRemanescente[]>([]);
   private rendimentosSubject = new BehaviorSubject<Rendimento[]>([]);
+  /** Resumo mensal do bloco F:G — competência → rendimento líquido do mês. */
+  private resumoMensalSubject = new BehaviorSubject<Map<string, number>>(new Map());
+  /** Utilizações e destinações do bloco J:L. */
+  private utilizacoesSubject = new BehaviorSubject<UtilizacaoRendimento[]>([]);
+  /**
+   * Problemas de leitura da aba, em texto. A aba é editada à mão: quando a
+   * estrutura muda, o certo é a página dizer o que não conseguiu ler, em vez de
+   * exibir um número errado com cara de certo.
+   */
+  private avisosRendimentosSubject = new BehaviorSubject<string[]>([]);
+  /** Total declarado na própria aba (linha sem competência), para conferência. */
+  private totalDeclarado: number | null = null;
   private glossarioSubject = new BehaviorSubject<CategoriaGlossario[]>([]);
 
   lancamentos$ = this.lancamentosSubject.asObservable();
@@ -39,6 +52,9 @@ export class DataService {
   status$ = this.statusSubject.asObservable();
   saldos$ = this.saldosSubject.asObservable();
   rendimentos$ = this.rendimentosSubject.asObservable();
+  resumoMensalRendimentos$ = this.resumoMensalSubject.asObservable();
+  utilizacoesRendimentos$ = this.utilizacoesSubject.asObservable();
+  avisosRendimentos$ = this.avisosRendimentosSubject.asObservable();
   glossario$ = this.glossarioSubject.asObservable();
 
   // Metas financeiras
@@ -794,32 +810,259 @@ export class DataService {
   }
 
   // ===== RENDIMENTOS (Aba GID 2032068393) =====
+  /**
+   * A aba traz três blocos independentes, lado a lado na mesma planilha:
+   *
+   *   A:C  lançamentos — categoria, competência e valor; impostos negativos
+   *   F:G  resumo mensal — competência e rendimento líquido do mês
+   *   J:L  utilizações e destinações — ano, valor e projeto
+   *
+   * São representações dos MESMOS recursos, não parcelas somáveis: F:G é A:C
+   * consolidado por mês. Somar os dois dobraria o total — foi exatamente o que
+   * aconteceu quando a aba foi reorganizada e o parser antigo, que lia um bloco
+   * só, passou a engolir a linha de total: o líquido subiu de R$ 889.655,76
+   * para R$ 1.779.311,52.
+   *
+   * A linha de total não tem competência (C56 e G36 trazem valor sem data ao
+   * lado). É esse o critério de descarte: **linha sem competência não é
+   * lançamento**. Vale para qualquer total que venha a ser acrescentado.
+   */
   private parseRendimentos(csvText: string): void {
     const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
     const rows = parsed.data as string[][];
-    const rendimentos: Rendimento[] = [];
 
-    // Colunas: categoria(0), data(1), valor(2), utilização(3)
+    const COL = { categoria: 0, data: 1, valor: 2, resumoData: 5, resumoValor: 6,
+                  usoAno: 9, usoValor: 10, usoProjeto: 11 };
+
+    const rendimentos: Rendimento[] = [];
+    const resumoMensal = new Map<string, number>();
+    const utilizacoes: UtilizacaoRendimento[] = [];
+    const avisos: string[] = [];
+
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row.length < 3) continue;
+      const linha = i + 1;
 
-      const categoria = (row[0] || "").trim();
-      const data = (row[1] || "").trim();
-      const valor = this.parseValor((row[2] || "").trim());
-      const utilizacao = (row[3] || "").trim();
+      // ── Bloco A:C — lançamentos ──
+      const categoria = (row[COL.categoria] || "").trim();
+      const data = (row[COL.data] || "").trim();
+      const bruto = (row[COL.valor] || "").trim();
+      if (bruto) {
+        const valor = this.parseValor(bruto);
+        if (!data) {
+          // Total do bloco: fica de fora da série, mas é guardado para conferir.
+          if (valor !== 0) this.totalDeclarado = valor;
+        } else if (valor !== 0 || categoria) {
+          rendimentos.push({ categoria, data, mesAno: this.extrairMesAno(data), valor, utilizacao: "" });
+        }
+      }
 
-      if (!categoria && valor === 0) continue;
+      // ── Bloco F:G — resumo mensal (líquido já consolidado) ──
+      const resumoData = (row[COL.resumoData] || "").trim();
+      const resumoValor = (row[COL.resumoValor] || "").trim();
+      if (resumoValor && resumoData) {
+        const mesAno = this.extrairMesAno(resumoData);
+        if (mesAno) resumoMensal.set(mesAno, this.parseValor(resumoValor));
+        else avisos.push(`linha ${linha}: competência ilegível no resumo mensal ("${resumoData}")`);
+      }
 
-      // Derivar mesAno a partir da data (aceita DD/MM/YYYY ou MM/YYYY)
-      const mesAno = this.extrairMesAno(data);
-
-      rendimentos.push({ categoria, data, mesAno, valor, utilizacao });
+      // ── Bloco J:L — utilizações e destinações ──
+      const usoAno = (row[COL.usoAno] || "").trim();
+      const usoValor = (row[COL.usoValor] || "").trim();
+      if (usoAno && usoValor) {
+        const ano = parseInt(usoAno, 10);
+        const valor = this.parseValor(usoValor);
+        if (!ano || !valor) {
+          avisos.push(`linha ${linha}: utilização ilegível (ano "${usoAno}", valor "${usoValor}")`);
+        } else {
+          utilizacoes.push({
+            ano,
+            valor,
+            projeto: this.normalizarProjeto((row[COL.usoProjeto] || "").trim()),
+            projetoOriginal: (row[COL.usoProjeto] || "").trim(),
+            competencia: null,   // recuperada adiante, nunca inventada
+          });
+        }
+      }
     }
 
-    // Ordenar por mesAno cronológico
     rendimentos.sort((a, b) => this.compareMesAno(a.mesAno, b.mesAno));
+
+    // Conferência entre os dois blocos: eles têm de contar a mesma história.
+    const liquidoLancamentos = cent(rendimentos.reduce((s, r) => s + r.valor, 0));
+    const liquidoResumo = cent(Array.from(resumoMensal.values()).reduce((s, v) => s + v, 0));
+    if (resumoMensal.size && Math.abs(liquidoLancamentos - liquidoResumo) > 0.02) {
+      avisos.push(
+        `lançamentos (A:C) somam ${liquidoLancamentos.toFixed(2)} e o resumo mensal (F:G) ` +
+        `soma ${liquidoResumo.toFixed(2)} — diferença de ${cent(liquidoLancamentos - liquidoResumo).toFixed(2)}`
+      );
+    }
+    if (this.totalDeclarado !== null && Math.abs(liquidoLancamentos - this.totalDeclarado) > 0.02) {
+      avisos.push(
+        `total declarado na aba (${this.totalDeclarado.toFixed(2)}) difere da soma dos ` +
+        `lançamentos (${liquidoLancamentos.toFixed(2)})`
+      );
+    }
+
+    // A competência é resolvida em duas etapas: aqui, pelo acumulado; e no
+    // cruzamento com as movimentações, em getUtilizacoesComCompetencia(). O
+    // aviso de competência pendente só pode sair depois das duas — senão
+    // acusaria como irrecuperável algo que a segunda etapa resolve.
+    this.competenciasDasUtilizacoes(utilizacoes, resumoMensal);
+
+    this.resumoMensalSubject.next(resumoMensal);
+    this.utilizacoesSubject.next(utilizacoes);
+    this.avisosRendimentosSubject.next(avisos);
     this.rendimentosSubject.next(rendimentos);
+  }
+
+  /**
+   * Recupera a competência de cada utilização a partir dos registros existentes.
+   *
+   * A coluna J traz só o ano — não dá para inventar mês nem dia. Duas pistas
+   * reais resolvem:
+   *
+   *   1. a aba de movimentações, quando a destinação já está registrada lá com
+   *      competência de efeito (é o caso da Plataforma, 08/2026);
+   *   2. o próprio acumulado do resumo mensal: se o saldo acumulado dentro do
+   *      ano bate exatamente com o valor utilizado, aquele mês é o encerramento
+   *      do ciclo (é o caso da cobertura da Operação Básica, 08/2025).
+   *
+   * Não achando nenhuma das duas, a competência fica nula e um aviso é
+   * registrado — melhor sem competência do que com uma inventada.
+   */
+  private competenciasDasUtilizacoes(
+    utilizacoes: UtilizacaoRendimento[],
+    resumoMensal: Map<string, number>,
+  ): void {
+    const meses = Array.from(resumoMensal.entries())
+      .sort((a, b) => this.compareMesAno(a[0], b[0]));
+
+    utilizacoes.forEach(u => {
+      let acumulado = 0;
+      for (const [mesAno, valor] of meses) {
+        acumulado = cent(acumulado + valor);
+        const ano = parseInt(mesAno.split('/')[1], 10);
+        if (ano === u.ano && Math.abs(acumulado - u.valor) < 0.02) {
+          u.competencia = mesAno;
+          u.origemCompetencia = 'acumulado do resumo mensal';
+          return;
+        }
+      }
+    });
+  }
+
+  /**
+   * Quais meses já foram consumidos por um encerramento de ciclo.
+   *
+   * O layout anterior da aba trazia um rótulo "utilizado/não utilizado" por
+   * mês; ele não existe mais. A informação equivalente está no bloco J:L: uma
+   * utilização cujo valor bate exatamente com o acumulado até certo mês
+   * consumiu tudo o que havia até ali — é um encerramento de ciclo, e a
+   * acumulação recomeça na competência seguinte. É o caso da cobertura da
+   * Operação Básica, R$ 230.075,62 em 08/2025.
+   *
+   * Uma destinação que não zera o acumulado (a da Plataforma, R$ 150.002,11)
+   * NÃO encerra ciclo: ela reserva parte do saldo, e os meses anteriores
+   * seguem compondo a base de atribuição proporcional.
+   *
+   * Formato preservado (`Map<mesAno, "utilizado" | "">`) para o rateio, que já
+   * estava validado contra a planilha, continuar recebendo o que espera.
+   */
+  getUtilizacaoPorMes(): Observable<Map<string, string>> {
+    return combineLatest([this.resumoMensalRendimentos$, this.getUtilizacoesComCompetencia()]).pipe(
+      map(([resumo, utilizacoes]) => {
+        const mapa = new Map<string, string>();
+        const meses = Array.from(resumo.keys()).sort((a, b) => this.compareMesAno(a, b));
+        if (!meses.length) return mapa;
+
+        const encerramentos = utilizacoes
+          .filter(u => u.competencia && u.origemCompetencia === 'acumulado do resumo mensal')
+          .map(u => this.mesKeyLocal(u.competencia!));
+        const ultimoEncerramento = encerramentos.length ? Math.max(...encerramentos) : -Infinity;
+
+        meses.forEach(mesAno => {
+          mapa.set(mesAno, this.mesKeyLocal(mesAno) <= ultimoEncerramento ? 'utilizado' : '');
+        });
+        return mapa;
+      })
+    );
+  }
+
+  /**
+   * Completa a competência das utilizações que o acumulado não resolve.
+   *
+   * O bloco J:L traz só o ano. Quando a saída é um encerramento de ciclo, o
+   * próprio acumulado denuncia o mês. Quando é uma destinação parcial — a da
+   * Plataforma, que não zera nada —, a competência está registrada na aba de
+   * movimentações, como competência de efeito do documento. São os registros
+   * existentes falando: nenhum mês é inventado aqui.
+   */
+  getUtilizacoesComCompetencia(): Observable<UtilizacaoRendimento[]> {
+    return combineLatest([this.utilizacoesRendimentos$, this.getMovimentacoesRendimentos()]).pipe(
+      map(([utilizacoes, movimentacoes]) => {
+        const vigentes = movimentacoes.filter(m => m.status.toLowerCase().trim() === 'vigente');
+        if (!vigentes.length) return utilizacoes;
+
+        // Total destinado por documento: é esse montante que aparece no J:L.
+        const porDocumento = new Map<string, { total: number; competencia: string }>();
+        vigentes
+          .filter(m => m.tipo === this.TIPO_TRANSFERENCIA || m.tipo === this.TIPO_DESTINACAO_PROPRIA)
+          .forEach(m => {
+            const atual = porDocumento.get(m.documento);
+            porDocumento.set(m.documento, {
+              total: cent((atual?.total ?? 0) + m.valor),
+              competencia: atual?.competencia ?? m.competencia,
+            });
+          });
+
+        return utilizacoes.map(u => {
+          if (u.competencia) return u;
+          for (const [documento, d] of porDocumento) {
+            const [ano, mes] = String(d.competencia).split('-');
+            if (Math.abs(d.total - u.valor) < 0.02 && parseInt(ano, 10) === u.ano && mes) {
+              return { ...u, competencia: `${mes}/${ano}`, origemCompetencia: `competência de efeito do ${documento}` };
+            }
+          }
+          return u;
+        });
+      })
+    );
+  }
+
+  /**
+   * Avisos de leitura prontos para exibir: os estruturais do parse mais as
+   * competências que nenhuma das duas vias conseguiu recuperar.
+   */
+  getAvisosRendimentos(): Observable<string[]> {
+    return combineLatest([this.avisosRendimentos$, this.getUtilizacoesComCompetencia()]).pipe(
+      map(([estruturais, utilizacoes]) => [
+        ...estruturais,
+        ...utilizacoes
+          .filter(u => !u.competencia)
+          .map(u =>
+            `utilização de ${u.valor.toFixed(2)} em ${u.ano} (${u.projeto}): competência não ` +
+            `recuperável dos registros — exibida apenas pelo ano`),
+      ])
+    );
+  }
+
+  private mesKeyLocal(mesAno: string): number {
+    const [m, y] = mesAno.split('/');
+    return parseInt(y, 10) * 100 + parseInt(m, 10);
+  }
+
+  /**
+   * A Base grafa "Operação Báisca" na coluna de projeto das utilizações.
+   * Normalizar aqui evita que o mesmo projeto apareça duas vezes no dashboard;
+   * a planilha não é alterada.
+   */
+  private normalizarProjeto(nome: string): string {
+    const limpo = nome.trim();
+    const chave = limpo.toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (chave === 'operacao baisca' || chave === 'operacao basica') return 'Operação Básica';
+    return limpo;
   }
 
   private extrairMesAno(data: string): string {
@@ -982,7 +1225,7 @@ export class DataService {
       movimentacoes: this.getMovimentacoesRendimentos(),
       resumo: this.getRendimentoResumo(),
       lancamentos: this.lancamentos$,
-      rendimentos: this.rendimentos$,
+      utilizacaoPorMes: this.getUtilizacaoPorMes(),
       saldos: this.saldos$,
       status: this.status$,
     }).pipe(
@@ -997,7 +1240,7 @@ export class DataService {
     movimentacoes: MovimentacaoRendimento[];
     resumo: { porMes: MesRendimento[] };
     lancamentos: Lancamento[];
-    rendimentos: Rendimento[];
+    utilizacaoPorMes: Map<string, string>;
     saldos: SaldoRemanescente[];
     status: StatusProjeto[];
   }): OficioRendimentos | null {
@@ -1011,10 +1254,7 @@ export class DataService {
       '';
     if (!competenciaEfeito) return null;
 
-    const utilizacaoPorMes = new Map<string, string>();
-    d.rendimentos.forEach(r => {
-      if (r.valor > 0 && !utilizacaoPorMes.has(r.mesAno)) utilizacaoPorMes.set(r.mesAno, r.utilizacao);
-    });
+    const utilizacaoPorMes = d.utilizacaoPorMes;
     if (!utilizacaoPorMes.size) return null;
 
     const projetosEncerrados = new Map<string, number>();
@@ -1180,13 +1420,10 @@ export class DataService {
     saldoDisponivel: number;
     porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[];
   }> {
-    return this.rendimentos$.pipe(
-      map((rends) => {
+    return combineLatest([this.rendimentos$, this.utilizacoesRendimentos$]).pipe(
+      map(([rends, utilizacoes]) => {
         let totalBruto = 0;
         let totalImpostos = 0;
-        // Calculados por registro: utilizado = campo preenchido, disponível = campo vazio
-        let totalUtilizado = 0;
-        let saldoDisponivel = 0;
 
         const porMesMap = new Map<string, { bruto: number; imposto: number }>();
 
@@ -1194,31 +1431,49 @@ export class DataService {
           if (r.valor > 0) totalBruto += r.valor;
           else totalImpostos += r.valor; // negativo
 
-          // Campo sempre preenchido: "utilizado" ou "não utilizado"
-          if (r.utilizacao.toLowerCase().trim() === "utilizado") {
-            totalUtilizado += r.valor;
-          } else {
-            saldoDisponivel += r.valor;
-          }
-
-          const key = r.mesAno || "Sem data";
+          // Lançamento sem competência já foi descartado na leitura; a chave
+          // nunca é vazia, e a série não ganha um mês fantasma "Sem data".
+          const key = r.mesAno;
+          if (!key) return;
           if (!porMesMap.has(key)) porMesMap.set(key, { bruto: 0, imposto: 0 });
           const m = porMesMap.get(key)!;
           if (r.valor > 0) m.bruto += r.valor;
           else m.imposto += r.valor;
         });
 
-        const saldoLiquido = totalBruto + totalImpostos;
+        const saldoLiquido = cent(totalBruto + totalImpostos);
+
+        /**
+         * Utilizado e destinado saem do bloco J:L, não mais de um rótulo por
+         * mês. São duas coisas que já saíram do bolo disponível para NOVAS
+         * destinações: o que foi pago e o que está reservado a uma finalidade.
+         *
+         * O pagamento de uma destinação já registrada não desconta de novo:
+         * o valor integral saiu do disponível no momento da destinação, e daí
+         * em diante a despesa consome o saldo do projeto de destino.
+         */
+        const totalUtilizado = cent(utilizacoes.reduce((s, u) => s + u.valor, 0));
+        const saldoDisponivel = cent(saldoLiquido - totalUtilizado);
 
         let acumulado = 0;
         const porMes = Array.from(porMesMap.entries())
           .sort((a, b) => this.compareMesAno(a[0], b[0]))
           .map(([mesAno, d]) => {
-            acumulado += d.bruto + d.imposto;
-            return { mesAno, bruto: d.bruto, imposto: d.imposto, liquido: d.bruto + d.imposto, acumulado };
+            acumulado = cent(acumulado + d.bruto + d.imposto);
+            return {
+              mesAno,
+              bruto: cent(d.bruto),
+              imposto: cent(d.imposto),
+              liquido: cent(d.bruto + d.imposto),
+              acumulado,
+            };
           });
 
-        return { totalBruto, totalImpostos, saldoLiquido, totalUtilizado, saldoDisponivel, porMes };
+        return {
+          totalBruto: cent(totalBruto),
+          totalImpostos: cent(totalImpostos),
+          saldoLiquido, totalUtilizado, saldoDisponivel, porMes,
+        };
       })
     );
   }

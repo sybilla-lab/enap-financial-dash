@@ -9,7 +9,7 @@ import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { RelatorioPdfService, CabecalhoRelatorio } from '../../services/relatorio-pdf.service';
-import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento } from "../../models/lancamento.model";
+import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento, UtilizacaoRendimento } from "../../models/lancamento.model";
 import { ratearRendimentos, comporSaldo } from "../../services/rateio-rendimentos";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -185,6 +185,23 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   mesAnoSelecionado: string | null = null;
   detalhesRend: DetalheRend[] = [];
   utilizacaoPorMes = new Map<string, string>();
+  /** Utilizações e destinações lidas do bloco J:L da aba "Rendimentos". */
+  utilizacoes: UtilizacaoRendimento[] = [];
+  /** Falhas de leitura da aba, exibidas na página em vez de silenciadas. */
+  avisosLeitura: string[] = [];
+
+  /**
+   * Diferenças conhecidas entre o valor registrado no projeto e o lançado na
+   * aba Principal, nas transferências de 31/05/2025.
+   *
+   * Ficam à vista como pendência de conciliação. Nenhum ajuste é criado para
+   * fechá-las: um lançamento inventado esconderia a divergência em vez de
+   * resolvê-la, e é justamente ela que precisa ser investigada na origem.
+   */
+  readonly pendenciasConciliacao = [
+    { projeto: 'Ambiente Promotor', noProjeto: 5882.65, naPrincipal: 4107.65, diferenca: 1775.00 },
+    { projeto: 'Feira Reversa', noProjeto: 41498.88, naPrincipal: 44626.93, diferenca: 3128.05 },
+  ];
   /** `acumulado` aqui é o saldo DISPONÍVEL: acumulado do período menos o utilizado. */
   porMesCorrigido: {
     mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number;
@@ -825,17 +842,21 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       this.tryComputarHistorico();
     });
 
-    this.dataService.getRendimentos().subscribe((rends: Rendimento[]) => {
-      this.utilizacaoPorMes.clear();
-      rends.forEach(r => {
-        if (r.valor > 0 && !this.utilizacaoPorMes.has(r.mesAno)) {
-          this.utilizacaoPorMes.set(r.mesAno, r.utilizacao);
-        }
-      });
+    // Quais meses já foram consumidos por um encerramento de ciclo. Vem do
+    // bloco J:L da aba, não mais de um rótulo por linha de rendimento.
+    this.dataService.getUtilizacaoPorMes().subscribe(mapa => {
+      this.utilizacaoPorMes = mapa;
       this.computarPorMesCorrigido();
       this.tryComputarHistorico();
       this.deriveProjectionStart();
     });
+
+    this.dataService.getUtilizacoesComCompetencia().subscribe(u => {
+      this.utilizacoes = u;
+      this.computarPorMesCorrigido();
+    });
+
+    this.dataService.getAvisosRendimentos().subscribe(a => { this.avisosLeitura = a; });
 
     this.dataService.getSaldos().subscribe(saldos => {
       this.projetosEncerrados.clear();
@@ -1136,26 +1157,28 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     ], cab);
     const c = this.composicao;
     y = R.kpis(doc, y, [
-      { rotulo: 'Utilizado', valor: R.brl(c.utilizado), base: 'pagamentos já realizados' },
-      { rotulo: 'Disponível', valor: R.brl(c.disponivel), base: 'saldo ainda não utilizado' },
+      { rotulo: 'Utilizado e destinado', valor: R.brl(c.utilizado), base: 'já aplicado ou reservado a uma finalidade' },
+      { rotulo: 'Disponível para novas destinações', valor: R.brl(c.disponivel), base: 'líquido - utilizado e destinado' },
     ], cab);
-    // Subdivisão do disponível, não um terceiro bloco de dinheiro.
-    if (c.destinado > 0) {
-      y = R.kpis(doc, y, [
-        { rotulo: 'Destinado', valor: R.brl(c.destinado), base: 'reservado, ainda não pago' },
-        { rotulo: 'Livre nos projetos', valor: R.brl(c.livre), base: 'disponível sem destinação' },
-      ], cab);
+
+    if (c.itens.length) {
+      y = R.tabela(doc, y, [
+        { titulo: 'Utilização / destinação', chave: 'proj', largura: 90 },
+        { titulo: 'Competência', chave: 'per', largura: 40 },
+        { titulo: 'Valor', chave: 'val', largura: 44, alinhamento: 'right' },
+      ], c.itens.map(i => ({ proj: i.rotulo, per: i.periodo, val: R.brl(i.valor) })), cab,
+        { proj: 'Total', per: '', val: R.brl(c.utilizado) });
     }
 
     y = R.nota(doc, y,
-      `Utilizado = pagamentos já realizados (${R.brl(c.primeiroCiclo)} na complementação da Meta 2, ` +
-      `${R.brl(c.daDestinacao)} da destinação vigente). Disponível = saldo ainda não utilizado, do qual ` +
-      `${R.brl(c.destinado)} está destinado e ${R.brl(c.livre)} segue livre nos projetos. O destinado é ` +
-      `subdivisão do disponível e não se soma a ele. ` +
-      `Destinação formal do valor autorizado: complementação da Meta 2, conforme o Plano de ` +
-      `Trabalho, mediante autorização da Enap e vinculação ao objeto do Termo de Colaboração. ` +
-      `Nota histórica: o saldo transitou pela Operação Básica em período de ausência de caixa ` +
-      `por atraso de aporte — registro contextual que não altera a vinculação à Meta 2.`, cab);
+      'Utilizado e destinado reúne o que já foi aplicado e o que está reservado a uma finalidade — ' +
+      'não é o total de pagamentos. A cobertura da Operação Básica foi paga no Transferegov como ' +
+      'premiações do Impulso Regional: a Operação Básica havia consumido saldo daquele projeto, e o ' +
+      'pagamento das premiações com rendimentos compensou essa utilização anterior, concentrando o uso ' +
+      'de rendimentos numa única categoria. Depois de destinado, o saldo passa a ser executado pelo ' +
+      'projeto de destino: as despesas reduzem o saldo do projeto, não o disponível para novas ' +
+      'destinações. Destinação formal: complementação da Meta 2, conforme o Plano de Trabalho, ' +
+      'mediante autorização da Enap e vinculação ao objeto do Termo de Colaboração.', cab);
 
     // ── Detalhamento mensal ────────────────────────────────────────────
     if (this.porMesCorrigido.length) {
@@ -1493,41 +1516,46 @@ export class RendimentosComponent implements OnInit, OnDestroy {
    * último mês da série — senão sumiria da tabela, e com ela o saldo deixaria
    * de fechar. O texto de apoio informa a data real do pagamento.
    */
+  /**
+   * Mês a mês, quanto de rendimento saiu do saldo disponível.
+   *
+   * Vem do bloco J:L da aba: ano, valor e projeto. A competência exata é
+   * recuperada pelo DataService a partir dos registros existentes — nunca
+   * inventada. Sem competência, a saída não entra na série mensal (apareceria
+   * num mês arbitrário) e um aviso de leitura é exibido na página.
+   *
+   * O pagamento de uma destinação já registrada NÃO entra aqui: o valor
+   * integral saiu do disponível quando foi destinado, e a despesa passa a
+   * consumir o saldo do projeto de destino. Contá-lo de novo seria subtrair
+   * duas vezes o mesmo dinheiro.
+   */
   private utilizacoesPorMes(): Map<string, { valor: number; rotulo: string; detalhe: string }> {
     const mapa = new Map<string, { valor: number; rotulo: string; detalhe: string }>();
-    const ordenados = [...this.resumo.porMes].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
-    if (!ordenados.length) return mapa;
 
-    const somar = (mesAno: string, valor: number, rotulo: string, detalhe: string) => {
-      const atual = mapa.get(mesAno);
-      mapa.set(mesAno, atual
-        ? { valor: cent(atual.valor + valor), rotulo: atual.rotulo, detalhe: `${atual.detalhe} · ${detalhe}` }
-        : { valor: cent(valor), rotulo, detalhe });
-    };
-
-    const doPrimeiroCiclo = ordenados.filter(m => this.isUtilizado(m.mesAno));
-    if (doPrimeiroCiclo.length) {
-      const total = cent(doPrimeiroCiclo.reduce((s, m) => s + m.liquido, 0));
-      const ultimo = doPrimeiroCiclo[doPrimeiroCiclo.length - 1].mesAno;
-      somar(ultimo, total, 'Utilização de rendimentos',
-        `Encerramento do primeiro ciclo: o acumulado de ${doPrimeiroCiclo[0].mesAno} a ${ultimo} ` +
-        `foi aplicado na complementação da Meta 2. A acumulação recomeça na competência seguinte.`);
-    }
-
-    const ultimoApurado = ordenados[ordenados.length - 1].mesAno;
-    (this.oficio?.movimentacoes ?? [])
-      .filter(m => m.tipo === 'utilização da carteira')
-      .forEach(m => {
-        const competencia = this.competenciaParaMesAno(m.competencia);
-        const dentroDaSerie = ordenados.some(x => x.mesAno === competencia);
-        const alvo = dentroDaSerie ? competencia : ultimoApurado;
-        const pagamento = m.numeroPagamento ? `pagamento ${m.numeroPagamento}` : 'pagamento vinculado';
-        somar(alvo, m.valor, 'Utilização de rendimentos',
-          `${pagamento} de ${m.dataEfetiva}, do saldo destinado à ${m.finalidade}` +
-          (dentroDaSerie ? '' : ` (competência ${competencia}, apresentado no último mês apurado)`));
-      });
+    this.utilizacoes.forEach(u => {
+      if (!u.competencia) return;
+      const rotulo = u.valor === this.encerramentoDeCiclo(u) ? 'Encerramento de ciclo' : 'Destinação de rendimentos';
+      const detalhe = u.valor === this.encerramentoDeCiclo(u)
+        ? `Todo o rendimento acumulado até ${u.competencia} foi aplicado em ${u.projeto}. ` +
+          `A acumulação recomeça na competência seguinte.`
+        : `Destinado a ${u.projeto} em ${u.competencia}. A partir daqui as despesas ` +
+          `consomem o saldo do projeto, não o rendimento disponível.`;
+      const atual = mapa.get(u.competencia);
+      mapa.set(u.competencia, atual
+        ? { valor: cent(atual.valor + u.valor), rotulo: atual.rotulo, detalhe: `${atual.detalhe} · ${detalhe}` }
+        : { valor: cent(u.valor), rotulo, detalhe });
+    });
 
     return mapa;
+  }
+
+  /** Valor que a utilização teria se tivesse consumido todo o acumulado até a competência. */
+  private encerramentoDeCiclo(u: UtilizacaoRendimento): number {
+    if (!u.competencia) return NaN;
+    const corte = mesKey(u.competencia);
+    return cent(this.resumo.porMes
+      .filter(m => mesKey(m.mesAno) <= corte)
+      .reduce((s, m) => s + m.liquido, 0));
   }
 
   /**
@@ -1539,38 +1567,22 @@ export class RendimentosComponent implements OnInit, OnDestroy {
    * somá-lo de novo contaria o mesmo dinheiro duas vezes.
    */
   get composicao() {
-    const c = comporSaldo({
-      liquido: this.resumo.saldoLiquido,
-      utilizadoPrimeiroCiclo: this.resumo.totalUtilizado,
-      utilizadoDaDestinacao: this.oficio?.utilizado ?? 0,
-      destinadoARealizar: this.oficio?.disponivel ?? 0,
-    });
-    const pct = (v: number) => (c.liquido > 0 ? (v / c.liquido) * 100 : 0);
+    const liquido = cent(this.resumo.saldoLiquido);
+    const utilizado = cent(this.resumo.totalUtilizado);
+    const disponivel = cent(liquido - utilizado);
+    const pct = (v: number) => (liquido > 0 ? (v / liquido) * 100 : 0);
     return {
-      ...c,
-      pctUtilizado: pct(c.utilizado),
-      pctDisponivel: pct(c.disponivel),
-      pctDestinadoNoDisponivel: c.disponivel > 0 ? (c.destinado / c.disponivel) * 100 : 0,
-      pctLivreNoDisponivel: c.disponivel > 0 ? (c.livre / c.disponivel) * 100 : 0,
-    };
-  }
-
-  /** Quadro compacto da destinação vigente. `null` quando não há evento. */
-  get plataforma() {
-    const o = this.oficio;
-    if (!o || !o.totalDestinado) return null;
-    return {
-      // "atualização da Plataforma Desafios" → "Plataforma Desafios": em
-      // rótulo curto, o objeto da destinação diz mais que o verbo.
-      titulo: o.finalidade.replace(/^\s*(atualiza[çc][ãa]o|implanta[çc][ãa]o|aquisi[çc][ãa]o|contrata[çc][ãa]o|manuten[çc][ãa]o)\s+d[aoe]s?\s+/i, ''),
-      tituloCompleto: o.finalidade,
-      documento: o.documento,
-      dataBase: o.dataBase,
-      destinado: o.totalDestinado,
-      utilizado: o.utilizado,
-      aUtilizar: o.disponivel,
-      /** Não vem da planilha: é o prazo acordado para a execução da destinação. */
-      previsao: 'até outubro de 2026',
+      liquido, utilizado, disponivel,
+      pctUtilizado: pct(utilizado),
+      pctDisponivel: pct(disponivel),
+      /** Cada utilização/destinação, para o detalhamento do bloco "utilizado". */
+      itens: this.utilizacoes
+        .map(u => ({
+          rotulo: u.projeto,
+          valor: u.valor,
+          periodo: u.competencia ?? String(u.ano),
+        }))
+        .sort((a, b) => b.valor - a.valor),
     };
   }
 

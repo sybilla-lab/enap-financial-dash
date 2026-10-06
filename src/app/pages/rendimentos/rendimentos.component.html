@@ -4,6 +4,20 @@
     Rendimentos Financeiros
   </h1>
 
+  <!-- Falhas de leitura da aba: a página diz o que não conseguiu ler, em vez
+       de exibir um número errado com cara de certo. -->
+  @if (avisosLeitura.length) {
+  <div class="rend-avisos" role="alert">
+    <mat-icon>report_problem</mat-icon>
+    <div>
+      <strong>Leitura da aba "Rendimentos" com pendências</strong>
+      <ul>
+        @for (a of avisosLeitura; track a) { <li>{{ a }}</li> }
+      </ul>
+    </div>
+  </div>
+  }
+
   <!-- Carregamento sincronizado: a tela inteira espera o painel "Rendimentos
        da conta", que é a seção mais lenta. Liberar cada bloco no seu tempo
        montava a página aos pedaços, com números trocando de valor na frente do
@@ -90,11 +104,11 @@
         <div class="rhp-metric rhp-metric-used">
           <div class="rhp-metric-head">
             <mat-icon>task_alt</mat-icon>
-            <span class="rhp-metric-lbl">Utilizado</span>
+            <span class="rhp-metric-lbl">Utilizado e destinado</span>
             <span class="rhp-metric-pct">{{ composicao.pctUtilizado | number:'1.1-1' }}%</span>
           </div>
           <span class="rhp-metric-val">{{ composicao.utilizado | currency:"BRL":"symbol":"1.2-2" }}</span>
-          <span class="rhp-metric-desc">pagamentos já realizados</span>
+          <span class="rhp-metric-desc">aplicado ou reservado a uma finalidade</span>
         </div>
 
         <div class="rhp-metrics-sep"></div>
@@ -106,32 +120,25 @@
             <span class="rhp-metric-pct">{{ composicao.pctDisponivel | number:'1.1-1' }}%</span>
           </div>
           <span class="rhp-metric-val">{{ composicao.disponivel | currency:"BRL":"symbol":"1.2-2" }}</span>
-          <span class="rhp-metric-desc">saldo ainda não utilizado</span>
+          <span class="rhp-metric-desc">para novas destinações</span>
         </div>
       </div>
 
-      <!-- Subdivisão do disponível. Não é um terceiro bloco de dinheiro: o
-           destinado já está dentro do disponível, e somá-lo outra vez contaria
-           o mesmo saldo duas vezes. -->
-      @if (plataforma) {
+      <!-- As duas saídas do disponível, nomeadas. Não é um terceiro bloco de
+           dinheiro: elas já estão fora do "disponível para novas destinações". -->
+      @if (composicao.itens.length) {
       <div class="rhp-sub">
         <div class="rhp-sub-head">
-          <span class="rhp-sub-titulo">Dentro do disponível</span>
-          <span class="rhp-sub-total">{{ composicao.disponivel | currency:'BRL':'symbol':'1.2-2' }}</span>
-        </div>
-        <div class="rhp-sub-bar">
-          <div class="rhp-sub-bar-dest" [style.width.%]="composicao.pctDestinadoNoDisponivel"></div>
-          <div class="rhp-sub-bar-livre" [style.width.%]="composicao.pctLivreNoDisponivel"></div>
+          <span class="rhp-sub-titulo">Utilizações e destinações</span>
+          <span class="rhp-sub-total">{{ composicao.utilizado | currency:'BRL':'symbol':'1.2-2' }}</span>
         </div>
         <div class="rhp-sub-itens">
+          @for (i of composicao.itens; track i.rotulo) {
           <div class="rhp-sub-item rhp-sub-dest">
-            <span class="rhp-sub-k">Destinado à {{ plataforma.titulo }}</span>
-            <span class="rhp-sub-v">{{ composicao.destinado | currency:'BRL':'symbol':'1.2-2' }}</span>
+            <span class="rhp-sub-k">{{ i.rotulo }} <small class="rhp-sub-per">{{ i.periodo }}</small></span>
+            <span class="rhp-sub-v">{{ i.valor | currency:'BRL':'symbol':'1.2-2' }}</span>
           </div>
-          <div class="rhp-sub-item rhp-sub-livre">
-            <span class="rhp-sub-k">Livre nos projetos</span>
-            <span class="rhp-sub-v">{{ composicao.livre | currency:'BRL':'symbol':'1.2-2' }}</span>
-          </div>
+          }
         </div>
       </div>
       }
@@ -144,9 +151,13 @@
       </div>
       <div class="rhp-note rhp-note-hist">
         <mat-icon>history_edu</mat-icon>
-        <p><strong>Nota histórica:</strong> o saldo acumulado até {{ histUltimoUtilizadoLabel }} transitou pela
-          Operação Básica em período de ausência de caixa por atraso de aporte. O registro é apenas
-          contextual e <strong>não altera a vinculação formal à Meta 2</strong>.</p>
+        <p><strong>Como a cobertura da Operação Básica foi paga:</strong> no Transferegov, o recurso
+          saiu como <strong>premiações do Impulso Regional</strong>. A Operação Básica havia consumido
+          saldo daquele projeto, e o pagamento das premiações com rendimentos compensou essa
+          utilização anterior — concentrando o uso de rendimentos numa única categoria. Os
+          lançamentos seguem registrados no Impulso Regional; <strong>não há crédito novo de
+          {{ composicao.itens[0].valor | currency:'BRL':'symbol':'1.2-2' }} a utilizar</strong>, esse
+          valor já foi gasto.</p>
       </div>
     </div>
 
@@ -290,42 +301,6 @@
         <div class="acc-body-inner">
           <div class="hist-body">
 
-            <!-- Destinação vigente, em quadro compacto. O saldo a utilizar já
-                 está dentro do disponível total — não se soma de novo. -->
-            @if (!isLoading && plataforma) {
-            <div class="pd-quadro">
-              <div class="pd-head">
-                <mat-icon>flag</mat-icon>
-                <span class="pd-titulo" [matTooltip]="plataforma.tituloCompleto">{{ plataforma.titulo }}</span>
-                <span class="pd-doc">{{ plataforma.documento }} · data-base {{ plataforma.dataBase }}</span>
-              </div>
-              <dl class="pd-itens">
-                <div class="pd-item">
-                  <dt>Valor destinado</dt>
-                  <dd>{{ plataforma.destinado | currency:'BRL':'symbol':'1.2-2' }}</dd>
-                </div>
-                <div class="pd-item pd-usado">
-                  <dt>Utilizado</dt>
-                  <dd>{{ plataforma.utilizado | currency:'BRL':'symbol':'1.2-2' }}</dd>
-                </div>
-                <div class="pd-item pd-restante">
-                  <dt>Saldo a utilizar</dt>
-                  <dd>{{ plataforma.aUtilizar | currency:'BRL':'symbol':'1.2-2' }}</dd>
-                </div>
-                <div class="pd-item">
-                  <dt>Previsão de utilização</dt>
-                  <dd class="pd-previsao">{{ plataforma.previsao }}</dd>
-                </div>
-              </dl>
-              <p class="pd-nota">
-                Já incluído no saldo disponível de
-                {{ composicao.disponivel | currency:'BRL':'symbol':'1.2-2' }}: os saldos livres
-                abaixo somam {{ composicao.livre | currency:'BRL':'symbol':'1.2-2' }}, e o destinado
-                não entra de novo na conta.
-              </p>
-            </div>
-            }
-
             @if (isLoading) {
             @for (i of [1,2,3,4]; track i) {
             <div class="proj-acc-skel"></div>
@@ -423,6 +398,31 @@
             }
 
             <!-- Rodapé de verificação global -->
+            <!-- Transferências internas e pendências de conciliação: contexto que
+                 explica saldos sem precisar de um card no topo da página. -->
+            <div class="hist-notas">
+              <p>
+                <strong>Transferências internas</strong> reduzem o saldo da origem e aumentam o do
+                destino pelo mesmo valor. Não são receita nova nem despesa: somam zero no
+                consolidado da parceria e entram no rateio como ajuste de saldo na competência de
+                efeito.
+              </p>
+              @if (pendenciasConciliacao.length) {
+              <p class="hist-pendencia">
+                <mat-icon>flag</mat-icon>
+                <span>
+                  <strong>Pendências de conciliação em 31/05/2025.</strong>
+                  @for (p of pendenciasConciliacao; track p.projeto) {
+                  {{ p.projeto }}: {{ p.noProjeto | currency:'BRL':'symbol':'1.2-2' }} no projeto contra
+                  {{ p.naPrincipal | currency:'BRL':'symbol':'1.2-2' }} na Principal
+                  (diferença de {{ p.diferenca | currency:'BRL':'symbol':'1.2-2' }}){{ $last ? '.' : '; ' }}
+                  }
+                  Registradas como estão, sem ajuste artificial para fechar.
+                </span>
+              </p>
+              }
+            </div>
+
             <div class="hist-footer">
               <div class="hist-footer-left">
                 <mat-icon>functions</mat-icon>
