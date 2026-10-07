@@ -20,9 +20,15 @@ import {
   ProjetoOficio,
   MovimentacaoRendimento,
   TransferenciaRendimento,
+  EventoHistorico,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
-import { ratearRendimentos, cortarRateio, MesRendimento } from "./rateio-rendimentos";
+import {
+  ratearRendimentos,
+  cortarRateio,
+  MesRendimento,
+  PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
+} from "./rateio-rendimentos";
 
 const cent = (v: number) => Math.round(v * 100) / 100;
 
@@ -501,41 +507,62 @@ export class DataService {
       lancs: this.lancamentos$,
       status: this.status$,
       saldos: this.saldos$,
+      utilizacoes: this.utilizacoesRendimentos$,
     }).pipe(
-      map(({ lancs, status, saldos }) => {
-        const porProjeto = new Map<string, { entradas: number; saidas: number; remanescente: number }>();
+      map(({ lancs, status, saldos, utilizacoes }) => {
+        type Acc = { termo: number; destinado: number; saidas: number; remanescente: number };
+        const porProjeto = new Map<string, Acc>();
+        const abrir = (p: string): Acc => {
+          if (!porProjeto.has(p)) porProjeto.set(p, { termo: 0, destinado: 0, saidas: 0, remanescente: 0 });
+          return porProjeto.get(p)!;
+        };
 
         lancs.forEach((l: Lancamento) => {
           if (!l.projeto) return;
-          if (!porProjeto.has(l.projeto)) {
-            porProjeto.set(l.projeto, { entradas: 0, saidas: 0, remanescente: 0 });
-          }
-          const p = porProjeto.get(l.projeto)!;
+          const p = abrir(l.projeto);
           if (l.valor >= 0) {
-            p.entradas += l.valor;
+            p.termo += l.valor;
           } else {
             p.saidas += Math.abs(l.valor);
           }
         });
 
+        /**
+         * Rendimentos destinados ao projeto entram na base de execução.
+         *
+         * A despesa paga com rendimento destinado já estava no numerador, como
+         * saída do projeto. Faltava o outro lado: o recurso que a custeou. Sem
+         * ele a Plataforma Desafio 3.0 marcava 108% tendo gasto R$ 21.600,00 de
+         * uma destinação de R$ 150.002,11, e a Operação Básica marcava 105,8%
+         * sobre os R$ 230.075,62 destinados em 2025.
+         *
+         * O que isto NÃO faz é inventar base para quem não recebeu destinação:
+         * o Fundo Gov.Tech segue em 100,7% (saldo -R$ 710,38), que é pendência
+         * a apurar e continua à vista.
+         */
+        utilizacoes.forEach((u: UtilizacaoRendimento) => {
+          if (!u.projeto) return;
+          abrir(u.projeto).destinado += u.valor;
+        });
+
         // Somar saldos remanescentes recuperados da nova aba
         saldos.forEach((s) => {
           if (!s.projeto) return;
-          if (!porProjeto.has(s.projeto)) {
-             porProjeto.set(s.projeto, { entradas: 0, saidas: 0, remanescente: 0 });
-          }
-          porProjeto.get(s.projeto)!.remanescente += s.valorTransferido;
+          abrir(s.projeto).remanescente += s.valorTransferido;
         });
 
         return Array.from(porProjeto.entries())
           .map(([projeto, data]) => {
             const statusInfo = status.find((s: StatusProjeto) => s.projeto === projeto);
+            const entradas = cent(data.termo + data.destinado);
             return {
               projeto,
-              entradas: data.entradas,
+              entradas,
+              recursoTermo: cent(data.termo),
+              rendimentosDestinados: cent(data.destinado),
               saidas: data.saidas,
-              saldo: data.entradas - data.saidas,
-              execucao: data.entradas > 0 ? (data.saidas / data.entradas) * 100 : 0,
+              saldo: cent(entradas - data.saidas),
+              execucao: entradas > 0 ? (data.saidas / entradas) * 100 : 0,
               saldoRemanescente: data.remanescente,
               status: statusInfo ? statusInfo.status : "Ativo",
             };
@@ -1053,6 +1080,149 @@ export class DataService {
   }
 
   /**
+   * Diferenças conhecidas entre o valor registrado no projeto e o lançado na
+   * aba Principal, nas transferências de 31/05/2025.
+   *
+   * Nenhum lançamento é criado para fechá-las: um ajuste inventado esconderia a
+   * divergência em vez de resolvê-la, e é justamente ela que precisa ser
+   * investigada na origem. Ficam no histórico, marcadas como em aberto.
+   */
+  private readonly PENDENCIAS_CONCILIACAO = [
+    { projeto: 'Ambiente Promotor', data: '31/05/2025', noProjeto: 5882.65, naPrincipal: 4107.65, diferenca: 1775.00 },
+    { projeto: 'Feira Reversa', data: '31/05/2025', noProjeto: 41498.88, naPrincipal: 44626.93, diferenca: 3128.05 },
+  ];
+
+  /** "31/05/2025" → 20250531; "08/2025" → 20250800; "2026" → 20260000. */
+  private ordemDeData(data: string): number {
+    const dma = data.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (dma) return +dma[3] * 10000 + +dma[2] * 100 + +dma[1];
+    const ma = data.match(/^(\d{2})\/(\d{4})$/);
+    if (ma) return +ma[2] * 10000 + +ma[1] * 100;
+    const a = data.match(/^(\d{4})$/);
+    if (a) return +a[1] * 10000;
+    return 0;
+  }
+
+  /**
+   * Linha do tempo única dos acontecimentos financeiros.
+   *
+   * Reúne o que estava espalhado por quatro telas: destinações de rendimentos,
+   * transferências de saldo remanescente, encerramentos de projeto e pendências
+   * de conciliação. Cada evento carrega a sua fonte em texto, para poder ser
+   * conferido contra a planilha sem sair da página.
+   */
+  getHistoricoMovimentacoes(): Observable<EventoHistorico[]> {
+    return combineLatest({
+      utilizacoes: this.getUtilizacoesComCompetencia(),
+      saldos: this.saldos$,
+      status: this.status$,
+    }).pipe(
+      map(({ utilizacoes, saldos, status }) => {
+        const eventos: EventoHistorico[] = [];
+
+        utilizacoes.forEach(u => {
+          const data = u.competencia ?? String(u.ano);
+          eventos.push({
+            tipo: 'destinacao',
+            data,
+            ordem: this.ordemDeData(data),
+            titulo: `Rendimentos destinados a ${u.projeto}`,
+            projeto: u.projeto,
+            valor: u.valor,
+            fonte: `bloco J:L da aba Rendimentos, exercício ${u.ano}` +
+              (u.origemCompetencia ? ` — competência pelo ${u.origemCompetencia}` : ''),
+            detalhe: this.detalheDestinacao(u),
+          });
+        });
+
+        saldos.forEach(s => {
+          if (!s.projeto) return;
+          const negativo = s.valorTransferido < 0;
+          eventos.push({
+            tipo: 'transferencia',
+            data: s.data,
+            ordem: this.ordemDeData(s.data),
+            titulo: negativo
+              ? `Saldo negativo de ${s.projeto} absorvido pela Operação Básica`
+              : `Saldo remanescente de ${s.projeto} devolvido ao fundo`,
+            projeto: s.projeto,
+            valor: s.valorTransferido,
+            fonte: `aba Saldos Remanescentes — parceiro ${s.parceiro || 'não informado'}`,
+            detalhe: negativo
+              ? 'O projeto fechou o ciclo com despesa acima do recurso recebido; a diferença foi assumida pela Operação Básica.'
+              : s.valorProjeto > 0
+                ? `Sobra de ${(s.percentualSobra).toFixed(1)}% sobre ${this.brlLocal(s.valorProjeto)} do projeto.`
+                : undefined,
+          });
+        });
+
+        status
+          .filter(s => s.status.toLowerCase().includes('finaliz'))
+          .forEach(s => {
+            const t = saldos.find(x => x.projeto === s.projeto);
+            const data = t?.data ?? '';
+            eventos.push({
+              tipo: 'encerramento',
+              data: data || '—',
+              ordem: this.ordemDeData(data),
+              titulo: `${s.projeto} encerrado`,
+              projeto: s.projeto,
+              valor: t?.valorTransferido ?? 0,
+              fonte: 'aba Status de Projetos',
+              detalhe: t
+                ? 'O saldo apurado no encerramento foi transferido à Operação Básica.'
+                : 'Encerramento sem transferência de saldo registrada.',
+            });
+          });
+
+        this.PENDENCIAS_CONCILIACAO.forEach(p => {
+          eventos.push({
+            tipo: 'pendencia',
+            data: p.data,
+            ordem: this.ordemDeData(p.data),
+            titulo: `${p.projeto}: divergência entre o projeto e a aba Principal`,
+            projeto: p.projeto,
+            valor: p.diferenca,
+            fonte: 'conferência entre a aba do projeto e a aba Principal',
+            detalhe: `Registrado no projeto: ${this.brlLocal(p.noProjeto)}; lançado na Principal: ` +
+              `${this.brlLocal(p.naPrincipal)}. A diferença permanece em aberto — nenhum ` +
+              `lançamento compensatório foi criado para fechá-la.`,
+            emAberto: true,
+          });
+        });
+
+        // Mais recente primeiro; o que não tem data vai para o fim.
+        return eventos.sort((a, b) => b.ordem - a.ordem);
+      })
+    );
+  }
+
+  /**
+   * O que explica a destinação, quando há algo a explicar.
+   *
+   * O texto da cobertura da Operação Básica vivia num parágrafo fixo da página
+   * de Rendimentos, longe dos demais acontecimentos e sem data. Ele descreve um
+   * evento, então o lugar dele é a linha do tempo, junto do valor que explica.
+   */
+  private detalheDestinacao(u: UtilizacaoRendimento): string | undefined {
+    if (u.projeto === 'Operação Básica') {
+      return 'No Transferegov, o recurso saiu como premiações do Impulso Regional. A ' +
+        'Operação Básica havia consumido saldo daquele projeto, e o pagamento das ' +
+        'premiações com rendimentos compensou essa utilização anterior, concentrando o ' +
+        'uso de rendimentos numa única categoria. Os lançamentos seguem registrados no ' +
+        'Impulso Regional: não há crédito novo a utilizar, esse valor já foi gasto.';
+    }
+    if (!u.competencia) {
+      return 'Competência não recuperável dos registros: o evento é datado apenas pelo ano.';
+    }
+    return undefined;
+  }
+
+  private brlLocal(v: number): string {
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  /**
    * A Base grafa "Operação Báisca" na coluna de projeto das utilizações.
    * Normalizar aqui evita que o mesmo projeto apareça duas vezes no dashboard;
    * a planilha não é alterada.
@@ -1277,6 +1447,7 @@ export class DataService {
       utilizacaoPorMes,
       projetosEncerrados,
       projetosInativos,
+      projetosSemAtribuicao: PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
     });
     if (!rateio) return null;
     const corte = cortarRateio(rateio, competenciaEfeito);

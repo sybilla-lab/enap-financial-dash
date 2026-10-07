@@ -12,7 +12,15 @@ export interface PctExecucaoData {
   totalRecebido: number;
   totalExecutado: number;
   saldoDisponivel: number;
-  projetos: { projeto: string; execucao: number; entradas: number; saidas: number }[];
+  projetos: {
+    projeto: string;
+    execucao: number;
+    entradas: number;
+    saidas: number;
+    /** Composição de `entradas` — opcional para não quebrar chamadores antigos. */
+    recursoTermo?: number;
+    rendimentosDestinados?: number;
+  }[];
 }
 
 @Component({
@@ -27,6 +35,17 @@ export class ModalPctExecucaoComponent {
     public dialogRef: MatDialogRef<ModalPctExecucaoComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PctExecucaoData
   ) {}
+
+  /** Numerador e denominador por extenso, para o percentual poder ser conferido. */
+  baseExecucao(p: PctExecucaoData["projetos"][number]): string {
+    const brl = (v: number) =>
+      v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const destinado = p.rendimentosDestinados || 0;
+    const base = destinado
+      ? `${brl(p.entradas)} (${brl(p.recursoTermo || 0)} do Termo + ${brl(destinado)} de rendimentos destinados)`
+      : brl(p.entradas);
+    return `${brl(p.saidas)} executados sobre ${base}`;
+  }
 
   getBarColor(pct: number): string {
     if (pct >= 90) return "#10b981";

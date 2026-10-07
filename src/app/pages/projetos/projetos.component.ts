@@ -357,6 +357,22 @@ export class ProjetosComponent implements OnInit {
     return `linear-gradient(135deg, ${a}, ${b})`;
   }
 
+  /**
+   * Numerador e denominador da execução, em texto, para o `title` da célula.
+   *
+   * O percentual sozinho não deixa conferir, e foi justamente a base invisível
+   * que pôs a Plataforma Desafio 3.0 em 108%: as despesas pagas com rendimento
+   * destinado contavam no numerador sem o recurso correspondente embaixo.
+   */
+  baseExecucao(p: ProjetoResumo): string {
+    const brl = (v: number) =>
+      v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const base = p.rendimentosDestinados
+      ? `${brl(p.entradas)} (${brl(p.recursoTermo)} do Termo + ${brl(p.rendimentosDestinados)} de rendimentos destinados)`
+      : brl(p.entradas);
+    return `${brl(p.saidas)} executados sobre ${base}`;
+  }
+
   private aplicarFiltro(): void {
     this.projetosFiltrados = this.projetos.filter((p) => {
       const matchProjeto = !this.projetoSelecionado || p.projeto === this.projetoSelecionado;
@@ -553,6 +569,27 @@ export class ProjetosComponent implements OnInit {
           },
         ],
       };
+
+      /**
+       * O eixo só desce abaixo de zero quando há algo lá embaixo.
+       *
+       * O Chart.js escolhia a escala sozinho e abria uma faixa até −1.000.000
+       * sem nenhuma barra nela, encolhendo todas as barras reais pela metade.
+       * Ancorar em zero não esconde negativo nenhum: havendo um valor negativo
+       * — e há, como o saldo remanescente da Plataforma —, o `min` é liberado e
+       * a barra aparece.
+       */
+      const temNegativo = this.barChartData.datasets.some(d =>
+        (d.data as number[]).some(v => typeof v === "number" && v < 0)
+      );
+      this.barChartOptions = {
+        ...this.barChartOptions,
+        scales: {
+          ...this.barChartOptions.scales,
+          x: { ...this.barChartOptions.scales?.x, min: temNegativo ? undefined : 0 },
+        },
+      };
+
       this.chartReady = true;
     }, 50);
   }

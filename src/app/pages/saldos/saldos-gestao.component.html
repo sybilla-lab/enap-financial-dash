@@ -1,92 +1,132 @@
 <div class="page-container">
   <h1 class="page-title">
     <mat-icon>history_edu</mat-icon>
-    Saldos Remanescentes
+    Histórico de Movimentações
   </h1>
+  <p class="page-subtitle">
+    Tudo o que alterou a destinação dos recursos, em ordem cronológica: rendimentos
+    destinados, saldos devolvidos ao fundo, encerramentos de projeto e divergências
+    ainda em apuração.
+  </p>
 
   <div class="kpi-grid">
-    <!-- KPI: Total Remanescente -->
-    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-info">
-          <div class="kpi-label">TOTAL EM SALDOS</div>
-          <div class="kpi-value text-blue">{{ totalRemanescente | currency: "BRL":"symbol":"1.2-2" }}</div>
-          <div class="kpi-sub">Total transferido de volta ao fundo</div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- KPI: Projetos Finalizados -->
-    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
-      <mat-card-content>
-        <div class="kpi-info">
-          <div class="kpi-label">PROJETOS COM SALDO</div>
-          <div class="kpi-value text-green">{{ saldos.length }}</div>
-          <div class="kpi-sub">Projetos que geraram sobras</div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- KPI: Eficiência Média -->
     <mat-card class="kpi-card card-indicator-purple" appearance="outlined">
       <mat-card-content>
         <div class="kpi-info">
-          <div class="kpi-label">EFICIÊNCIA MÉDIA</div>
-          <div class="kpi-value text-purple">{{ eficienciaMedia | number: "1.1-1" }}%</div>
-          <div class="kpi-sub">Média de utilização do orçamento</div>
+          <div class="kpi-label">RENDIMENTOS DESTINADOS</div>
+          <div class="kpi-value text-purple">{{ totalDestinado | currency: "BRL":"symbol":"1.2-2" }}</div>
+          <div class="kpi-sub">{{ qtdDestinacoes }} destinação(ões) a projetos</div>
         </div>
       </mat-card-content>
     </mat-card>
-  </div>
 
-  <div class="main-grid">
-    <!-- Chart: Saldos por Parceiro -->
-    <mat-card class="summary-card" appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>analytics</mat-icon> Distribuição por Parceiro
-        </mat-card-title>
-      </mat-card-header>
+    <mat-card class="kpi-card card-indicator-blue" appearance="outlined">
       <mat-card-content>
-        <div class="chart-wrapper">
-           <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
+        <div class="kpi-info">
+          <div class="kpi-label">SALDOS DEVOLVIDOS AO FUNDO</div>
+          <div class="kpi-value text-blue">{{ totalRemanescente | currency: "BRL":"symbol":"1.2-2" }}</div>
+          <div class="kpi-sub">{{ saldos.length }} projeto(s) com saldo transferido</div>
         </div>
       </mat-card-content>
     </mat-card>
 
-    <!-- Table: Detalhamento -->
-    <mat-card class="summary-card" appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>list_alt</mat-icon> Detalhamento de Projetos
-        </mat-card-title>
-      </mat-card-header>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th class="center">Data</th>
-              <th>Parceiro</th>
-              <th>Projeto</th>
-              <th class="num">Saldo Transferido</th>
-              <th class="center">Eficiência</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let s of saldos">
-              <td class="center">{{ s.data }}</td>
-              <td><span class="badge">{{ s.parceiro }}</span></td>
-              <td>{{ s.projeto }}</td>
-              <td class="num font-bold text-blue">{{ s.valorTransferido | currency: "BRL":"symbol":"1.2-2" }}</td>
-              <td class="center">
-                <span class="status-pill" [style.background-color]="getEfficiencyColor(s.percentualSobra)">
-                   {{ (100 - s.percentualSobra) | number: "1.1-1" }}%
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <mat-card class="kpi-card card-indicator-green" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-info">
+          <div class="kpi-label">EFICIÊNCIA MÉDIA</div>
+          <div class="kpi-value text-green">{{ eficienciaMedia | number: "1.1-1" }}%</div>
+          <div class="kpi-sub">Média de utilização do orçamento nos encerramentos</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- A pendência não some por ser inconveniente: ganha um cartão próprio. -->
+    <mat-card class="kpi-card" [class.card-indicator-amber]="totalPendente > 0"
+              [class.card-indicator-green]="totalPendente === 0" appearance="outlined">
+      <mat-card-content>
+        <div class="kpi-info">
+          <div class="kpi-label">EM CONCILIAÇÃO</div>
+          <div class="kpi-value" [class.text-amber]="totalPendente > 0" [class.text-green]="totalPendente === 0">
+            {{ totalPendente | currency: "BRL":"symbol":"1.2-2" }}
+          </div>
+          <div class="kpi-sub">
+            @if (totalPendente > 0) {
+              {{ qtdPendencias }} divergência(s) aguardando apuração
+            } @else {
+              Nenhuma divergência em aberto
+            }
+          </div>
+        </div>
+      </mat-card-content>
     </mat-card>
   </div>
+
+  <!-- FILTRO POR TIPO -->
+  <div class="filtro-tipos">
+    <button type="button" class="chip" [class.ativo]="tipoFiltro === null"
+            (click)="filtrarPorTipo(null)">
+      Todos <span class="chip-count">{{ eventos.length }}</span>
+    </button>
+    @for (t of tiposDisponiveis; track t.tipo) {
+      <button type="button" class="chip" [class.ativo]="tipoFiltro === t.tipo"
+              [attr.data-tipo]="t.tipo" (click)="filtrarPorTipo(t.tipo)">
+        {{ t.rotulo }} <span class="chip-count">{{ t.quantidade }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- LINHA DO TEMPO -->
+  <mat-card class="summary-card timeline-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>timeline</mat-icon> Linha do tempo
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (!eventosFiltrados.length) {
+        <p class="vazio">Nenhum acontecimento registrado para este filtro.</p>
+      } @else {
+        <ol class="timeline">
+          @for (e of eventosFiltrados; track e.tipo + e.data + e.projeto + e.valor) {
+            <li class="evento" [attr.data-tipo]="e.tipo">
+              <div class="evento-marca">
+                <mat-icon>{{ iconeDe(e.tipo) }}</mat-icon>
+              </div>
+              <div class="evento-corpo">
+                <div class="evento-cabecalho">
+                  <span class="evento-data">{{ e.data }}</span>
+                  <span class="evento-tag">{{ rotuloDe(e.tipo) }}</span>
+                  @if (e.emAberto) {
+                    <span class="evento-tag em-aberto">em apuração</span>
+                  }
+                </div>
+                <div class="evento-titulo">{{ e.titulo }}</div>
+                <div class="evento-valor" [class.negativo]="e.valor < 0">
+                  {{ e.valor | currency: "BRL":"symbol":"1.2-2" }}
+                </div>
+                @if (e.detalhe) {
+                  <p class="evento-detalhe">{{ e.detalhe }}</p>
+                }
+                <p class="evento-fonte">Fonte: {{ e.fonte }}</p>
+              </div>
+            </li>
+          }
+        </ol>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- DISTRIBUIÇÃO POR PARCEIRO -->
+  <mat-card class="summary-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>analytics</mat-icon> Saldos devolvidos, por parceiro
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="chart-wrapper">
+        <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="'bar'"></canvas>
+      </div>
+    </mat-card-content>
+  </mat-card>
 </div>

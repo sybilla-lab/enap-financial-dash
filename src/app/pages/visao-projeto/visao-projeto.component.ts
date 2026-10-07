@@ -69,6 +69,10 @@ interface ProjetoSnapshot {
   ticketMedio: number;
   status: string;
   srOpBasica: number;
+  /** Rendimentos destinados ao projeto (bloco J:L) — parte da base de execução. */
+  rendDestinados: number;
+  /** Denominador efetivo do percentual, para poder ser exibido por extenso. */
+  baseExecucao: number;
 }
 
 interface CategoriaLocal {
@@ -90,6 +94,8 @@ interface TransacaoRecente {
   fornecedor: string;
   observacao: string;
   valor: number;
+  /** Número do pagamento no Transferegov — é por ele que a despesa se confere. */
+  numPag: string;
 }
 
 interface RendAtribuido {
@@ -159,6 +165,97 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   categorias: CategoriaLocal[] = [];
   fluxo: FluxoLocal[] = [];
   transacoesRecentes: TransacaoRecente[] = [];
+
+  // ── Lançamentos: paginação e exportação ──────────────────────────────────
+  // A paginação é só de exibição. O total e as exportações falam sempre do
+  // conjunto inteiro que os filtros alcançam, nunca da página visível.
+  readonly porPaginaLancamentos = 25;
+  paginaLancamentos = 0;
+
+  get totalLancamentos(): number {
+    return this.transacoesRecentes.length;
+  }
+
+  get totalValorLancamentos(): number {
+    return this.transacoesRecentes.reduce((s, t) => s + t.valor, 0);
+  }
+
+  get totalPaginasLancamentos(): number {
+    return Math.max(1, Math.ceil(this.totalLancamentos / this.porPaginaLancamentos));
+  }
+
+  get lancamentosPagina(): TransacaoRecente[] {
+    const de = this.paginaLancamentos * this.porPaginaLancamentos;
+    return this.transacoesRecentes.slice(de, de + this.porPaginaLancamentos);
+  }
+
+  get faixaLancamentos(): string {
+    if (!this.totalLancamentos) return '0';
+    const de = this.paginaLancamentos * this.porPaginaLancamentos + 1;
+    const ate = Math.min(de + this.porPaginaLancamentos - 1, this.totalLancamentos);
+    return `${de}–${ate}`;
+  }
+
+  irParaPagina(p: number): void {
+    this.paginaLancamentos = Math.min(Math.max(0, p), this.totalPaginasLancamentos - 1);
+  }
+
+  /** O recorte em texto — vai no cabeçalho das duas exportações. */
+  private get recorteAtual(): string {
+    const partes = [this.projetoSelecionado ?? 'Todos os projetos'];
+    if (this.dataInicio || this.dataFim) {
+      partes.push(`período ${this.dataInicio || 'início'} a ${this.dataFim || 'hoje'}`);
+    } else {
+      partes.push('período completo');
+    }
+    return partes.join(' · ');
+  }
+
+  /**
+   * Exporta em CSV o conjunto filtrado inteiro.
+   *
+   * O arquivo abre o cabeçalho com o recorte, a contagem e o total, para que a
+   * planilha exportada não possa ser lida fora do contexto em que foi gerada.
+   */
+  exportarLancamentosCsv(): void {
+    const esc = (v: string | number) => {
+      const t = String(v ?? '');
+      return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    };
+    const num = (v: number) => v.toFixed(2).replace('.', ',');
+
+    const linhas = [
+      `Lançamentos — ${this.recorteAtual}`,
+      `Gerado em;${new Date().toLocaleString('pt-BR')}`,
+      `Lançamentos;${this.totalLancamentos}`,
+      `Total;${num(this.totalValorLancamentos)}`,
+      '',
+      ['Mês/Ano', 'Nº pagamento', 'Categoria', 'Fornecedor', 'Observação', 'Valor'].join(';'),
+      ...this.transacoesRecentes.map(t => [
+        esc(t.mesAno), esc(t.numPag), esc(t.categoria),
+        esc(t.fornecedor), esc(t.observacao), num(t.valor),
+      ].join(';')),
+    ];
+
+    // BOM para o Excel reconhecer o UTF-8 e não quebrar os acentos.
+    const blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lancamentos-${this.nomeArquivo()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private nomeArquivo(): string {
+    const proj = (this.projetoSelecionado ?? 'todos')
+      .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const periodo = this.dataInicio || this.dataFim
+      ? `-${(this.dataInicio || 'inicio')}_${(this.dataFim || 'hoje')}`.replace(/\//g, '')
+      : '';
+    return `${proj}${periodo}`;
+  }
 
   // Alimenta +1000 Cidades
   metasAlimenta: MetaGrupo[] = [];
@@ -575,20 +672,26 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         y = R.kpis(doc, y, [
           { rotulo: 'Recursos recebidos', valor: R.brl(s.entradas), base: 'créditos no período' },
           { rotulo: 'Despesas executadas', valor: R.brl(s.saidas), base: 'débitos válidos' },
-          { rotulo: 'Saldo financeiro', valor: R.brl(s.saldo), base: 'recebido - executado' },
-          { rotulo: 'Execução', valor: `${s.execucao.toFixed(1)}%`, base: 'executado ÷ recebido' },
+          { rotulo: 'Saldo financeiro', valor: R.brl(s.saldo), base: 'disponível - executado' },
+          { rotulo: 'Execução', valor: `${s.execucao.toFixed(1)}%`, base: 'executado ÷ disponível' },
         ], cab);
 
         if (s.execucao > 100) {
           y = R.nota(doc, y,
-            `Atenção: a execução supera o recurso recebido em ` +
-            `${R.brl(s.saidas - s.entradas)}. O percentual é calculado sobre o total ` +
-            `recebido do projeto e não foi truncado em 100%.`, cab, 'atencao');
+            `Atenção: a execução supera o recurso disponível em ` +
+            `${R.brl(s.saidas - s.baseExecucao)}. O percentual não foi truncado em ` +
+            `100%: a diferença é pendência de conciliação e permanece à vista.`, cab, 'atencao');
         }
 
+        // A base por extenso: um percentual que não se confere não presta contas.
+        const partes = [`${R.brl(s.entradas)} recebidos`];
+        if (s.srOpBasica) partes.push(`${R.brl(s.srOpBasica)} de saldos remanescentes de outros projetos`);
+        if (s.rendDestinados) partes.push(`${R.brl(s.rendDestinados)} de rendimentos destinados`);
         y = R.nota(doc, y,
-          `Execução = despesas executadas ÷ recursos recebidos, na mesma unidade de ` +
-          `análise e no mesmo período. Pagamentos no período: ${s.numPagamentos}; ` +
+          `Execução = despesas executadas ÷ recursos disponíveis, na mesma unidade de ` +
+          `análise e no mesmo período. Base: ${R.brl(s.baseExecucao)}` +
+          (partes.length > 1 ? ` (${partes.join(' + ')})` : '') + `. ` +
+          `Pagamentos no período: ${s.numPagamentos}; ` +
           `valor médio por pagamento: ${R.brl(s.ticketMedio)}.`, cab);
       }
 
@@ -673,17 +776,24 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       }
 
       // ── Lançamentos ────────────────────────────────────────────────────
+      // Todos os do recorte, não uma amostra: o quadro é peça de prestação de
+      // contas e o total ao pé tem de fechar com as linhas acima dele.
       if (this.transacoesRecentes.length) {
         y = R.secao(doc, y, 'Lançamentos do período', cab);
+        y = R.nota(doc, y,
+          `${this.totalLancamentos} lançamento(s) no recorte — ${this.recorteAtual}. ` +
+          `Total: ${R.brl(this.totalValorLancamentos)}.`, cab);
         y = R.tabela(doc, y,
           [
-            { titulo: 'Mês/ano', chave: 'mes', largura: 0.9 },
-            { titulo: 'Categoria', chave: 'cat', largura: 2.2 },
-            { titulo: 'Fornecedor', chave: 'forn', largura: 2 },
-            { titulo: 'Valor', chave: 'val', largura: 1.3, alinhamento: 'right' },
+            { titulo: 'Mês/ano', chave: 'mes', largura: 0.85 },
+            { titulo: 'Nº pag.', chave: 'pag', largura: 0.9 },
+            { titulo: 'Categoria', chave: 'cat', largura: 1.9 },
+            { titulo: 'Fornecedor', chave: 'forn', largura: 1.8 },
+            { titulo: 'Valor', chave: 'val', largura: 1.2, alinhamento: 'right' },
           ],
           this.transacoesRecentes.map((t: any) => ({
             mes: t.mesAno ?? '',
+            pag: t.numPag || '—',
             cat: t.categoria ?? '',
             forn: t.fornecedor ?? '',
             val: R.brl(t.valor ?? 0),
@@ -760,7 +870,18 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       saldo += srOpBasica;
     }
 
-    const baseExecucao = entradas + srOpBasica;
+    /**
+     * Rendimentos destinados ao projeto também custeiam despesa, logo entram na
+     * base. Sem eles a Plataforma Desafio 3.0 marcava 108%: os R$ 21.600,00
+     * pagos em 09/2026 saíram da destinação de R$ 150.002,11, apareciam como
+     * saída e não tinham recurso correspondente no denominador.
+     */
+    const rendDestinados = isTodos
+      ? Array.from(this.resumosMap.values()).reduce((s, r) => s + (r.rendimentosDestinados || 0), 0)
+      : (this.resumosMap.get(this.projetoSelecionado!)?.rendimentosDestinados || 0);
+    saldo += rendDestinados;
+
+    const baseExecucao = entradas + srOpBasica + rendDestinados;
     this.snapshot = {
       projeto: isTodos ? `Todos os ${this.projetos.length} projetos` : this.projetoSelecionado!,
       entradas,
@@ -772,6 +893,8 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       ticketMedio: despesas.length > 0 ? saidas / despesas.length : 0,
       status: isTodos ? `${ativos} ativos` : (this.statusMap.get(this.projetoSelecionado!) || "Ativo"),
       srOpBasica,
+      rendDestinados,
+      baseExecucao,
     };
 
     // Categorias
@@ -811,7 +934,15 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       return { mesAno, entradas: data.entradas, saidas: data.saidas, saldoAcumulado: acumulado };
     });
 
-    // Transações recentes (saídas apenas, ordenadas por mesAno desc, top 20)
+    /**
+     * Todos os lançamentos que o filtro alcança — não "os últimos 25".
+     *
+     * O corte fixo dava um recorte que não correspondia a nenhum critério: nem
+     * ao projeto escolhido, nem ao período, nem ao total exibido nos cartões.
+     * Quem exportava levava 25 linhas e um total que não fechava com elas. A
+     * lista agora segue os filtros, e a paginação é só de exibição: o total e a
+     * exportação sempre falam do conjunto inteiro.
+     */
     this.transacoesRecentes = filtered
       .filter((l) => l.valor < 0 && l.categoria !== "0.0.0 Recurso")
       .map((l) => ({
@@ -820,13 +951,15 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         fornecedor: l.fornecedor || "—",
         observacao: l.observacao,
         valor: Math.abs(l.valor),
+        numPag: l.numPag || "",
       }))
       .sort((a, b) => {
         const [ma, ya] = a.mesAno.split("/");
         const [mb, yb] = b.mesAno.split("/");
-        return (parseInt(yb) * 100 + parseInt(mb)) - (parseInt(ya) * 100 + parseInt(ma));
-      })
-      .slice(0, 25);
+        const dif = (parseInt(yb) * 100 + parseInt(mb)) - (parseInt(ya) * 100 + parseInt(ma));
+        return dif !== 0 ? dif : b.valor - a.valor;
+      });
+    this.paginaLancamentos = 0;
 
     this.renderCharts(filtered);
 
@@ -1138,6 +1271,24 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
           stack: "Stack 1",
         },
       ],
+    };
+
+    /**
+     * O eixo só desce abaixo de zero quando há algo lá embaixo.
+     *
+     * Sem isso o Chart.js abria uma faixa negativa vazia e encolhia pela
+     * metade todas as barras reais. Ancorar em zero não esconde negativo: se
+     * houver um, o `min` é liberado e a barra aparece.
+     */
+    const temNegativo = this.balancaoChartData.datasets.some(d =>
+      (d.data as number[]).some(v => typeof v === "number" && v < 0)
+    );
+    this.balancaoChartOptions = {
+      ...this.balancaoChartOptions,
+      scales: {
+        ...this.balancaoChartOptions?.scales,
+        x: { ...this.balancaoChartOptions?.scales?.['x'], min: temNegativo ? undefined : 0 },
+      },
     };
   }
 

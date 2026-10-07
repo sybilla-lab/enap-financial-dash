@@ -23,7 +23,20 @@ export interface Recebimento {
 
 export interface ProjetoResumo {
   projeto: string;
+  /**
+   * Tudo que o projeto tem para gastar: recurso do Termo MAIS rendimentos
+   * destinados a ele. É o denominador da execução.
+   *
+   * Contar só o recurso do Termo punha a Plataforma Desafio 3.0 em 108% e a
+   * Operação Básica em 105,8%: as duas pagaram despesas com rendimentos
+   * destinados (R$ 150.002,11 e R$ 230.075,62, bloco J:L da aba Rendimentos),
+   * que apareciam no numerador e não no denominador.
+   */
   entradas: number;
+  /** Parcela de `entradas` vinda do Termo — aba de lançamentos. */
+  recursoTermo: number;
+  /** Parcela de `entradas` vinda da destinação de rendimentos — bloco J:L. */
+  rendimentosDestinados: number;
   saidas: number;
   saldo: number;
   execucao: number;
@@ -80,6 +93,38 @@ export interface SaldoRemanescente {
   valorTransferido: number;
   valorProjeto: number;
   percentualSobra: number;
+}
+
+/**
+ * Um acontecimento na vida financeira dos recursos, para a linha do tempo única.
+ *
+ * Antes, cada tipo de evento morava na tela onde por acaso tinha sido
+ * implementado: a destinação de R$ 150.002,11 num bloco da Visão por Projeto, os
+ * R$ 230.075,62 num parágrafo de Rendimentos, as transferências numa página só
+ * delas e as pendências de conciliação numa terceira. Quem precisava responder
+ * "o que aconteceu com o dinheiro" tinha de visitar quatro telas e juntar na
+ * cabeça. Aqui eles são o mesmo tipo de coisa, ordenados por data.
+ */
+export type TipoEventoHistorico =
+  | "destinacao"      // rendimentos destinados a um projeto
+  | "transferencia"   // saldo remanescente devolvido ao fundo
+  | "encerramento"    // projeto encerrado
+  | "pendencia";      // divergência em aberto, aguardando apuração
+
+export interface EventoHistorico {
+  tipo: TipoEventoHistorico;
+  /** "31/05/2025" quando há dia; "08/2025" quando só a competência; "2026" quando só o ano. */
+  data: string;
+  /** Ordenação estável: AAAAMMDD, com 00 no que não se conhece. */
+  ordem: number;
+  titulo: string;
+  projeto: string;
+  valor: number;
+  /** De onde veio o número, em texto — o evento tem de ser conferível. */
+  fonte: string;
+  detalhe?: string;
+  /** Pendência em aberto: fica à vista até a causa ser apurada. */
+  emAberto?: boolean;
 }
 
 export interface Rendimento {

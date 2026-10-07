@@ -6,7 +6,7 @@ import { OficioRendimentos, ProjetoOficio } from '../../models/lancamento.model'
 import { competenciaKey } from '../../services/rateio-rendimentos';
 
 /** Papel do projeto no evento — decide o texto e a cor da faixa. */
-export type PapelEvento = 'executor' | 'cedente' | 'preservado' | 'consolidado';
+export type PapelEvento = 'executor' | 'cedente' | 'preservado';
 
 export interface ItemFaixa {
   rotulo: string;
@@ -22,8 +22,10 @@ export interface ItemFaixa {
  * Mostra o mesmo evento da página de Rendimentos, mas do ponto de vista de um
  * projeto só: quem cedeu vê o que cedeu; quem executa vê o destinado, o
  * utilizado e o saldo a utilizar; quem ficou de fora vê que ficou de fora e com
- * quanto. Aparece apenas quando o projeto tem o que dizer sobre o evento e
- * quando a competência de efeito cai dentro do período filtrado.
+ * quanto. Aparece apenas quando HÁ um projeto selecionado, quando esse projeto
+ * tem o que dizer sobre o evento e quando a competência de efeito cai dentro do
+ * período filtrado. Na visão consolidada ela não aparece: ali o evento já é
+ * contado pela página de Rendimentos e pelo Histórico de Movimentações.
  *
  * Vocabulário fixo em toda a página: "utilizado" é o que já foi pago,
  * "destinado" é o reservado ainda não pago, "disponível" é tudo o que ainda
@@ -74,8 +76,17 @@ export class EventoInstitucionalComponent {
     if (inicio !== null && efeito < inicio) return null;
     if (fim !== null && efeito > fim) return null;
 
+    /**
+     * Na visão consolidada a faixa não aparece.
+     *
+     * Ali ela repetia, com outro recorte, o que a página de Rendimentos já diz
+     * e o Histórico de Movimentações agora registra com data e fonte — três
+     * lugares para o mesmo R$ 150.002,11. A faixa continua existindo onde só
+     * ela responde: dentro de um projeto, dizendo o papel daquele projeto no
+     * evento.
+     */
     const nome = this._projeto();
-    if (!nome) return this.consolidado(o);
+    if (!nome) return null;
 
     const p = o.projetos.find(x => x.projeto === nome);
     if (!p) return null;
@@ -98,26 +109,6 @@ export class EventoInstitucionalComponent {
       competenciaEfeito: o.competenciaEfeito,
       finalidade: o.finalidade,
       executor: o.projetoExecutor,
-    };
-  }
-
-  private consolidado(o: OficioRendimentos) {
-    return {
-      ...this.base(o),
-      papel: 'consolidado' as PapelEvento,
-      titulo: `Destinação de rendimentos — ${o.finalidade}`,
-      texto:
-        `Saldos de rendimentos acumulados até ${o.dataBase} destinados à ${o.finalidade}, ` +
-        `sob execução da ${o.projetoExecutor}. Transferência entre projetos: não é receita nem despesa.`,
-      itens: [
-        { rotulo: 'Valor destinado', valor: o.totalDestinado, tom: 'transf' as const },
-        { rotulo: 'Utilizado', valor: o.utilizado, tom: 'usado' as const,
-          ajuda: 'Pagamentos já realizados com o saldo destinado.' },
-        { rotulo: 'Saldo a utilizar', valor: o.disponivel, tom: 'disp' as const,
-          ajuda: 'Parte do saldo disponível: reservado à finalidade, ainda não pago.' },
-        { rotulo: 'Livre nos projetos', valor: o.saldoLivreTotal, tom: 'livre' as const,
-          ajuda: 'Saldo disponível sem destinação específica.' },
-      ] as ItemFaixa[],
     };
   }
 

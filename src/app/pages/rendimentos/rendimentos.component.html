@@ -149,16 +149,6 @@
           Plano de Trabalho, mediante autorização da Enap e vinculação ao objeto do
           Termo de Colaboração Transferegov nº 943356/2023.</p>
       </div>
-      <div class="rhp-note rhp-note-hist">
-        <mat-icon>history_edu</mat-icon>
-        <p><strong>Como a cobertura da Operação Básica foi paga:</strong> no Transferegov, o recurso
-          saiu como <strong>premiações do Impulso Regional</strong>. A Operação Básica havia consumido
-          saldo daquele projeto, e o pagamento das premiações com rendimentos compensou essa
-          utilização anterior — concentrando o uso de rendimentos numa única categoria. Os
-          lançamentos seguem registrados no Impulso Regional; <strong>não há crédito novo de
-          {{ composicao.itens[0].valor | currency:'BRL':'symbol':'1.2-2' }} a utilizar</strong>, esse
-          valor já foi gasto.</p>
-      </div>
     </div>
 
   </div>
@@ -314,8 +304,9 @@
                 <div class="proj-acc-left">
                   <span class="proj-dot" [style.background]="p.cor"></span>
                   <span class="proj-acc-name">{{ p.projeto }}</span>
-                  <span class="proj-pct-pill" [style.background]="p.cor + '22'" [style.color]="p.cor">
-                    {{ p.pctLivre | number:'1.1-1' }}%
+                  <span class="proj-pct-pill" [style.background]="p.cor + '22'" [style.color]="p.cor"
+                    [matTooltip]="(p.saldoLivre | currency:'BRL':'symbol':'1.2-2') + ' de ' + (somaVerificacao.somaLivre | currency:'BRL':'symbol':'1.2-2') + ' de saldo livre somado'">
+                    {{ p.pctLivre | number:'1.1-1' }}% do livre
                   </span>
                   @if (p.destinado > 0) {
                   <span class="proj-tag-corte"
@@ -325,8 +316,12 @@
                   }
                 </div>
                 <div class="proj-acc-right">
+                  <!-- Nomear os dois: o cabeçalho mostra o saldo LIVRE e a
+                       tabela, o rendimento GERADO. Sem rótulo, os dois valores
+                       pareciam a mesma coisa em desacordo. -->
                   <span class="proj-acum-total">
                     {{ p.saldoLivre | currency:'BRL':'symbol':'1.2-2' }}
+                    <small class="proj-acum-rotulo">saldo livre</small>
                   </span>
                   <mat-icon class="proj-chevron" [class.open]="p.aberto">expand_more</mat-icon>
                 </div>
@@ -384,7 +379,7 @@
                       <!-- Linha de verificação -->
                       <tr class="verif-row">
                         <td colspan="3" class="verif-lbl">
-                          <mat-icon>verified</mat-icon> Total acumulado do projeto
+                          <mat-icon>verified</mat-icon> Rendimento gerado no período
                         </td>
                         <td class="num verif-total">
                           {{ p.totalAcumulado | currency:'BRL':'symbol':'1.2-2' }}
@@ -407,17 +402,15 @@
                 consolidado da parceria e entram no rateio como ajuste de saldo na competência de
                 efeito.
               </p>
+              <!-- Indicador discreto: a pendência continua visível, mas o detalhe
+                   mora no Histórico de Movimentações, junto dos demais eventos. -->
               @if (pendenciasConciliacao.length) {
               <p class="hist-pendencia">
                 <mat-icon>flag</mat-icon>
                 <span>
-                  <strong>Pendências de conciliação em 31/05/2025.</strong>
-                  @for (p of pendenciasConciliacao; track p.projeto) {
-                  {{ p.projeto }}: {{ p.noProjeto | currency:'BRL':'symbol':'1.2-2' }} no projeto contra
-                  {{ p.naPrincipal | currency:'BRL':'symbol':'1.2-2' }} na Principal
-                  (diferença de {{ p.diferenca | currency:'BRL':'symbol':'1.2-2' }}){{ $last ? '.' : '; ' }}
-                  }
-                  Registradas como estão, sem ajuste artificial para fechar.
+                  {{ pendenciasConciliacao.length }} pendência(s) de conciliação em apuração,
+                  somando {{ totalPendenciasConciliacao | currency:'BRL':'symbol':'1.2-2' }}.
+                  <a routerLink="/saldos">Ver no Histórico de Movimentações</a>
                 </span>
               </p>
               }
@@ -616,8 +609,8 @@
       <mat-card-title>Evolução mensal — rendimento gerado, IOF/IR e líquido acumulado</mat-card-title>
       @if (oficio) {
       <mat-card-subtitle class="chart-sub">
-        A linha tracejada marca a abertura de {{ oficio.competenciaEfeito | date:'MM/yyyy' }}, quando o
-        {{ oficio.documento }} destinou os saldos acumulados. O acumulado não cai no gráfico: a
+        As linhas tracejadas marcam a abertura das competências em que saldos acumulados
+        foram destinados — {{ rotuloMarcos }}. O acumulado não cai no gráfico: a
         destinação é transferência entre projetos, não despesa.
       </mat-card-subtitle>
       }

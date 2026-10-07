@@ -29,6 +29,20 @@ const ABAS = {
 };
 
 const brl = v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/**
+ * Projetos que mantêm capital aplicado mas não recebem atribuição de rendimento.
+ *
+ * Espelha PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS de src/app/services/rateio-rendimentos.ts:
+ * o saldo da Plataforma Desafio 3.0 é a destinação de R$ 150.002,11, que já É
+ * rendimento. Atribuir-lhe rendimento outra vez seria render sobre o próprio
+ * rendimento. O capital segue aplicado; o rendimento que ele ajuda a gerar é
+ * repartido entre os demais projetos.
+ *
+ * Se as duas listas divergirem, planilha e dashboard mostram números diferentes.
+ */
+const SEM_ATRIBUICAO = new Set(['Plataforma Desafio 3.0']);
+const rende = proj => !SEM_ATRIBUICAO.has(proj);
+
 const mesKey = s => { const [m, y] = String(s).split('/'); return parseInt(y) * 100 + parseInt(m); };
 const cent = v => Math.round(v * 100) / 100;
 
@@ -252,11 +266,12 @@ function abrirDetalhe(ctx, mesAno) {
       if (bal !== 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
       runningBalance.set(proj, 0);
     });
-    const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+    let totalPos = 0;
+    runningBalance.forEach((v, proj) => { if (v > 0 && rende(proj)) totalPos += v; });
     const toDistribute = mes.liquido + undistributed;
     if (totalPos > 0 && toDistribute > 0) {
       runningBalance.forEach((saldo, proj) => {
-        if (saldo > 0) projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + toDistribute * (saldo / totalPos));
+        if (saldo > 0 && rende(proj)) projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + toDistribute * (saldo / totalPos));
       });
       undistributed = 0;
     } else { undistributed += mes.liquido; }
@@ -293,12 +308,13 @@ function abrirDetalhe(ctx, mesAno) {
   });
   if (ctx.srOutrosProjetos > 0)
     saldoBase.set('Operação Básica', (saldoBase.get('Operação Básica') ?? 0) + ctx.srOutrosProjetos);
-  const totalBase = Array.from(saldoBase.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+  let totalBase = 0;
+  saldoBase.forEach((v, proj) => { if (v > 0 && rende(proj)) totalBase += v; });
   const mesLiquido = ctx.porMes.find(m => m.mesAno === mesAno)?.liquido ?? 0;
 
   const linhas = Array.from(projRendAcum.keys()).map(projeto => {
     const saldo = saldoBase.get(projeto) ?? 0;
-    const pct = totalBase > 0 && saldo > 0 ? saldo / totalBase : 0;
+    const pct = totalBase > 0 && saldo > 0 && rende(projeto) ? saldo / totalBase : 0;
     return { projeto, pctParticipacao: pct * 100, rendimentoMes: mesLiquido * pct,
              rendimentoAcumulado: projRendAcum.get(projeto) ?? 0, saldoProjeto: saldo };
   }).filter(d => d.rendimentoAcumulado > 0.01)
@@ -349,11 +365,12 @@ function historicoPorProjeto(ctx) {
       if (bal !== 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
       runningBalance.set(proj, 0);
     });
-    const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+    let totalPos = 0;
+    runningBalance.forEach((v, proj) => { if (v > 0 && rende(proj)) totalPos += v; });
     const toDistribute = mes.liquido + undistributed;
     if (totalPos > 0 && toDistribute > 0) {
       runningBalance.forEach((saldo, proj) => {
-        if (saldo > 0) {
+        if (saldo > 0 && rende(proj)) {
           const rendMes = toDistribute * (saldo / totalPos);
           projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + rendMes);
           if (!projMesRend.has(proj)) projMesRend.set(proj, new Map());

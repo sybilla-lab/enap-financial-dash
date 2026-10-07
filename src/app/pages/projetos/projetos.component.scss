@@ -366,6 +366,18 @@
 .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
 .data-table tr:hover td { background: var(--hover-bg); }
 .num { text-align: right !important; font-variant-numeric: tabular-nums; }
+
+/* Nota do cabeçalho e composição da célula: dizem de que é feito o número. */
+.th-nota {
+  display: block; margin-top: 2px; font-weight: 400; font-size: 10px;
+  text-transform: none; letter-spacing: 0; opacity: 0.7;
+}
+/* Especificidade acima de `.positive`, que é !important e pintaria a nota de verde. */
+.data-table td.num .num-composicao {
+  display: block; margin-top: 2px; font-size: 11px; font-weight: 400;
+  color: var(--text-secondary) !important; font-variant-numeric: tabular-nums;
+}
+
 .positive { color: var(--accent-green) !important; }
 .negative { color: var(--accent-red) !important; }
 

@@ -59,12 +59,26 @@ describe('rateio de rendimentos', () => {
     });
   });
 
-  it('a Plataforma Desafio 3.0 passa a render depois da destinação de 08/2026', () => {
-    // Projeto reaberto: a transferência de 12/2024 registrada em "Saldos
-    // remanescentes" é um evento pontual, não um encerramento perpétuo que
-    // devolveria à Operação Básica todo saldo recebido depois.
-    expect(rendimentoDoMes('07/2026').get('Plataforma Desafio 3.0')).toBeUndefined();
-    expect(rendimentoDoMes('09/2026').get('Plataforma Desafio 3.0')).toBeGreaterThan(0);
+  it('a Plataforma Desafio 3.0 mantém capital aplicado mas não recebe atribuição', () => {
+    // O saldo da Plataforma é a destinação de R$ 150.002,11, que já É
+    // rendimento: atribuir-lhe rendimento outra vez seria render sobre o
+    // próprio rendimento e devolvê-lo a quem o recebeu.
+    ['07/2026', '08/2026', '09/2026'].forEach(mesAno => {
+      expect(rendimentoDoMes(mesAno).get('Plataforma Desafio 3.0'))
+        .withContext(`${mesAno} não deve atribuir rendimento à Plataforma`)
+        .toBeUndefined();
+    });
+    expect(ratearRendimentos(entradaDeTeste())!.acumulado.has('Plataforma Desafio 3.0')).toBeFalse();
+  });
+
+  it('reparte entre os cinco projetos o rendimento gerado pelo capital da Plataforma', () => {
+    // O capital não sai do cálculo: ele segue aplicado e segue gerando. O que
+    // muda é quem recebe a cota — e a soma tem de continuar fechando com o
+    // líquido do mês, sem fração órfã.
+    const setembro = rendimentoDoMes('09/2026');
+    expect(setembro.size).toBe(5);
+    const soma = Array.from(setembro.values()).reduce((s, v) => s + v, 0);
+    expect(Math.abs(soma - SETEMBRO)).toBeLessThan(0.05);
   });
 
   it('não distribui mês de líquido negativo: carrega para o mês seguinte', () => {

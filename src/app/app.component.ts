@@ -47,16 +47,16 @@ export class AppComponent implements AfterViewInit {
   isMobile = false;
 
   navItems: NavItem[] = [
-    { label: "Inicio",              icon: "home",            route: "/" },
-    { label: "Dashboard",            icon: "dashboard",       route: "/dashboard" },
-    { label: "Recursos",             icon: "account_balance", route: "/recursos" },
+    { label: "Inicio", icon: "home", route: "/" },
+    { label: "Dashboard", icon: "dashboard", route: "/dashboard" },
+    { label: "Recursos", icon: "account_balance", route: "/recursos" },
     // { label: "Projetos",             icon: "folder_special",  route: "/projetos" },
     // { label: "Categorias",           icon: "category",        route: "/categorias" },
-    { label: "Fluxo de Caixa",       icon: "timeline",        route: "/fluxo-caixa" },
-    { label: "Visão por Projeto",    icon: "layers",          route: "/visao-projeto" },
-    { label: "Saldos Remanescentes", icon: "history_edu",     route: "/saldos" },
-    { label: "Rendimentos",          icon: "trending_up",     route: "/rendimentos" },
-    { label: "Glossário",            icon: "menu_book",       route: "/glossario" },
+    { label: "Fluxo de Caixa", icon: "timeline", route: "/fluxo-caixa" },
+    { label: "Visão por Projeto", icon: "layers", route: "/visao-projeto" },
+    { label: "Hist. de Movimentações", icon: "history_edu", route: "/saldos" },
+    { label: "Rendimentos", icon: "trending_up", route: "/rendimentos" },
+    { label: "Glossário", icon: "menu_book", route: "/glossario" },
     ...(environment.features?.auditoria
       ? [{ label: "Auditoria", icon: "fact_check", route: "/auditoria" }]
       : []),

@@ -1009,11 +1009,24 @@
 }
 
 .proj-acum-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   white-space: nowrap;
+}
+/* Diz o que o número é: sem isso ele era confundido com o rendimento gerado,
+   que aparece na tabela logo abaixo com outro valor. */
+.proj-acum-rotulo {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  opacity: 0.75;
 }
 
 .proj-chevron {
@@ -1394,5 +1407,13 @@
   display: flex;
   align-items: flex-start;
   gap: 7px;
-  mat-icon { font-size: 15px; width: 15px; height: 15px; color: var(--ev-transf); flex-shrink: 0; margin-top: 1px; }
+  /* Âmbar: o que está em apuração se distingue do que já foi resolvido. */
+  mat-icon { font-size: 15px; width: 15px; height: 15px; color: #f59e0b; flex-shrink: 0; margin-top: 1px; }
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    &:hover { color: var(--text-primary); }
+    &:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 2px; }
+  }
 }

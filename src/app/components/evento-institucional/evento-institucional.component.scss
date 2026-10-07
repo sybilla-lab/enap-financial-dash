@@ -24,7 +24,6 @@
 .ev-faixa[data-papel='executor']   .ev-marca { background: var(--ev-disp); }
 .ev-faixa[data-papel='cedente']    .ev-marca { background: var(--ev-transf); }
 .ev-faixa[data-papel='preservado'] .ev-marca { background: var(--ev-livre); }
-.ev-faixa[data-papel='consolidado'].ev-faixa .ev-marca { background: var(--ev-transf); }
 
 .ev-corpo { flex: 1 1 auto; min-width: 0; padding: 16px 20px 14px; }
 

@@ -6,7 +6,7 @@
 //
 // Extraído em 2026-10-07.
 
-import { EntradaRateio } from './rateio-rendimentos';
+import { EntradaRateio, PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS } from './rateio-rendimentos';
 
 const POR_MES = [
   {
@@ -243,5 +243,6 @@ export function entradaDeTeste(comTransferencias = true): EntradaRateio {
     utilizacaoPorMes: new Map(UTILIZACAO),
     projetosEncerrados: new Map(ENCERRADOS),
     projetosInativos: new Set(INATIVOS),
+    projetosSemAtribuicao: PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
   };
 }

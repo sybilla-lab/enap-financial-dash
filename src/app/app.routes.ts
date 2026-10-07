@@ -61,7 +61,7 @@ export const routes: Routes = [
       ),
   },
   {
-    // Novo módulo de Saldos Remanescentes
+    // Histórico de Movimentações — linha do tempo única dos acontecimentos financeiros
     path: "saldos",
     loadComponent: () =>
       import("./pages/saldos/saldos-gestao.component").then(

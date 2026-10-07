@@ -17,7 +17,7 @@ const PAGES = [
   { route: "/projetos",    title: "Projetos"             },
   { route: "/categorias",  title: "Categorias"           },
   { route: "/fluxo-caixa", title: "Fluxo de Caixa"       },
-  { route: "/saldos",      title: "Saldos Remanescentes" },
+  { route: "/saldos",      title: "Histórico de Movimentações" },
   { route: "/rendimentos", title: "Rendimentos"          },
 ];
 

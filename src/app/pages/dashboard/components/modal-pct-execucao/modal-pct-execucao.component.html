@@ -31,7 +31,7 @@
     <div class="project-list">
       <div class="list-title">Execução por Projeto</div>
       @for (p of data.projetos; track p.projeto) {
-        <div class="project-row">
+        <div class="project-row" [title]="baseExecucao(p)">
           <span class="proj-name">{{ p.projeto }}</span>
           <div class="bar-wrap">
             <div class="bar-fill" [style.width.%]="p.execucao > 100 ? 100 : p.execucao"

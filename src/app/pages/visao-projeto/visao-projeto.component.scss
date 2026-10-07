@@ -185,6 +185,13 @@
   background: var(--border-color);
   overflow: hidden;
 }
+/* Numerador e denominador escritos: o percentual passa a ser conferível. */
+.vp-exec-base {
+  margin-top: 6px;
+  font-size: 11px; color: var(--text-secondary);
+  font-variant-numeric: tabular-nums; line-height: 1.5;
+}
+.vp-exec-base-detalhe { opacity: 0.8; }
 .vp-exec-fill {
   height: 100%; border-radius: 4px;
   background: linear-gradient(90deg, #6366f1, #10b981);
@@ -830,4 +837,112 @@
 .vp-pct-label {
   font-size: 12px; font-weight: 600; color: var(--text-secondary);
   white-space: nowrap; min-width: 40px; text-align: right;
+}
+
+/* ─── LANÇAMENTOS: RECORTE, AÇÕES E PAGINAÇÃO ────────────────────────── */
+
+/* O recorte vira etiqueta: a tabela segue os filtros do topo da página, e
+   quem lê precisa ver sobre o que os números falam sem subir a tela. */
+.vp-lanc-recorte {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.vp-lanc-acoes {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-self: center;
+}
+.vp-lanc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover:not(:disabled) {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: #6366f1;
+  }
+  &:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+.vp-lanc-vazio {
+  padding: 28px 0 !important;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.vp-paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 4px 2px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 8px;
+}
+.vp-pag-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.vp-pag-botoes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    &:hover:not(:disabled) { background: var(--hover-bg); color: var(--text-primary); }
+    &:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+    &:disabled { opacity: 0.35; cursor: not-allowed; }
+  }
+}
+.vp-pag-num {
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .vp-lanc-acoes { margin-left: 0; margin-top: 10px; }
+  .vp-paginacao { justify-content: center; }
 }

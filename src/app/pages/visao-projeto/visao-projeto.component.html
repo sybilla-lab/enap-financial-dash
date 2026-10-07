@@ -165,6 +165,16 @@
             [class.over-budget]="snapshot.execucao > 100">
           </div>
         </div>
+        <!-- O percentual sozinho não se confere; a base fica escrita. -->
+        <div class="vp-exec-base">
+          {{ snapshot.saidas | currency:'BRL':'symbol':'1.2-2' }}
+          sobre {{ snapshot.baseExecucao | currency:'BRL':'symbol':'1.2-2' }}
+          @if (snapshot.rendDestinados || snapshot.srOpBasica) {
+            <span class="vp-exec-base-detalhe">
+              ({{ snapshot.entradas | currency:'BRL':'symbol':'1.2-2' }} recebido@if (snapshot.srOpBasica) { + {{ snapshot.srOpBasica | currency:'BRL':'symbol':'1.2-2' }} de saldos remanescentes }@if (snapshot.rendDestinados) { + {{ snapshot.rendDestinados | currency:'BRL':'symbol':'1.2-2' }} de rendimentos destinados })
+            </span>
+          }
+        </div>
       </div>
     </div>
 
@@ -538,9 +548,31 @@
         <mat-card-header>
           <mat-card-title>
             <mat-icon>receipt</mat-icon>
-            Lançamentos Recentes
+            Lançamentos
           </mat-card-title>
-          <mat-card-subtitle>Últimos {{ transacoesRecentes.length }} pagamentos</mat-card-subtitle>
+          <!-- O subtítulo diz o recorte, a contagem e o total: a tabela segue os
+               filtros do topo da página, não um corte fixo nos últimos 25. -->
+          <mat-card-subtitle>
+            {{ totalLancamentos }} lançamento(s) · {{ totalValorLancamentos | currency:'BRL':'symbol':'1.2-2' }}
+            <span class="vp-lanc-recorte">{{ projetoSelecionado ?? 'Todos os projetos' }}</span>
+            @if (dataInicio || dataFim) {
+              <span class="vp-lanc-recorte">{{ inicioLabel || 'início' }} a {{ fimLabel || 'hoje' }}</span>
+            } @else {
+              <span class="vp-lanc-recorte">período completo</span>
+            }
+          </mat-card-subtitle>
+          <div class="vp-lanc-acoes">
+            <button type="button" class="vp-lanc-btn" (click)="exportarLancamentosCsv()"
+                    [disabled]="!totalLancamentos"
+                    matTooltip="Baixa todos os lançamentos do recorte atual, com nº do pagamento, contagem e total">
+              <mat-icon>table_view</mat-icon> CSV
+            </button>
+            <button type="button" class="vp-lanc-btn" (click)="exportPDF()"
+                    [disabled]="!totalLancamentos"
+                    matTooltip="Relatório completo em PDF, incluindo todos os lançamentos do recorte">
+              <mat-icon>picture_as_pdf</mat-icon> PDF
+            </button>
+          </div>
         </mat-card-header>
         <mat-card-content>
           <div class="vp-table-scroll">
@@ -548,23 +580,54 @@
               <thead>
                 <tr>
                   <th>Mês/Ano</th>
+                  <th>Nº pagamento</th>
                   <th>Categoria</th>
                   <th>Fornecedor</th>
                   <th class="num">Valor</th>
                 </tr>
               </thead>
               <tbody>
-                @for (t of transacoesRecentes; track $index) {
+                @for (t of lancamentosPagina; track $index) {
                   <tr>
                     <td class="muted mono">{{ t.mesAno }}</td>
+                    <td class="mono">{{ t.numPag || '—' }}</td>
                     <td>{{ t.categoria }}</td>
                     <td class="muted">{{ t.fornecedor }}</td>
                     <td class="num text-red">{{ t.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="vp-lanc-vazio">Nenhum lançamento no recorte atual.</td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
+
+          @if (totalPaginasLancamentos > 1) {
+          <div class="vp-paginacao">
+            <span class="vp-pag-info">{{ faixaLancamentos }} de {{ totalLancamentos }}</span>
+            <div class="vp-pag-botoes">
+              <button type="button" (click)="irParaPagina(0)"
+                      [disabled]="paginaLancamentos === 0" aria-label="Primeira página">
+                <mat-icon>first_page</mat-icon>
+              </button>
+              <button type="button" (click)="irParaPagina(paginaLancamentos - 1)"
+                      [disabled]="paginaLancamentos === 0" aria-label="Página anterior">
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+              <span class="vp-pag-num">{{ paginaLancamentos + 1 }} / {{ totalPaginasLancamentos }}</span>
+              <button type="button" (click)="irParaPagina(paginaLancamentos + 1)"
+                      [disabled]="paginaLancamentos >= totalPaginasLancamentos - 1" aria-label="Próxima página">
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+              <button type="button" (click)="irParaPagina(totalPaginasLancamentos - 1)"
+                      [disabled]="paginaLancamentos >= totalPaginasLancamentos - 1" aria-label="Última página">
+                <mat-icon>last_page</mat-icon>
+              </button>
+            </div>
+          </div>
+          }
         </mat-card-content>
       </mat-card>
 

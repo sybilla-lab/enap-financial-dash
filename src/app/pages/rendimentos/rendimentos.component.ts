@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, PLATFORM_ID } from "@angular/core";
 import { CommonModule, isPlatformBrowser } from "@angular/common";
+import { RouterLink } from "@angular/router";
 import { HttpClient } from "@angular/common/http";
 import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
@@ -10,7 +11,11 @@ import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { RelatorioPdfService, CabecalhoRelatorio } from '../../services/relatorio-pdf.service';
 import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento, UtilizacaoRendimento } from "../../models/lancamento.model";
-import { ratearRendimentos, comporSaldo } from "../../services/rateio-rendimentos";
+import {
+  ratearRendimentos,
+  comporSaldo,
+  PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
+} from "../../services/rateio-rendimentos";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -113,6 +118,7 @@ const REND_HIST_PROPOSTO: Record<string, Record<string, number>> = {
     MatDividerModule,
     MatTooltipModule,
     BaseChartDirective,
+    RouterLink,
   ],
   templateUrl: "./rendimentos.component.html",
   styleUrl: "./rendimentos.component.scss",
@@ -202,6 +208,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     { projeto: 'Ambiente Promotor', noProjeto: 5882.65, naPrincipal: 4107.65, diferenca: 1775.00 },
     { projeto: 'Feira Reversa', noProjeto: 41498.88, naPrincipal: 44626.93, diferenca: 3128.05 },
   ];
+  /** Soma das diferenças em aberto — o detalhe fica no Histórico de Movimentações. */
+  readonly totalPendenciasConciliacao =
+    this.pendenciasConciliacao.reduce((s, p) => s + p.diferenca, 0);
   /** `acumulado` aqui é o saldo DISPONÍVEL: acumulado do período menos o utilizado. */
   porMesCorrigido: {
     mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number;
@@ -357,41 +366,56 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   private readonly marcoInstitucional = {
     id: 'marcoInstitucional',
     afterDatasetsDraw: (chart: any) => {
-      const rotulo = this.marcoLabel;
-      if (!rotulo) return;
-      const i = (chart.data.labels || []).indexOf(rotulo);
-      if (i < 0) return;
+      const marcos = this.marcos;
+      if (!marcos.length) return;
 
       const { ctx, chartArea } = chart;
-      const x = chart.scales['x'].getPixelForValue(i);
-      // Meio caminho entre a barra do corte e a anterior: a linha marca a
-      // ABERTURA da competência, não o fechamento do mês.
+      const rotulos = chart.data.labels || [];
       const largura = chart.scales['x'].getPixelForValue(1) - chart.scales['x'].getPixelForValue(0);
-      const px = i > 0 ? x - largura / 2 : x;
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.setLineDash([5, 4]);
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = 'rgba(240,180,95,0.85)';
-      ctx.moveTo(px, chartArea.top);
-      ctx.lineTo(px, chartArea.bottom);
-      ctx.stroke();
+      // Empilha os rótulos quando dois marcos caem perto um do outro, para que
+      // um não escreva por cima do outro.
+      const ocupados: { de: number; ate: number; faixa: number }[] = [];
 
-      ctx.setLineDash([]);
-      ctx.font = '600 10px Inter, Roboto, sans-serif';
-      ctx.textBaseline = 'top';
-      const texto = this.oficio?.documento ?? 'Evento institucional';
-      const larguraTexto = ctx.measureText(texto).width;
-      // Perto da borda direita o rótulo vira para a esquerda em vez de cortar.
-      const alinhaEsquerda = px + larguraTexto + 14 > chartArea.right;
-      const tx = alinhaEsquerda ? px - larguraTexto - 8 : px + 8;
+      marcos.forEach(marco => {
+        const i = rotulos.indexOf(marco.mesAno);
+        if (i < 0) return;
 
-      ctx.fillStyle = 'rgba(240,180,95,0.16)';
-      ctx.fillRect(tx - 5, chartArea.top + 2, larguraTexto + 10, 16);
-      ctx.fillStyle = 'rgb(240,180,95)';
-      ctx.fillText(texto, tx, chartArea.top + 5);
-      ctx.restore();
+        const x = chart.scales['x'].getPixelForValue(i);
+        // Meio caminho entre a barra do corte e a anterior: a linha marca a
+        // ABERTURA da competência, não o fechamento do mês.
+        const px = i > 0 ? x - largura / 2 : x;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(240,180,95,0.85)';
+        ctx.moveTo(px, chartArea.top);
+        ctx.lineTo(px, chartArea.bottom);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        ctx.font = '600 10px Inter, Roboto, sans-serif';
+        ctx.textBaseline = 'top';
+        const larguraTexto = ctx.measureText(marco.rotulo).width;
+        // Perto da borda direita o rótulo vira para a esquerda em vez de cortar.
+        const alinhaEsquerda = px + larguraTexto + 14 > chartArea.right;
+        const tx = alinhaEsquerda ? px - larguraTexto - 8 : px + 8;
+
+        const de = tx - 5;
+        const ate = tx + larguraTexto + 5;
+        let faixa = 0;
+        while (ocupados.some(o => o.faixa === faixa && de < o.ate && ate > o.de)) faixa++;
+        ocupados.push({ de, ate, faixa });
+        const topo = chartArea.top + 2 + faixa * 19;
+
+        ctx.fillStyle = 'rgba(240,180,95,0.16)';
+        ctx.fillRect(de, topo, larguraTexto + 10, 16);
+        ctx.fillStyle = 'rgb(240,180,95)';
+        ctx.fillText(marco.rotulo, tx, topo + 3);
+        ctx.restore();
+      });
     },
   };
   readonly chartPlugins = [this.marcoInstitucional];
@@ -401,6 +425,44 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     if (!this.oficio?.competenciaEfeito) return null;
     const [ano, mes] = this.oficio.competenciaEfeito.split('-');
     return mes ? `${mes}/${ano}` : null;
+  }
+
+  /**
+   * Todos os eventos que mudaram a destinação dos rendimentos, para o gráfico.
+   *
+   * Marcar só o Ofício nº 04/2026 deixava sem explicação a outra ruptura da
+   * série, a de 08/2025. Os marcos saem das próprias destinações do bloco J:L,
+   * então uma destinação nova aparece sozinha, sem alteração de código.
+   *
+   * O rótulo usa o número do documento apenas quando os registros o têm. A
+   * destinação de 2025 não está na aba de movimentações: ela é rotulada pelo
+   * projeto de destino, e não por um número de ofício que ninguém registrou.
+   */
+  private get marcos(): { mesAno: string; rotulo: string }[] {
+    const vistos = new Set<string>();
+    const out: { mesAno: string; rotulo: string }[] = [];
+
+    const incluir = (mesAno: string | null, rotulo: string) => {
+      if (!mesAno || vistos.has(mesAno)) return;
+      vistos.add(mesAno);
+      out.push({ mesAno, rotulo });
+    };
+
+    incluir(this.marcoLabel, this.oficio?.documento ?? 'Evento institucional');
+
+    this.utilizacoes.forEach(u => {
+      if (!u.competencia) return;
+      incluir(u.competencia, `Destinação — ${u.projeto}`);
+    });
+
+    return out;
+  }
+
+  /** Os marcos em texto, para a legenda do gráfico ("08/2025 e 08/2026"). */
+  get rotuloMarcos(): string {
+    const meses = this.marcos.map(m => m.mesAno);
+    if (meses.length <= 1) return meses[0] ?? '';
+    return meses.slice(0, -1).join(', ') + ' e ' + meses[meses.length - 1];
   }
 
   /**
@@ -1052,6 +1114,7 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       utilizacaoPorMes: this.utilizacaoPorMes,
       projetosEncerrados: this.projetosEncerrados,
       projetosInativos: this.projetosInativos,
+      projetosSemAtribuicao: PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
     });
     if (!rateio) return;
     const dispMonths = rateio.meses;
@@ -1075,6 +1138,27 @@ export class RendimentosComponent implements OnInit, OnDestroy {
           });
         const doEvento = this.oficio?.projetos.find(x => x.projeto === proj);
         const gerado = projRendAcum.get(proj)!;
+
+        /**
+         * A última linha da tabela tem de bater com o total declarado abaixo
+         * dela.
+         *
+         * Arredondar mês a mês dá um acumulado que difere em centavos do
+         * `totalAcumulado`, que já carrega o resíduo do fechamento. A tabela
+         * exibia R$ 460.270,58 na última linha e R$ 460.270,57 no "Total
+         * acumulado do projeto", logo embaixo — dois números para a mesma
+         * coisa, a um centavo de distância. O ajuste entra no último mês, em
+         * rendimento E acumulado, para que a coluna continue somando certo.
+         */
+        if (meses.length) {
+          const ultimo = meses[meses.length - 1];
+          const ajuste = cent(gerado - ultimo.rendimentoAcumulado);
+          if (ajuste !== 0) {
+            ultimo.rendimentoMes = cent(ultimo.rendimentoMes + ajuste);
+            ultimo.rendimentoAcumulado = gerado;
+          }
+        }
+
         return { projeto: proj, cor: PALETTE[i % PALETTE.length], meses,
                  totalAcumulado: gerado,
                  pctTotal: expectedTotal > 0 ? (gerado / expectedTotal) * 100 : 0,

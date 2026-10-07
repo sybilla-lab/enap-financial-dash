@@ -13,6 +13,23 @@
  * sem base positiva não distribui: o líquido é carregado para o mês seguinte.
  */
 
+/**
+ * Projetos que mantêm capital aplicado mas não recebem atribuição de rendimento.
+ *
+ * Regra institucional, não derivável dos lançamentos: o saldo da Plataforma
+ * Desafio 3.0 é a destinação de R$ 150.002,11, que já É rendimento. Atribuir-lhe
+ * rendimento outra vez seria render sobre o próprio rendimento e devolvê-lo a
+ * quem o recebeu. O capital segue aplicado e segue compondo o capital da
+ * parceria; o rendimento que ele ajuda a gerar é repartido entre os demais
+ * projetos pelo critério proporcional validado.
+ *
+ * As despesas da Plataforma consomem o saldo destinado — isso é tratado na base
+ * de execução (ver `getProjetoResumos`), não aqui.
+ */
+export const PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS = new Set<string>([
+  'Plataforma Desafio 3.0',
+]);
+
 export const mesKey = (s: string): number => {
   const [m, y] = s.split('/');
   return parseInt(y) * 100 + parseInt(m);
@@ -52,6 +69,18 @@ export interface EntradaRateio {
   projetosEncerrados: Map<string, number>;
   /** Projetos marcados como finalizados/encerrados na aba Status. */
   projetosInativos: Set<string>;
+  /**
+   * Projetos que mantêm capital aplicado mas NÃO recebem atribuição de
+   * rendimento.
+   *
+   * É o caso da Plataforma Desafio 3.0: o saldo dela é a destinação de
+   * R$ 150.002,11, que já é rendimento. Atribuir-lhe rendimento de novo seria
+   * render sobre o próprio rendimento e devolvê-lo a quem o recebeu. O capital
+   * continua aplicado e continua compondo o capital da parceria; o rendimento
+   * que ele gera é repartido entre os demais projetos pelo critério
+   * proporcional validado.
+   */
+  projetosSemAtribuicao?: Set<string>;
 }
 
 export interface ResultadoRateio {
@@ -141,11 +170,22 @@ export function ratearRendimentos(e: EntradaRateio): ResultadoRateio | null {
       runningBalance.set(proj, 0);
     });
 
-    const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
+    /**
+     * A base de participação exclui quem não recebe atribuição.
+     *
+     * Excluir do numerador e manter no denominador deixaria uma fração do
+     * líquido sem destino todo mês, e a soma dos projetos deixaria de fechar
+     * com o líquido da Base. O capital segue aplicado — ele simplesmente não
+     * reivindica cota do rendimento que ajuda a gerar.
+     */
+    const semAtribuicao = (proj: string) => e.projetosSemAtribuicao?.has(proj) ?? false;
+    let totalPos = 0;
+    runningBalance.forEach((v, proj) => { if (v > 0 && !semAtribuicao(proj)) totalPos += v; });
+
     const toDistribute = mes.liquido + undistributed;
     if (totalPos > 0 && toDistribute > 0) {
       runningBalance.forEach((saldo, proj) => {
-        if (saldo > 0) {
+        if (saldo > 0 && !semAtribuicao(proj)) {
           const rendMes = toDistribute * (saldo / totalPos);
           projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + rendMes);
           if (!projMesRend.has(proj)) projMesRend.set(proj, new Map());

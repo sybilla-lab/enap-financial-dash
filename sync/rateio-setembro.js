@@ -61,6 +61,19 @@ const TRANSFERENCIAS = [
   ['Operação Básica', -37476.59], ['Plataforma Desafio 3.0', 37476.59],
 ].map(([projeto, valor]) => ({ mesAno: '08/2026', projeto, valor }));
 
+/**
+ * Células de atribuição que precisam ficar VAZIAS.
+ *
+ * A Plataforma Desafio 3.0 mantém capital aplicado mas não recebe atribuição de
+ * rendimento — o saldo dela já É rendimento destinado. A competência 09/2026
+ * chegou a ser gravada com R$ 1.396,96 antes dessa regra; deixar a célula com um
+ * valor órfão faria a planilha somar mais do que o líquido do mês.
+ */
+const CELULAS_A_LIMPAR = {
+  '08/2026': [],
+  '09/2026': [{ aba: 'plataforma desafio 3.0 • Meta 3', celula: 'K8' }],
+};
+
 /** Onde cada projeto grava a competência, na planilha de Orçamento. */
 const CELULAS = {
   '08/2026': {
@@ -69,7 +82,6 @@ const CELULAS = {
     'CAR DPG': { aba: 'car dpg • FBDS', celula: 'J8' },
     'Alimenta +1000 Cidades': { aba: 'alimenta +1.000 cidades • MDS', celula: 'J8' },
     'Parceria MDIC': { aba: 'parceria • MDIC', celula: 'D8' },
-    'Plataforma Desafio 3.0': { aba: 'plataforma desafio 3.0 • Meta 3', celula: 'J8' },
   },
   '09/2026': {
     'Operação Básica': { aba: 'operação básica • ENAP', celula: 'K8' },
@@ -77,7 +89,6 @@ const CELULAS = {
     'CAR DPG': { aba: 'car dpg • FBDS', celula: 'K8' },
     'Alimenta +1000 Cidades': { aba: 'alimenta +1.000 cidades • MDS', celula: 'K8' },
     'Parceria MDIC': { aba: 'parceria • MDIC', celula: 'E8' },
-    'Plataforma Desafio 3.0': { aba: 'plataforma desafio 3.0 • Meta 3', celula: 'K8' },
   },
 };
 
@@ -211,6 +222,25 @@ async function main() {
     });
     console.log(`  gravado  '${cel.aba}'!${cel.celula} = ${R.brl(l.valor)}`);
   }
+
+  // Células que não devem conter atribuição. Um valor esquecido aqui faz o
+  // consolidado somar mais do que o líquido do mês.
+  for (const cel of CELULAS_A_LIMPAR[COMPETENCIA_ALVO] ?? []) {
+    const antes = (await sheets.spreadsheets.values.get({
+      spreadsheetId: ID_ORCAMENTO, range: `'${cel.aba}'!${cel.celula}`,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+    })).data.values?.[0]?.[0];
+    if (antes === undefined || antes === '' || antes === null) {
+      console.log(`  já vazia  '${cel.aba}'!${cel.celula}`);
+      continue;
+    }
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: ID_ORCAMENTO, range: `'${cel.aba}'!${cel.celula}`,
+      valueInputOption: 'RAW', requestBody: { values: [['']] },
+    });
+    console.log(`  limpada  '${cel.aba}'!${cel.celula}  (continha ${R.brl(Number(antes) || 0)})`);
+  }
+
   console.log('\n  Consolidado: fórmula preservada — soma as abas de origem.');
 }
 
