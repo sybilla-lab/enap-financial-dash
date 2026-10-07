@@ -116,13 +116,29 @@ export function ratearRendimentos(e: EntradaRateio): ResultadoRateio | null {
       if (!l.projeto) continue;
       runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
     }
-    // Projeto encerrado para de render e devolve o saldo à Operação Básica.
+    /**
+     * Encerramento: o saldo vai para a Operação Básica e o projeto para de render.
+     *
+     * A aba "Saldos remanescentes" registra uma TRANSFERÊNCIA com data e valor.
+     * Ela encerra o projeto apenas quando a aba Status também o dá como
+     * inativo; num projeto que o Status mantém ativo, ela é um evento pontual
+     * na competência registrada. Tratá-la como encerramento perpétuo devolvia à
+     * Operação Básica, todo mês, qualquer saldo novo que o projeto recebesse —
+     * é o que fazia a destinação de 08/2026 à Plataforma Desafio 3.0 voltar
+     * para a Operação Básica no mesmo mês em que entrava.
+     *
+     * O saldo transferido é aplicado com o sinal que tiver. A Plataforma
+     * transferiu saldo NEGATIVO em 12/2024 (-R$ 323,65): transferir só o
+     * positivo apagaria esse passivo em vez de levá-lo à Operação Básica, que
+     * é quem o absorveu.
+     */
     e.projetosEncerrados.forEach((closedMc, proj) => {
-      if (mc > closedMc) {
-        const bal = runningBalance.get(proj) ?? 0;
-        if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
-        runningBalance.set(proj, 0);
-      }
+      const inativo = e.projetosInativos.has(proj);
+      if (mc < closedMc) return;
+      if (!inativo && mc !== closedMc) return;
+      const bal = runningBalance.get(proj) ?? 0;
+      if (bal !== 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
+      runningBalance.set(proj, 0);
     });
 
     const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
@@ -142,9 +158,11 @@ export function ratearRendimentos(e: EntradaRateio): ResultadoRateio | null {
     }
   }
 
-  const isInativo = (proj: string) =>
-    e.projetosInativos.has(proj) ||
-    (e.projetosEncerrados.has(proj) && lastCutoff >= e.projetosEncerrados.get(proj)!);
+  // Inativo é o que a aba Status diz. Constar em "Saldos remanescentes" é ter
+  // tido uma transferência, não estar encerrado — senão o rendimento de um
+  // projeto reaberto seria varrido para a Operação Básica no fecho do cálculo,
+  // logo depois de ter sido corretamente atribuído a ele.
+  const isInativo = (proj: string) => e.projetosInativos.has(proj);
 
   projRendAcum.forEach((rend, proj) => {
     if (proj !== 'Operação Básica' && isInativo(proj) && rend > 0) {

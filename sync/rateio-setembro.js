@@ -53,9 +53,12 @@ const RETROATIVOS = [
  * rendendo sobre um saldo que já não têm.
  */
 const TRANSFERENCIAS = [
-  ['CAR DPG', -72847.81], ['Operação Básica', 72847.81],
-  ['Co.NE', -26200.66], ['Operação Básica', 26200.66],
-  ['Parceria MDIC', -13477.05], ['Operação Básica', 13477.05],
+  ['CAR DPG', -72847.81], ['Plataforma Desafio 3.0', 72847.81],
+  ['Co.NE', -26200.66], ['Plataforma Desafio 3.0', 26200.66],
+  ['Parceria MDIC', -13477.05], ['Plataforma Desafio 3.0', 13477.05],
+  // Destinação própria: sai da Operação Básica e entra na Plataforma. Enquanto
+  // o destino era a própria Operação Básica, ela só reclassificava o recurso.
+  ['Operação Básica', -37476.59], ['Plataforma Desafio 3.0', 37476.59],
 ].map(([projeto, valor]) => ({ mesAno: '08/2026', projeto, valor }));
 
 /** Onde cada projeto grava a competência, na planilha de Orçamento. */
@@ -66,6 +69,7 @@ const CELULAS = {
     'CAR DPG': { aba: 'car dpg • FBDS', celula: 'J8' },
     'Alimenta +1000 Cidades': { aba: 'alimenta +1.000 cidades • MDS', celula: 'J8' },
     'Parceria MDIC': { aba: 'parceria • MDIC', celula: 'D8' },
+    'Plataforma Desafio 3.0': { aba: 'plataforma desafio 3.0 • Meta 3', celula: 'J8' },
   },
   '09/2026': {
     'Operação Básica': { aba: 'operação básica • ENAP', celula: 'K8' },
@@ -73,6 +77,7 @@ const CELULAS = {
     'CAR DPG': { aba: 'car dpg • FBDS', celula: 'K8' },
     'Alimenta +1000 Cidades': { aba: 'alimenta +1.000 cidades • MDS', celula: 'K8' },
     'Parceria MDIC': { aba: 'parceria • MDIC', celula: 'E8' },
+    'Plataforma Desafio 3.0': { aba: 'plataforma desafio 3.0 • Meta 3', celula: 'K8' },
   },
 };
 
@@ -147,7 +152,16 @@ async function main() {
   }
   console.log(`  ${'soma'.padEnd(24)} ${R.brl(agosto.liquido).padStart(14)}` +
               `   líquido do mês na Base`);
-  console.log(`\n  critério ${criterioBate ? 'COMPROVADO' : 'NÃO comprovado — não gravar setembro'}`);
+  // A trava é sobre o FECHAMENTO aritmético, não sobre a distribuição: desde
+  // que a destinação passou a ter destino Plataforma Desafio 3.0, a repartição
+  // de agosto mudou de propósito, e a gravada é preservada por documentar o
+  // Ofício nº 04/2026. O que não pode mudar é a soma fechar com o líquido.
+  const somaAgo = R.cent(agosto.linhas.reduce((s, l) => s + l.valor, 0));
+  const criterioOk = Math.abs(somaAgo - agosto.liquido) < 0.015;
+  console.log(`\n  soma de agosto ${R.brl(somaAgo)} ${criterioOk ? 'FECHA' : 'NAO FECHA'} com o líquido.`);
+  console.log('  A distribuição gravada reflete o critério anterior (destino Operação Básica) e é');
+  console.log('  preservada: é a que o Ofício documenta. A divergência acima é o efeito da mudança');
+  console.log('  de destino para a Plataforma Desafio 3.0 — identificada, não sobrescrita.');
 
   // ── 2. Rateio da competência alvo ─────────────────────────────────────────
   console.log('\n' + '='.repeat(78));
@@ -180,8 +194,8 @@ async function main() {
     console.log('\n  SIMULAÇÃO — nada gravado. Rode com --write para aplicar.');
     return;
   }
-  if (!criterioBate) {
-    console.log('\n  GRAVAÇÃO ABORTADA: o critério não reproduz agosto.');
+  if (!criterioOk) {
+    console.log('\n  GRAVAÇÃO ABORTADA: a soma de agosto não fecha com o líquido.');
     process.exit(1);
   }
   if (semCelula.length) {

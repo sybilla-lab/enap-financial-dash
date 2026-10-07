@@ -240,12 +240,17 @@ function abrirDetalhe(ctx, mesAno) {
       if (!l.projeto) continue;
       runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
     }
+    // Encerramento só para projeto que o Status também dá como inativo; para os
+    // demais, a aba "Saldos remanescentes" é um evento pontual na competência
+    // registrada. O saldo vai com o sinal que tiver — a Plataforma transferiu
+    // saldo negativo em 12/2024.
     ctx.projetosEncerrados.forEach((closedMc, proj) => {
-      if (mc > closedMc) {
-        const bal = runningBalance.get(proj) ?? 0;
-        if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
-        runningBalance.set(proj, 0);
-      }
+      const inativo = ctx.projetosInativos.has(proj);
+      if (mc < closedMc) return;
+      if (!inativo && mc !== closedMc) return;
+      const bal = runningBalance.get(proj) ?? 0;
+      if (bal !== 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
+      runningBalance.set(proj, 0);
     });
     const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
     const toDistribute = mes.liquido + undistributed;
@@ -257,8 +262,8 @@ function abrirDetalhe(ctx, mesAno) {
     } else { undistributed += mes.liquido; }
   }
 
-  const isInativo = proj => ctx.projetosInativos.has(proj) ||
-    (ctx.projetosEncerrados.has(proj) && cutoff >= ctx.projetosEncerrados.get(proj));
+  // Inativo é o que a aba Status diz.
+  const isInativo = proj => ctx.projetosInativos.has(proj);
 
   Array.from(projRendAcum.keys()).forEach(proj => {
     const rend = projRendAcum.get(proj);
@@ -332,12 +337,17 @@ function historicoPorProjeto(ctx) {
       if (!l.projeto) continue;
       runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
     }
+    // Encerramento só para projeto que o Status também dá como inativo; nos
+    // demais, a aba "Saldos remanescentes" é um evento pontual na competência
+    // registrada. O saldo vai com o sinal que tiver — a Plataforma transferiu
+    // saldo negativo em 12/2024.
     ctx.projetosEncerrados.forEach((closedMc, proj) => {
-      if (mc > closedMc) {
-        const bal = runningBalance.get(proj) ?? 0;
-        if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
-        runningBalance.set(proj, 0);
-      }
+      const inativo = ctx.projetosInativos.has(proj);
+      if (mc < closedMc) return;
+      if (!inativo && mc !== closedMc) return;
+      const bal = runningBalance.get(proj) ?? 0;
+      if (bal !== 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
+      runningBalance.set(proj, 0);
     });
     const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
     const toDistribute = mes.liquido + undistributed;
@@ -354,8 +364,8 @@ function historicoPorProjeto(ctx) {
     } else { undistributed += mes.liquido; }
   }
 
-  const isInativo = proj => ctx.projetosInativos.has(proj) ||
-    (ctx.projetosEncerrados.has(proj) && lastCutoff >= ctx.projetosEncerrados.get(proj));
+  // Inativo é o que a aba Status diz.
+  const isInativo = proj => ctx.projetosInativos.has(proj);
 
   Array.from(projRendAcum.keys()).forEach(proj => {
     const rend = projRendAcum.get(proj);

@@ -1283,6 +1283,16 @@ export class DataService {
 
     const somar = (filtro: (m: MovimentacaoRendimento) => boolean) =>
       cent(mov.filter(filtro).reduce((s, m) => s + m.valor, 0));
+    /**
+     * Só transferência interna conta como "cedido".
+     *
+     * A destinação própria é somada à parte, em `destinacaoPropria`. Incluí-la
+     * aqui a faria entrar duas vezes em `destinado = cedido + própria`, e o
+     * saldo livre do projeto que destinou recurso próprio seria reduzido pelo
+     * dobro — foi o que jogou a Operação Básica para um livre negativo de
+     * R$ 29.826,35 e deixou a soma dos livres R$ 37.476,59 abaixo do
+     * disponível, exatamente o valor da destinação própria.
+     */
     const transferencia = (m: MovimentacaoRendimento) =>
       m.tipo === this.TIPO_TRANSFERENCIA && m.origem !== m.destino;
 
@@ -1342,10 +1352,22 @@ export class DataService {
     };
   }
 
+  /**
+   * Movimentos que deslocam saldo entre projetos, no formato do rateio.
+   *
+   * Inclui a destinação própria quando origem e destino diferem — desde que a
+   * destinação passou a ter como destino a Plataforma Desafio 3.0, ela também
+   * move saldo. Enquanto origem e destino eram o mesmo projeto, ela apenas
+   * reclassificava o recurso e não tinha efeito sobre a base de rateio.
+   *
+   * Isto é para a BASE DE RATEIO. Na apuração do evento, a destinação própria
+   * continua contada uma vez só, por `destinacaoPropria` — ver `apurarOficio`.
+   */
   private transferenciasDe(mov: MovimentacaoRendimento[]): TransferenciaRendimento[] {
     const out: TransferenciaRendimento[] = [];
     mov
-      .filter(m => m.tipo === this.TIPO_TRANSFERENCIA && m.origem !== m.destino)
+      .filter(m => (m.tipo === this.TIPO_TRANSFERENCIA || m.tipo === this.TIPO_DESTINACAO_PROPRIA)
+                   && m.origem !== m.destino)
       .forEach(m => {
         const [ano, mes] = String(m.competencia).split('-');
         const mesAno = `${mes}/${ano}`;

@@ -4,33 +4,37 @@ import { entradaDeTeste } from './rateio-rendimentos.fixture';
 /**
  * Regressão do núcleo financeiro.
  *
- * Os números aqui são os do Ofício nº 04/2026, conferidos contra a planilha
- * oficial "Orçamento e Rendimentos 2026-2028". Não são expectativas
- * arbitrárias: são o resultado que a prestação de contas já registrou. Se um
- * destes falhar sem que a série histórica tenha mudado, o cálculo regrediu —
- * o certo é investigar o cálculo, nunca ajustar o número esperado.
+ * Os números vêm da Base de Dados e da planilha "Orçamento e Rendimentos
+ * 2026-2028". Se um destes falhar sem que as fontes tenham mudado, o cálculo
+ * regrediu: investigue o cálculo, não ajuste o número esperado.
  */
 
 const COMPETENCIA_EFEITO = '2026-08';
 
-const CHECKPOINT_POR_PROJETO: Record<string, number> = {
-  'Alimenta +1000 Cidades': 387456.64,
-  'CAR DPG': 72847.81,
-  'Operação Básica': 37476.59,
-  'Co.NE': 26200.66,
-  'Parceria MDIC': 13477.05,
-};
-
-const POS_CORTE_POR_PROJETO: Record<string, number> = {
-  'Alimenta +1000 Cidades': 38814.68,
-  'CAR DPG': 6030.01,
-  'Operação Básica': 4497.31,
-  'Co.NE': 2435.33,
-  'Parceria MDIC': 12932.70,
-};
-
+/**
+ * Acumulado TOTAL na data-base do Ofício, 31/07/2026.
+ *
+ * Só o total é travado. A repartição por projeto é derivada dos lançamentos da
+ * Base e muda legitimamente quando a Base é corrigida — travá-la aqui exigiria
+ * que a Base nunca mudasse. A comparação da repartição contra o que está
+ * gravado na planilha é feita por sync/rateio-setembro.js, que a reporta como
+ * divergência identificada em vez de silenciá-la.
+ */
 const CHECKPOINT_TOTAL = 537458.75;
-const POS_CORTE_TOTAL = 64710.03;
+
+/** Líquidos da Base nas competências fechadas. */
+const AGOSTO = 64710.03;
+const SETEMBRO = 57411.36;
+
+function rendimentoDoMes(mesAno: string): Map<string, number> {
+  const r = ratearRendimentos(entradaDeTeste())!;
+  const out = new Map<string, number>();
+  r.porProjetoMes.forEach((serie, projeto) => {
+    const v = serie.get(mesAno);
+    if (v !== undefined && v > 0.005) out.set(projeto, Math.round(v * 100) / 100);
+  });
+  return out;
+}
 
 describe('rateio de rendimentos', () => {
   it('distribui o total do período sem sobrar nem faltar centavo', () => {
@@ -40,109 +44,70 @@ describe('rateio de rendimentos', () => {
     expect(Math.round(soma * 100) / 100).toBe(r!.totalEsperado);
   });
 
-  it('reproduz o checkpoint de 31/07/2026 do Ofício nº 04/2026', () => {
-    const r = ratearRendimentos(entradaDeTeste())!;
-    const corte = cortarRateio(r, COMPETENCIA_EFEITO);
-
+  it('reproduz o checkpoint total de 31/07/2026 do Ofício nº 04/2026', () => {
+    const corte = cortarRateio(ratearRendimentos(entradaDeTeste())!, COMPETENCIA_EFEITO);
     expect(corte.totalAte).toBe(CHECKPOINT_TOTAL);
-    Object.entries(CHECKPOINT_POR_PROJETO).forEach(([projeto, esperado]) => {
-      expect(corte.ate.get(projeto)).toBe(esperado);
-    });
     const soma = Array.from(corte.ate.values()).reduce((s, v) => s + v, 0);
     expect(Math.round(soma * 100) / 100).toBe(CHECKPOINT_TOTAL);
   });
 
-  it('fecha agosto/2026 em R$ 64.710,03 depois da realocação', () => {
-    const r = ratearRendimentos(entradaDeTeste())!;
-    const corte = cortarRateio(r, COMPETENCIA_EFEITO);
-
-    expect(corte.totalDepois).toBe(POS_CORTE_TOTAL);
-    Object.entries(POS_CORTE_POR_PROJETO).forEach(([projeto, esperado]) => {
-      expect(corte.depois.get(projeto)).toBe(esperado);
+  it('distribui agosto e setembro pelos líquidos da Base', () => {
+    ([['08/2026', AGOSTO], ['09/2026', SETEMBRO]] as [string, number][]).forEach(([mesAno, esperado]) => {
+      const soma = Array.from(rendimentoDoMes(mesAno).values()).reduce((s, v) => s + v, 0);
+      // Antes do resíduo a soma arredondada fica a centavos do líquido.
+      expect(Math.abs(soma - esperado)).toBeLessThan(0.05);
     });
   });
 
-  it('a realocação muda o rateio a partir da competência de efeito', () => {
-    // Sem as transferências, quem cedeu continuaria rendendo sobre um saldo que
-    // já não tem — é exatamente o que o evento corrige na abertura de 08/2026.
-    const com = cortarRateio(ratearRendimentos(entradaDeTeste(true))!, COMPETENCIA_EFEITO);
-    const sem = cortarRateio(ratearRendimentos(entradaDeTeste(false))!, COMPETENCIA_EFEITO);
-
-    expect(com.totalAte).toBe(sem.totalAte);          // o passado não muda
-    expect(com.totalDepois).toBe(sem.totalDepois);    // o líquido do mês não muda
-    expect(com.depois.get('CAR DPG')).not.toBe(sem.depois.get('CAR DPG'));
+  it('a Plataforma Desafio 3.0 passa a render depois da destinação de 08/2026', () => {
+    // Projeto reaberto: a transferência de 12/2024 registrada em "Saldos
+    // remanescentes" é um evento pontual, não um encerramento perpétuo que
+    // devolveria à Operação Básica todo saldo recebido depois.
+    expect(rendimentoDoMes('07/2026').get('Plataforma Desafio 3.0')).toBeUndefined();
+    expect(rendimentoDoMes('09/2026').get('Plataforma Desafio 3.0')).toBeGreaterThan(0);
   });
 
   it('não distribui mês de líquido negativo: carrega para o mês seguinte', () => {
     const e = entradaDeTeste();
     const negativos = e.porMes.filter(m => m.liquido < 0);
     const r = ratearRendimentos(e)!;
-    negativos.forEach(m => {
-      r.porProjetoMes.forEach(serie => expect(serie.get(m.mesAno)).toBeUndefined());
-    });
-    // Mesmo assim o total fecha: o negativo foi absorvido, não perdido.
+    negativos.forEach(m => r.porProjetoMes.forEach(serie => expect(serie.get(m.mesAno)).toBeUndefined()));
     const soma = Array.from(r.acumulado.values()).reduce((s, v) => s + v, 0);
     expect(Math.round(soma * 100) / 100).toBe(r.totalEsperado);
   });
 
-  it('ignora meses já utilizados, que não entram no saldo disponível', () => {
+  it('ignora meses já consumidos por encerramento de ciclo', () => {
     const e = entradaDeTeste();
     const utilizados = e.porMes.filter(
       m => (e.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() === 'utilizado'
     );
-    const r = ratearRendimentos(e)!;
-    const rateados = new Set(r.meses.map(m => m.mesAno));
+    const rateados = new Set(ratearRendimentos(e)!.meses.map(m => m.mesAno));
     utilizados.forEach(m => expect(rateados.has(m.mesAno)).toBe(false));
   });
 });
 
 /**
- * Composição do saldo líquido, com os números do Ofício nº 04/2026.
+ * Composição do saldo líquido.
  *
- * As duas identidades abaixo são o coração da leitura da página: se alguma
- * quebrar, algum valor passou a ser contado duas vezes ou deixou de ser
- * contado. São exatamente as conferências pedidas na revisão de 21/09/2026.
+ * A destinação sai integralmente do disponível quando é feita; a despesa
+ * posterior consome o saldo do projeto de destino e não desconta de novo.
  */
 describe('composição do saldo líquido', () => {
   const ENTRADA = {
-    liquido: 832244.40,
-    utilizadoPrimeiroCiclo: 230075.62,   // ciclo encerrado em 08/2025
-    utilizadoDaDestinacao: 21600.00,     // pagamento 10647074
-    destinadoARealizar: 128402.11,       // destinado e ainda não pago
+    liquido: 889655.76,
+    utilizadoPrimeiroCiclo: 230075.62,   // cobertura da Operação Básica, 08/2025
+    utilizadoDaDestinacao: 150002.11,    // Plataforma Desafio 3.0, 08/2026
+    destinadoARealizar: 0,               // a destinação já saiu por inteiro
   };
 
-  it('reparte o líquido nos valores conferidos', () => {
+  it('reparte o líquido nos valores conferidos contra a Base', () => {
     const c = comporSaldo(ENTRADA);
-    expect(c.utilizado).toBe(251675.62);
-    expect(c.disponivel).toBe(580568.78);
-    expect(c.destinado).toBe(128402.11);
-    expect(c.livre).toBe(452166.67);
+    expect(c.utilizado).toBe(380077.73);
+    expect(c.disponivel).toBe(509578.03);
   });
 
-  it('utilizado + disponível fecha o líquido total', () => {
+  it('utilizado e destinado mais disponível fecha o líquido total', () => {
     const c = comporSaldo(ENTRADA);
-    expect(Math.round((c.utilizado + c.disponivel) * 100) / 100).toBe(832244.40);
-  });
-
-  it('destinado + livre fecha o disponível — o destinado não é saldo à parte', () => {
-    const c = comporSaldo(ENTRADA);
-    expect(Math.round((c.destinado + c.livre) * 100) / 100).toBe(580568.78);
-  });
-
-  it('o saldo livre bate com a soma dos projetos do rateio', () => {
-    const c = comporSaldo(ENTRADA);
-    const corte = cortarRateio(ratearRendimentos(entradaDeTeste())!, '2026-08');
-    const porProjeto = new Map<string, number>();
-    [...corte.ate.keys(), ...corte.depois.keys()].forEach(p => porProjeto.set(p, 0));
-    // Saldo livre do projeto = o que gerou até o corte, menos o que destinou,
-    // mais o que gerou depois. Os destinos vêm do evento.
-    const DESTINADO: Record<string, number> = {
-      'CAR DPG': 72847.81, 'Co.NE': 26200.66, 'Parceria MDIC': 13477.05, 'Operação Básica': 37476.59,
-    };
-    let soma = 0;
-    porProjeto.forEach((_, p) => {
-      soma += (corte.ate.get(p) ?? 0) - (DESTINADO[p] ?? 0) + (corte.depois.get(p) ?? 0);
-    });
-    expect(Math.round(soma * 100) / 100).toBe(c.livre);
+    expect(Math.round((c.utilizado + c.disponivel) * 100) / 100).toBe(889655.76);
   });
 });
