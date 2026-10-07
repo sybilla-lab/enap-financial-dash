@@ -63,3 +63,6 @@ sync/.env
 # Ficam só na máquina: servem para reverter uma gravação e contêm dados
 # financeiros da planilha oficial, que não devem ir para o repositório.
 sync/backups/
+sync/_comp.js
+sync/_decomp.js
+sync/_efeito.js
