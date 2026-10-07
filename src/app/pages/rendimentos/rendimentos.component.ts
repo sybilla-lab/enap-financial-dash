@@ -852,11 +852,10 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     setTimeout(() => (this.isLoading = false), RendimentosComponent.ESPERA_MAXIMA_MS);
 
     if (isPlatformBrowser(this.platformId)) {
-      this.http.get<{ results: CalcRendResult[] }>('/calc_rendimentos.json').subscribe(data => {
-        this._rawPrevResults = data.results ?? [];
-        this.computarPrevisao(this._rawPrevResults);
-      });
-
+      /**
+       * Projeções agora vêm da planilha via getOrcamentoRendimentos().
+       * Arquivo desatualizado calc_rendimentos.json foi descontinuado.
+       */
       this.dataService.getOrcamentoRendimentos().subscribe(mapa => {
         this._sheetsRendimentos = mapa;
         if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
@@ -1256,13 +1255,16 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
     y = R.nota(doc, y,
       'Utilizado e destinado reúne o que já foi aplicado e o que está reservado a uma finalidade — ' +
-      'não é o total de pagamentos. A cobertura da Operação Básica foi paga no Transferegov como ' +
-      'premiações do Impulso Regional: a Operação Básica havia consumido saldo daquele projeto, e o ' +
-      'pagamento das premiações com rendimentos compensou essa utilização anterior, concentrando o uso ' +
-      'de rendimentos numa única categoria. Depois de destinado, o saldo passa a ser executado pelo ' +
-      'projeto de destino: as despesas reduzem o saldo do projeto, não o disponível para novas ' +
-      'destinações. Destinação formal: complementação da Meta 2, conforme o Plano de Trabalho, ' +
-      'mediante autorização da Enap e vinculação ao objeto do Termo de Colaboração.', cab);
+      'não é o total de pagamentos.\n\n' +
+      '• R$ 230.075,62 (08/2025): Utilizado para cobrir a Operação Básica. No Transferegov, foram ' +
+      'registrados como premiações do Impulso Regional, compensando o saldo desse projeto anteriormente ' +
+      'consumido pela operação. O valor já foi utilizado e não representa novo crédito disponível.\n\n' +
+      '• R$ 150.002,11 (08/2026): Destinados à atualização da Plataforma Desafio 3.0. As despesas ' +
+      'consomem o saldo desse projeto; o pagamento de R$ 21.600,00 deixa R$ 128.402,11, considerando ' +
+      'os lançamentos conhecidos.\n\n' +
+      'Depois de destinado, o saldo passa a ser executado pelo projeto de destino: as despesas reduzem ' +
+      'o saldo do projeto, não o disponível para novas destinações. A transferência histórica de ' +
+      '−R$ 323,65 à Operação Básica é preservada e aplicada uma única vez.', cab);
 
     // ── Detalhamento mensal ────────────────────────────────────────────
     if (this.porMesCorrigido.length) {
