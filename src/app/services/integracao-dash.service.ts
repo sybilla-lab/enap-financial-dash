@@ -1,20 +1,35 @@
 /**
  * Serviço de Integração • Dash
  *
- * Lê a aba "Integração • Dash" (A1:J217) como fonte de verdade para
+ * Lê a aba "Integração • Dash" (A1:J217, GID 191009106) como fonte de verdade para
  * rendimentos por projeto, período e status de conferência.
+ *
+ * Spreadsheet: 17p7C3t-RwPiS6aI04ihD0vSFNtNCnMQFKH-fS9CGTOM
+ * Aba: "Integração • Dash"
+ * GID: 191009106
+ * Range: A1:J217 (1 cabeçalho + 216 registros)
  *
  * Contrato de dados (10 campos obrigatórios):
  * - competencia: YYYY-MM-DD (chave temporal)
  * - projeto_id: string (chave de identificação)
  * - projeto: string (nome legível)
  * - serie: "REALIZADO_REGISTRADO" | "PROJECAO"
- * - rendimento: number | null (null = ausência, não zero)
+ * - rendimento: number | null (null = ausência conforme origem, não zero)
  * - recebe_rateio: boolean
  * - status_conferencia: string ("Distribuição divergente" | "Total confere..." | "SEM_COMPETENCIA_NA_ORIGEM" | "SEM_ATRIBUICAO" | "PROJECAO")
- * - corte_realizado: YYYY-MM-DD (data do corte, ex: 2026-09-01 para setembro fechado)
+ * - corte_realizado: YYYY-MM-DD (data do corte, ex: 2026-09-01 para setembro fechado; não é data da atualização)
  * - origem_valor: string | null (célula de rastreamento)
  * - schema_version: string
+ *
+ * Nota sobre ausências (79 registros SEM_COMPETENCIA_NA_ORIGEM):
+ * - MDIC: 26 registros (ausência em períodos específicos da origem)
+ * - Co.NE: 23 registros
+ * - Alimenta: 18 registros
+ * - CAR DPG: 12 registros
+ *
+ * Essas ausências devem ser preservadas como null (não convertidas em zero).
+ * Interpretação: ausência significa que a competência não existe naquela origem,
+ * não que o valor seja zero.
  */
 
 export interface RegistroIntegracaoDash {

@@ -79,7 +79,7 @@ export class DataService {
   private readonly SHEET_SALDOS = this.SHEET_BASE + "&gid=86178020";
   private readonly SHEET_RENDIMENTOS = this.SHEET_BASE + "&gid=2032068393";
   private readonly SHEET_GLOSSARIO = this.SHEET_BASE + "&gid=806545379";
-  private readonly SHEET_INTEGRACAO_DASH = this.SHEET_BASE + "&gid=191009106";
+  private readonly SHEET_INTEGRACAO_DASH = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGQCBmyCjdHlexSVhN0wzJ2i6r6QUlj3oACbKd-gJEa81sCIO5UxI24LYRoVHrUHwTtearktC4Jb5a/pub?output=csv&gid=191009106";
 
   /** Categoria de entrada: não é item de despesa, não entra no Glossário. */
   static readonly CODIGO_RECEITA = "0.0.0";
@@ -111,7 +111,7 @@ export class DataService {
       rendimentos: this.http.get(this.SHEET_RENDIMENTOS, { responseType: "text" }),
       glossario: this.http.get(this.SHEET_GLOSSARIO, { responseType: "text" }),
       // TODO: Integração • Dash carregamento suspenso — validar GID 191009106
-      // integracaoDash: this.http.get(this.SHEET_INTEGRACAO_DASH, { responseType: "text" }),
+      integracaoDash: this.http.get(this.SHEET_INTEGRACAO_DASH, { responseType: "text" }),
     }).subscribe({
       next: ({ principal, recebimentos, status, saldos, rendimentos, glossario }) => {
         // Glossário primeiro: a normalização de categorias depende dele.
