@@ -110,9 +110,10 @@ export class DataService {
       saldos: this.http.get(this.SHEET_SALDOS, { responseType: "text" }),
       rendimentos: this.http.get(this.SHEET_RENDIMENTOS, { responseType: "text" }),
       glossario: this.http.get(this.SHEET_GLOSSARIO, { responseType: "text" }),
-      integracaoDash: this.http.get(this.SHEET_INTEGRACAO_DASH, { responseType: "text" }),
+      // TODO: Integração • Dash carregamento suspenso — validar GID 191009106
+      // integracaoDash: this.http.get(this.SHEET_INTEGRACAO_DASH, { responseType: "text" }),
     }).subscribe({
-      next: ({ principal, recebimentos, status, saldos, rendimentos, glossario, integracaoDash }) => {
+      next: ({ principal, recebimentos, status, saldos, rendimentos, glossario }) => {
         // Glossário primeiro: a normalização de categorias depende dele.
         this.parseGlossario(glossario);
         this.parsePrincipal(principal);
@@ -120,7 +121,11 @@ export class DataService {
         this.parseStatusProjetos(status);
         this.parseSaldos(saldos);
         this.parseRendimentos(rendimentos);
-        this.parseIntegracaoDash(integracaoDash);
+        // TODO: Integração • Dash será carregado após validação do GID
+        // this.parseIntegracaoDash(integracaoDash);
+
+        // Inicializar integracaoDash vazio por enquanto
+        this.integracaoDashSubject.next([]);
       },
       error: (err) => {
         console.error("Erro ao carregar dados do Google Sheets:", err);
