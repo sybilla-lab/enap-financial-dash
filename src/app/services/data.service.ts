@@ -128,7 +128,7 @@ export class DataService {
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row.length < 11) continue;
+      if (row.length < 13) continue;
 
       const numPag = (row[3] || "").trim();
       const fornecedor = (row[7] || "").trim(); // Coluna H
@@ -136,11 +136,22 @@ export class DataService {
       const observacao = (row[9] || "").trim();
       const projeto = (row[10] || "").trim();
       let mesAno = (row[11] || "").trim();
+
+      // Data efetiva (coluna C, índice 2): DD/MM/YYYY. Filtro: apenas até 31/08/2026.
+      const dataBruta = (row[2] || "").trim();
+      const partsData = dataBruta.split('/');
+      if (partsData.length === 3) {
+        const dia = parseInt(partsData[0], 10);
+        const mes = parseInt(partsData[1], 10);
+        const ano = parseInt(partsData[2], 10);
+        const dateKey = ano * 10000 + mes * 100 + dia;
+        if (dateKey > 20260831) continue; // Skip records after 31/08/2026
+      }
+
       // Column 11 is a formula in Sheets that can produce errors (#VALOR!) → empty in CSV export.
       // Fall back to deriving MM/YYYY from the raw date column (col 2, format DD/MM/YYYY).
       if (!mesAno || !mesAno.includes('/') || mesAno.startsWith('#')) {
-        const parts = (row[2] || "").trim().split('/');
-        if (parts.length === 3) mesAno = `${parts[1]}/${parts[2]}`;
+        if (partsData.length === 3) mesAno = `${partsData[1]}/${partsData[2]}`;
       }
       const valorStr = (row[12] || row[4] || "").trim(); // Tenta coluna 12, se não, usa a 4
       const valor = this.parseValor(valorStr);
