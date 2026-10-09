@@ -29,6 +29,7 @@ import {
   MesRendimento,
   PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
 } from "./rateio-rendimentos";
+import { parseIntegracaoDashCSV, RegistroIntegracaoDash } from "./integracao-dash.service";
 
 const cent = (v: number) => Math.round(v * 100) / 100;
 
@@ -52,6 +53,8 @@ export class DataService {
   /** Total declarado na própria aba (linha sem competência), para conferência. */
   private totalDeclarado: number | null = null;
   private glossarioSubject = new BehaviorSubject<CategoriaGlossario[]>([]);
+  /** Integração • Dash: rendimentos por projeto, período e status de conferência. */
+  private integracaoDashSubject = new BehaviorSubject<RegistroIntegracaoDash[]>([]);
 
   lancamentos$ = this.lancamentosSubject.asObservable();
   recebimentos$ = this.recebimentosSubject.asObservable();
@@ -62,6 +65,7 @@ export class DataService {
   utilizacoesRendimentos$ = this.utilizacoesSubject.asObservable();
   avisosRendimentos$ = this.avisosRendimentosSubject.asObservable();
   glossario$ = this.glossarioSubject.asObservable();
+  integracaoDash$ = this.integracaoDashSubject.asObservable();
 
   // Metas financeiras
   readonly META_APORTE = 3023000;
@@ -75,6 +79,7 @@ export class DataService {
   private readonly SHEET_SALDOS = this.SHEET_BASE + "&gid=86178020";
   private readonly SHEET_RENDIMENTOS = this.SHEET_BASE + "&gid=2032068393";
   private readonly SHEET_GLOSSARIO = this.SHEET_BASE + "&gid=806545379";
+  private readonly SHEET_INTEGRACAO_DASH = this.SHEET_BASE + "&gid=191009106";
 
   /** Categoria de entrada: não é item de despesa, não entra no Glossário. */
   static readonly CODIGO_RECEITA = "0.0.0";
@@ -105,8 +110,9 @@ export class DataService {
       saldos: this.http.get(this.SHEET_SALDOS, { responseType: "text" }),
       rendimentos: this.http.get(this.SHEET_RENDIMENTOS, { responseType: "text" }),
       glossario: this.http.get(this.SHEET_GLOSSARIO, { responseType: "text" }),
+      integracaoDash: this.http.get(this.SHEET_INTEGRACAO_DASH, { responseType: "text" }),
     }).subscribe({
-      next: ({ principal, recebimentos, status, saldos, rendimentos, glossario }) => {
+      next: ({ principal, recebimentos, status, saldos, rendimentos, glossario, integracaoDash }) => {
         // Glossário primeiro: a normalização de categorias depende dele.
         this.parseGlossario(glossario);
         this.parsePrincipal(principal);
@@ -114,6 +120,7 @@ export class DataService {
         this.parseStatusProjetos(status);
         this.parseSaldos(saldos);
         this.parseRendimentos(rendimentos);
+        this.parseIntegracaoDash(integracaoDash);
       },
       error: (err) => {
         console.error("Erro ao carregar dados do Google Sheets:", err);
@@ -1680,5 +1687,19 @@ export class DataService {
         };
       })
     );
+  }
+
+  private parseIntegracaoDash(csvText: string): void {
+    try {
+      const registros = parseIntegracaoDashCSV(csvText);
+      this.integracaoDashSubject.next(registros);
+      console.log(`✓ Integração • Dash carregada: ${registros.length} registros`);
+    } catch (err) {
+      console.error("Erro ao carregar Integração • Dash:", err);
+      this.avisosRendimentosSubject.next([
+        ...(this.avisosRendimentosSubject.value || []),
+        `⚠️ Erro ao carregar Integração • Dash: ${(err as Error).message}`
+      ]);
+    }
   }
 }
