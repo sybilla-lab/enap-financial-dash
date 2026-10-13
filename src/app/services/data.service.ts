@@ -1502,7 +1502,8 @@ export class DataService {
         const utilizado = somar(m => m.tipo === this.TIPO_UTILIZACAO && m.origem === p);
         const historico = cent(corte.ate.get(p) ?? 0);
         const novos = cent(corte.depois.get(p) ?? 0);
-        const destinado = cent(cedido + propria);
+        // Apenas cedido reduz saldo livre; propria é rastreada em destinacaoPropria mas não reduz o livre
+        const destinado = cent(cedido);
         return {
           projeto: p,
           historicoAteDataBase: historico,
