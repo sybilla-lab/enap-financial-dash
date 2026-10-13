@@ -110,8 +110,8 @@ export class DataService {
       saldos: this.http.get(this.SHEET_SALDOS, { responseType: "text" }),
       rendimentos: this.http.get(this.SHEET_RENDIMENTOS, { responseType: "text" }),
       glossario: this.http.get(this.SHEET_GLOSSARIO, { responseType: "text" }),
-      // TODO: Integração • Dash carregamento suspenso — validar GID 191009106
-      integracaoDash: this.http.get(this.SHEET_INTEGRACAO_DASH, { responseType: "text" }),
+      // TODO: integracaoDash temporarily disabled - causing projections to zero
+      // integracaoDash: this.http.get(this.SHEET_INTEGRACAO_DASH, { responseType: "text" }),
     }).subscribe({
       next: ({ principal, recebimentos, status, saldos, rendimentos, glossario }) => {
         // Glossário primeiro: a normalização de categorias depende dele.
