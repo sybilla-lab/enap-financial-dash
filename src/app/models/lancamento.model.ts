@@ -209,9 +209,67 @@ export interface MovimentacaoRendimento {
   status: string;               // vigente | cancelada
 }
 
+/**
+ * Linha da fotografia documental de um ofício, por projeto.
+ *
+ * É um checkpoint, não movimento: não é receita, transferência adicional nem
+ * rendimento novo. Os rendimentos posteriores à data-base continuam a ser
+ * somados normalmente por cima dela.
+ */
+export interface ProjetoFotografia {
+  projeto: string;
+  /** Acumulado até a data-base, como consta no documento enviado à ENAP. */
+  acumuladoDocumental: number;
+  /** Série mensal preservada, quando a memória a registra. mesAno → valor. */
+  serieMensal: Map<string, number>;
+  /** Saldo livre registrado na memória, quando houver — só conferência. */
+  saldoLivreRegistrado: number | null;
+  /** Caixa do projeto na data registrada na memória, quando houver. */
+  caixaRegistrado: number | null;
+}
+
+/**
+ * Fotografia documental de um ofício — a série congelada, lida da planilha.
+ *
+ * A Base muda depois que o ofício é emitido: regularizações de saldo, novos
+ * lançamentos, correções de data. Recalcular o acumulado da data-base sobre a
+ * Base de hoje faz o número do documento mudar junto, e o que foi enviado à
+ * ENAP deixa de ser reproduzível. Por isso o checkpoint é lido, não calculado.
+ */
+export interface FotografiaDocumental {
+  /** "Ofício nº 04/2026" */
+  oficio: string;
+  /** "31/07/2026" */
+  dataBase: string;
+  /** "2026-08" — a competência a partir da qual o ofício produz efeito. */
+  competenciaEfeito: string;
+  /** projeto → linha documental. */
+  projetos: Map<string, ProjetoFotografia>;
+  /** Soma dos acumulados documentais — o checkpoint do ofício. */
+  total: number;
+  /** Falhas de leitura, para a página dizer o que não conseguiu ler. */
+  avisos: string[];
+}
+
 export interface ProjetoOficio {
   projeto: string;
-  historicoAteDataBase: number;   // rendimento gerado até a data-base
+  /**
+   * Acumulado até a data-base. Vem da fotografia documental quando ela existe
+   * para este ofício; só cai no recálculo sobre a Base quando não existe, e
+   * nesse caso um aviso acompanha o número.
+   */
+  historicoAteDataBase: number;
+  /**
+   * O mesmo acumulado recalculado sobre a Base de hoje, para auditoria.
+   *
+   * Fica separado de propósito: é ele que mostra o quanto a Base andou desde a
+   * emissão do ofício, e essa diferença é informação, não erro a ser escondido.
+   */
+  historicoRecalculado: number;
+  /** `historicoRecalculado - historicoAteDataBase`, zero quando não há deriva. */
+  derivaDocumental: number;
+  /** Se o acumulado veio da memória documental ou de recálculo. */
+  origemHistorico: 'fotografia documental' | 'recálculo sobre a Base';
   destinado: number;              // cedido + destinação própria
   transferidoCedido: number;
   transferidoRecebido: number;
@@ -240,6 +298,10 @@ export interface OficioRendimentos {
   saldoLivreTotal: number;
   projetos: ProjetoOficio[];
   movimentacoes: MovimentacaoRendimento[];
+  /** A memória documental usada, quando encontrada para este ofício. */
+  fotografia: FotografiaDocumental | null;
+  /** Leitura da memória e divergências entre documento e recálculo. */
+  avisosDocumentais: string[];
   geradoEm: string;
 }
 

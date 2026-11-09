@@ -8,6 +8,15 @@
  */
 const ORCAMENTO_PUB =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSGQCBmyCjdHlexSVhN0wzJ2i6r6QUlj3oACbKd-gJEa81sCIO5UxI24LYRoVHrUHwTtearktC4Jb5a/pub";
+/**
+ * Memórias • ENAP — fotografia documental já enviada à ENAP.
+ *
+ * Os checkpoints de ofício saem daqui, não de recálculo sobre a Base: a Base
+ * muda (regularizações, lançamentos novos) e a série documental não pode mudar
+ * junto.
+ */
+const MEMORIAS_ENAP_URL = `${ORCAMENTO_PUB}?gid=191109002&single=true&output=csv`;
+
 const MOVIMENTACOES_URLS = [
   `${ORCAMENTO_PUB}?gid=185205069&single=true&output=csv`,  // Movimentações de Rendimentos (oficial)
   `${ORCAMENTO_PUB}?gid=96584928&single=true&output=csv`,   // Dashboard • Movimentações Rendimentos
@@ -17,6 +26,7 @@ export const environment = {
   production: true,
   googleSheetsBaseUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTcM2aU8ucv35H649ATmgyUMR6S7pvkVaxPQSwN0p-Hs9DsvAIG5Mm-4PutXobweeZ0vp21mklhYqBM/pub?output=csv",
   movimentacoesRendimentosUrls: MOVIMENTACOES_URLS,
+  memoriasEnapUrl: MEMORIAS_ENAP_URL,
   features: {
     auditoria: ("__FEATURE_AUDITORIA__" as string) === "true",
   },

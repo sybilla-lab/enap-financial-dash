@@ -21,6 +21,8 @@ import {
   MovimentacaoRendimento,
   TransferenciaRendimento,
   EventoHistorico,
+  FotografiaDocumental,
+  ProjetoFotografia,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
 import {
@@ -1307,6 +1309,126 @@ export class DataService {
 
   private movimentacoes$?: Observable<MovimentacaoRendimento[]>;
   private oficio$?: Observable<OficioRendimentos | null>;
+  private fotografias$?: Observable<FotografiaDocumental[]>;
+
+  /** Abreviações de mês como a memória as escreve. */
+  private static readonly MESES_ABREV: Record<string, string> = {
+    jan: '01', fev: '02', mar: '03', abr: '04', mai: '05', jun: '06',
+    jul: '07', ago: '08', set: '09', out: '10', nov: '11', dez: '12',
+  };
+
+  /**
+   * Fotografias documentais da aba "Memórias • ENAP".
+   *
+   * A memória é a cópia do que foi enviado à ENAP. Ela é lida, nunca
+   * recalculada: a Base continua andando — regularizações de saldo, lançamentos
+   * novos, correções de data — e um checkpoint recalculado sobre a Base de hoje
+   * deixaria de reproduzir o documento assinado.
+   */
+  getFotografiasDocumentais(): Observable<FotografiaDocumental[]> {
+    if (this.fotografias$) return this.fotografias$;
+    this.fotografias$ = this.http.get(environment.memoriasEnapUrl, { responseType: 'text' }).pipe(
+      // Aba não publicada responde 200 com a página de login, não com erro.
+      map(csv => (csv.includes('MEMÓRIAS PRESERVADAS') ? this.parseMemoriasEnap(csv) : [])),
+      catchError(() => of([] as FotografiaDocumental[])),
+      shareReplay(1)
+    );
+    return this.fotografias$;
+  }
+
+  /**
+   * Lê a seção do ofício e a série por projeto da memória.
+   *
+   * As colunas são localizadas pelo texto do cabeçalho, não por posição: a aba
+   * é editada à mão e inserir uma coluna não pode trocar silenciosamente o
+   * acumulado por outro número. O que não for legível vira aviso — a página
+   * mostra o que não conseguiu ler em vez de exibir um valor errado com cara
+   * de certo.
+   */
+  private parseMemoriasEnap(csvText: string): FotografiaDocumental[] {
+    const rows = Papa.parse(csvText, { header: false, skipEmptyLines: false }).data as string[][];
+    const cel = (r: string[] | undefined, i = 0) => (r?.[i] ?? '').trim();
+    const avisos: string[] = [];
+
+    // "C. Ofício nº 04/2026 • data-base 31/07/2026; efeito 01/08/2026"
+    const linhaOficio = rows.find(r => /of[ií]cio/i.test(cel(r)) && /data-base/i.test(cel(r)));
+    if (!linhaOficio) {
+      return [{
+        oficio: '', dataBase: '', competenciaEfeito: '', projetos: new Map(), total: 0,
+        avisos: ['Memórias • ENAP: nenhuma seção de ofício com data-base foi encontrada'],
+      }];
+    }
+    const cabecalho = cel(linhaOficio);
+    const nome = cabecalho.match(/(of[ií]cio[^•·]*?)\s*(?:[•·]|$)/i);
+    const dataBaseM = cabecalho.match(/data-base\s*(\d{2}\/\d{2}\/\d{4})/i);
+    const efeitoM = cabecalho.match(/efeito\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+    const oficio = (nome?.[1] ?? '').replace(/^[A-Z]\.\s*/, '').trim();
+    const dataBase = dataBaseM?.[1] ?? '';
+    const competenciaEfeito = efeitoM ? `${efeitoM[3]}-${efeitoM[2]}` : '';
+    if (!dataBase) avisos.push(`Memórias • ENAP: data-base ilegível em "${cabecalho}"`);
+    if (!competenciaEfeito) avisos.push(`Memórias • ENAP: competência de efeito ilegível em "${cabecalho}"`);
+
+    // O acumulado documental é o do mês anterior ao efeito — a data-base.
+    const compDataBase = dataBase ? dataBase.slice(3) : '';
+
+    // Cabeçalho da série por projeto: primeira coluna "Projeto" e alguma
+    // coluna "Acumulado até MM/AAAA".
+    const reAcum = /acumulado\s+at[ée]\s*(\d{2})\/(\d{4})/i;
+    const idxCab = rows.findIndex(r => /^projeto$/i.test(cel(r)) && r.some(c => reAcum.test((c ?? '').trim())));
+    if (idxCab < 0) {
+      avisos.push('Memórias • ENAP: a série por projeto não foi encontrada (cabeçalho "Projeto" com "Acumulado até")');
+      return [{ oficio, dataBase, competenciaEfeito, projetos: new Map(), total: 0, avisos }];
+    }
+
+    const cab = rows[idxCab].map(c => (c ?? '').trim());
+    let colAcumulado = -1;
+    let colLivre = -1;
+    let colCaixa = -1;
+    const colsMes: { idx: number; mesAno: string }[] = [];
+    cab.forEach((texto, i) => {
+      const a = texto.match(reAcum);
+      if (a && `${a[1]}/${a[2]}` === compDataBase) colAcumulado = i;
+      if (/saldo\s+livre/i.test(texto)) colLivre = i;
+      if (/^caixa\b/i.test(texto)) colCaixa = i;
+      const m = texto.toLowerCase().match(/^([a-zç]{3})\.?\/(\d{4})$/);
+      const num = m ? DataService.MESES_ABREV[m[1]] : undefined;
+      if (m && num) colsMes.push({ idx: i, mesAno: `${num}/${m[2]}` });
+    });
+    if (colAcumulado < 0) {
+      avisos.push(
+        `Memórias • ENAP: nenhuma coluna "Acumulado até ${compDataBase}" na série por projeto — ` +
+        `o checkpoint do ${oficio || 'ofício'} não pôde ser lido`
+      );
+      return [{ oficio, dataBase, competenciaEfeito, projetos: new Map(), total: 0, avisos }];
+    }
+
+    const projetos = new Map<string, ProjetoFotografia>();
+    for (let i = idxCab + 1; i < rows.length; i++) {
+      const nomeProj = cel(rows[i]);
+      // Fim da seção: linha vazia, total, ou o título da seção seguinte.
+      if (!nomeProj) break;
+      if (/^total/i.test(nomeProj) || /^[A-Z]\.\s/.test(nomeProj)) break;
+
+      const serieMensal = new Map<string, number>();
+      colsMes.forEach(c => {
+        const bruto = cel(rows[i], c.idx);
+        if (bruto) serieMensal.set(c.mesAno, this.parseValor(bruto));
+      });
+      const livre = colLivre >= 0 ? cel(rows[i], colLivre) : '';
+      const caixa = colCaixa >= 0 ? cel(rows[i], colCaixa) : '';
+      projetos.set(this.normalizarProjeto(nomeProj), {
+        projeto: this.normalizarProjeto(nomeProj),
+        acumuladoDocumental: this.parseValor(cel(rows[i], colAcumulado)),
+        serieMensal,
+        saldoLivreRegistrado: livre ? this.parseValor(livre) : null,
+        caixaRegistrado: caixa ? this.parseValor(caixa) : null,
+      });
+    }
+    if (!projetos.size) avisos.push('Memórias • ENAP: a série por projeto está vazia');
+
+    const total = cent(Array.from(projetos.values()).reduce((s, p) => s + p.acumuladoDocumental, 0));
+    return [{ oficio, dataBase, competenciaEfeito, projetos, total, avisos }];
+  }
 
   getMovimentacoesRendimentos(): Observable<MovimentacaoRendimento[]> {
     if (this.movimentacoes$) return this.movimentacoes$;
@@ -1414,6 +1536,7 @@ export class DataService {
       utilizacaoPorMes: this.getUtilizacaoPorMes(),
       saldos: this.saldos$,
       status: this.status$,
+      fotografias: this.getFotografiasDocumentais(),
     }).pipe(
       map(d => this.apurarOficio(d)),
       catchError(() => of(null)),
@@ -1429,6 +1552,7 @@ export class DataService {
     utilizacaoPorMes: Map<string, string>;
     saldos: SaldoRemanescente[];
     status: StatusProjeto[];
+    fotografias: FotografiaDocumental[];
   }): OficioRendimentos | null {
     const mov = d.movimentacoes.filter(m => m.status.toLowerCase().trim() === 'vigente');
     if (!mov.length || !d.resumo.porMes.length || !d.lancamentos.length) return null;
@@ -1483,8 +1607,34 @@ export class DataService {
     const transferencia = (m: MovimentacaoRendimento) =>
       m.tipo === this.TIPO_TRANSFERENCIA && m.origem !== m.destino;
 
+    /**
+     * A fotografia do próprio ofício, quando a memória a registra.
+     *
+     * O vínculo é pela competência de efeito: uma memória de outro ofício não
+     * serve de checkpoint para este. Sem fotografia, o acumulado continua vindo
+     * do recálculo — com aviso, nunca em silêncio.
+     */
+    const fotografia = d.fotografias.find(
+      f => f.competenciaEfeito === competenciaEfeito && f.projetos.size > 0
+    ) ?? null;
+    const avisosDocumentais = [...(fotografia?.avisos ?? d.fotografias.flatMap(f => f.avisos))];
+    if (!fotografia) {
+      avisosDocumentais.push(
+        `Sem fotografia documental para a competência ${competenciaEfeito} em Memórias • ENAP: ` +
+        `o acumulado até a data-base está sendo recalculado sobre a Base atual e pode não ` +
+        `reproduzir o documento enviado à ENAP.`
+      );
+    } else if (Math.abs(fotografia.total - corte.totalAte) > 0.02) {
+      avisosDocumentais.push(
+        `O checkpoint documental (${this.brlLocal(fotografia.total)}) difere do recálculo sobre a ` +
+        `Base (${this.brlLocal(corte.totalAte)}) em ${this.brlLocal(cent(corte.totalAte - fotografia.total))}. ` +
+        `Vale o documental; a diferença fica registrada para auditoria.`
+      );
+    }
+
     const nomes = new Set<string>([...corte.ate.keys(), ...corte.depois.keys()]);
     mov.forEach(m => { nomes.add(m.origem); nomes.add(m.destino); });
+    fotografia?.projetos.forEach((_, p) => nomes.add(p));
 
     const projetos: ProjetoOficio[] = Array.from(nomes)
       .filter(p => !!p)
@@ -1493,12 +1643,21 @@ export class DataService {
         const recebido = somar(m => transferencia(m) && m.destino === p);
         const propria = somar(m => m.tipo === this.TIPO_DESTINACAO_PROPRIA && m.origem === p);
         const utilizado = somar(m => m.tipo === this.TIPO_UTILIZACAO && m.origem === p);
-        const historico = cent(corte.ate.get(p) ?? 0);
+        const recalculado = cent(corte.ate.get(p) ?? 0);
+        const documental = fotografia?.projetos.get(p)?.acumuladoDocumental;
+        // O checkpoint é lido da memória; o recálculo fica ao lado, para
+        // mostrar o quanto a Base andou desde a emissão do ofício.
+        const historico = documental !== undefined ? cent(documental) : recalculado;
         const novos = cent(corte.depois.get(p) ?? 0);
         const destinado = cent(cedido + propria);
         return {
           projeto: p,
           historicoAteDataBase: historico,
+          historicoRecalculado: recalculado,
+          derivaDocumental: cent(recalculado - historico),
+          origemHistorico: (documental !== undefined
+            ? 'fotografia documental'
+            : 'recálculo sobre a Base') as ProjetoOficio['origemHistorico'],
           destinado,
           transferidoCedido: cedido,
           transferidoRecebido: recebido,
@@ -1526,7 +1685,9 @@ export class DataService {
       projetoExecutor: referencia.destino || 'Operação Básica',
       dataBase: referencia.dataBase,
       competenciaEfeito,
-      checkpointDataBase: corte.totalAte,
+      // O checkpoint publicado é o documental; o recálculo vive em
+      // `derivaDocumental`, projeto a projeto.
+      checkpointDataBase: fotografia ? fotografia.total : corte.totalAte,
       totalDestinado: cent(totalTransferido + totalPropria),
       transferidoDeOutrosProjetos: totalTransferido,
       rendimentoProprioDestinado: totalPropria,
@@ -1535,6 +1696,8 @@ export class DataService {
       saldoLivreTotal: cent(projetos.reduce((s, p) => s + p.saldoLivreAtual, 0)),
       projetos,
       movimentacoes: mov,
+      fotografia,
+      avisosDocumentais,
       geradoEm: new Date().toISOString(),
     };
   }
