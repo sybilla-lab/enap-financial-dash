@@ -31,6 +31,19 @@
       </div>
       }
     </dl>
+
+    @if (d.deriva) {
+    <p class="ev-deriva">
+      <mat-icon>history_edu</mat-icon>
+      <span>{{ d.deriva }}</span>
+    </p>
+    }
+    @for (a of d.avisos; track a) {
+    <p class="ev-aviso">
+      <mat-icon>warning_amber</mat-icon>
+      <span>{{ a }}</span>
+    </p>
+    }
   </div>
 </section>
 }

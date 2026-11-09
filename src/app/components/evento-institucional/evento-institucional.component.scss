@@ -144,3 +144,34 @@
 @media print {
   .ev-faixa { break-inside: avoid; page-break-inside: avoid; }
 }
+
+/* ── Procedência e alerta ───────────────────────────────────────────────────
+   A faixa publica número de documento. Quando o valor exibido é o documental
+   e o recálculo sobre a Base daria outro, isso é dito na própria faixa: a
+   diferença é informação de auditoria, não defeito a ser escondido. */
+.ev-deriva,
+.ev-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+.ev-deriva mat-icon { color: var(--accent-primary); }
+
+/* Âmbar só no que exige ação: memória ausente ou checkpoint divergente. */
+.ev-aviso {
+  color: var(--text-secondary);
+  mat-icon { color: #f59e0b; }
+}

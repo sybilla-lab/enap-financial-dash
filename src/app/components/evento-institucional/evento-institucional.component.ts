@@ -109,13 +109,42 @@ export class EventoInstitucionalComponent {
       competenciaEfeito: o.competenciaEfeito,
       finalidade: o.finalidade,
       executor: o.projetoExecutor,
+      /**
+       * Avisos da leitura documental, à vista.
+       *
+       * Se a memória do ofício não foi encontrada, o acumulado exibido é
+       * recálculo sobre a Base de hoje e pode não reproduzir o que foi enviado
+       * à ENAP. Esconder isso faria o card parecer documental sem ser.
+       */
+      avisos: o.avisosDocumentais,
     };
+  }
+
+  /**
+   * Nota de deriva: o quanto a Base andou desde a emissão do ofício.
+   *
+   * Não corrige nem esconde nada — o valor exibido continua sendo o
+   * documental. Só registra que o recálculo daria outro número, que é
+   * informação de auditoria, não defeito a ser varrido.
+   */
+  private notaDeriva(p: ProjetoOficio): string | null {
+    if (p.origemHistorico !== 'fotografia documental') {
+      return `Acumulado até a data-base recalculado sobre a Base atual — sem memória documental ` +
+             `para este projeto no ofício.`;
+    }
+    if (Math.abs(p.derivaDocumental) < 0.02) return null;
+    const fmt = (v: number) =>
+      v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return `Acumulado documental preservado em ${fmt(p.historicoAteDataBase)}. O recálculo sobre a ` +
+           `Base atual daria ${fmt(p.historicoRecalculado)} — diferença de ${fmt(p.derivaDocumental)}, ` +
+           `registrada para auditoria.`;
   }
 
   private executor(o: OficioRendimentos, p: ProjetoOficio) {
     return {
       ...this.base(o),
       papel: 'executor' as PapelEvento,
+      deriva: this.notaDeriva(p),
       titulo: `Executa a destinação para ${o.finalidade}`,
       texto:
         `Recebeu saldos de rendimentos de outros projetos e destinou rendimento próprio à ${o.finalidade}. ` +
@@ -138,6 +167,7 @@ export class EventoInstitucionalComponent {
     return {
       ...this.base(o),
       papel: 'cedente' as PapelEvento,
+      deriva: this.notaDeriva(p),
       titulo: `Saldo de rendimentos destinado à ${o.finalidade}`,
       texto:
         `O saldo acumulado até ${o.dataBase} foi transferido para a ${o.projetoExecutor}, que executa a ` +
@@ -159,6 +189,7 @@ export class EventoInstitucionalComponent {
     return {
       ...this.base(o),
       papel: 'preservado' as PapelEvento,
+      deriva: this.notaDeriva(p),
       titulo: 'Não participou da realocação de rendimentos',
       texto:
         `O saldo acumulado até ${o.dataBase} foi preservado integralmente no corte de ` +
