@@ -611,23 +611,72 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
   }
 
+  /**
+   * Converte a projeção oficial no formato que a seção de previsão consome.
+   *
+   * Nada é calculado aqui: o valor de cada projeto em cada mês futuro é o que
+   * a planilha projeta, e a participação é a fatia dele no total do mês.
+   */
+  private previsaoDaPlanilha(projecoes: Map<string, Map<string, number>>): CalcRendResult[] {
+    const CHAVE: Record<string, string> = {
+      'Alimenta +1000 Cidades': 'Alimenta', 'CAR DPG': 'CAR DPG',
+      'Parceria MDIC': 'MDIC', 'Co.NE': 'Co.NE', 'Operação Básica': 'Op. Básica',
+    };
+    const MES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+    return Array.from(projecoes.entries())
+      .map(([competencia, porProjeto]) => {
+        const [mm, yyyy] = competencia.split('/');
+        const total = cent(Array.from(porProjeto.values()).reduce((s, v) => s + v, 0));
+        const proj_rend: Record<string, number> = {};
+        const proj_part: Record<string, number> = {};
+        porProjeto.forEach((valor, projeto) => {
+          const chave = CHAVE[projeto];
+          if (!chave) return;
+          proj_rend[chave] = cent(valor);
+          proj_part[chave] = total > 0 ? valor / total : 0;
+        });
+        return {
+          mes: `${yyyy}-${mm}`,
+          label: `${MES_ABREV[parseInt(mm, 10) - 1]}/${yyyy.slice(2)}`,
+          rend_total: total,
+          proj_rend,
+          proj_part,
+          // A planilha não publica saldo final projetado nesta aba; o campo
+          // existe só para a coluna de apoio do accordion.
+          proj_fin: {},
+        } as CalcRendResult;
+      })
+      .sort((a, b) => a.mes.localeCompare(b.mes));
+  }
+
+  /**
+   * A coluna de saldo estimado só aparece quando a fonte a publica.
+   *
+   * O Rateio • Realizado projeta o rendimento, não o saldo final do projeto.
+   * Sem este guarda a coluna exibia "R$ 0" em todas as linhas — um dado
+   * ausente com cara de dado zerado.
+   */
+  get temSaldoEstimado(): boolean {
+    return this.previsaoPorProjeto.some(p => p.meses.some(m => Math.abs(m.saldoFin) > 0.01));
+  }
+
   private computarPrevisao(results: CalcRendResult[]): void {
     this._rawPrevResults = results;
     results = results.filter(r => r.mes >= this.projFirstMes);
     const PROJETOS_KEY = ['Alimenta', 'CAR DPG', 'MDIC', 'Co.NE', 'Op. Básica'];
-    // Fallback hardcoded só até o histórico dinâmico (historicoPorProjeto) chegar
-    const HIST_ACUM_FB: Record<string, number> = {
-      'Alimenta': 345942.81, 'CAR DPG': 64948.71,
-      'Op. Básica': 33450.06, 'Co.NE': 22737.13, 'MDIC': 0,
-    };
-    const histAcumFor = (p: string) => this._histAcumDynamic.get(p) ?? (HIST_ACUM_FB[p] ?? 0);
+    /**
+     * O acumulado histórico vem da série oficial, sem valor de reserva.
+     *
+     * Havia um fallback fixo aqui (Alimenta 345.942,81, CAR 64.948,71 …) de
+     * uma apuração antiga. Com a fonte oficial no ar ele nunca é o número
+     * certo, e um vínculo quebrado apareceria como dado atualizado — que é
+     * exatamente o que não pode acontecer.
+     */
+    const histAcumFor = (p: string) => this._histAcumDynamic.get(p) ?? 0;
     const DISPLAY: Record<string, string> = {
       'Alimenta': 'Alimenta +1000 Cidades', 'CAR DPG': 'CAR DPG',
       'MDIC': 'Parceria MDIC', 'Co.NE': 'Co.NE', 'Op. Básica': 'Operação Básica',
-    };
-    const PROJ_END: Record<string, string> = {
-      'Alimenta': '2027-05', 'Co.NE': '2027-01',
-      'CAR DPG': '2027-12', 'MDIC': '2027-03', 'Op. Básica': '2028-12',
     };
 
     const projTotal: Record<string, number> = {};
@@ -639,20 +688,24 @@ export class RendimentosComponent implements OnInit, OnDestroy {
       const yr = parseInt(m.mes.substring(0, 4));
       const sheetsTotal = this._sheetsRendimentos.get(m.mes);
 
+      /**
+       * Até onde cada projeto projeta é a planilha que diz.
+       *
+       * Havia um calendário fixo aqui — Alimenta até 2027-05, MDIC até
+       * 2027-03 — que já não correspondia à planilha, que projeta Alimenta
+       * até jun/2027 e MDIC até abr/2027. Um mês real era descartado por
+       * causa de uma data velha no código. Agora o projeto simplesmente
+       * deixa de aparecer no mês em que a planilha para de projetá-lo.
+       */
       if (sheetsTotal !== undefined) {
-        // Planilha é a fonte de verdade — total do ano não passa pelo filtro de projetos
         bancoPorAno[yr] = (bancoPorAno[yr] ?? 0) + sheetsTotal;
-        // Distribuição por projeto é só para exibição (accordion); usa proj_part do JSON
         for (const p of PROJETOS_KEY) {
-          if (m.mes > (PROJ_END[p] ?? '2028-12')) continue;
           const rend = sheetsTotal * (m.proj_part[p] ?? 0);
           projTotal[p] += rend;
           projPorAno[p][yr] = (projPorAno[p][yr] ?? 0) + rend;
         }
       } else {
-        // Fallback JSON: tudo derivado do JSON (meses além do alcance da planilha)
         for (const p of PROJETOS_KEY) {
-          if (m.mes > (PROJ_END[p] ?? '2028-12')) continue;
           const rend = m.proj_rend[p] ?? 0;
           projTotal[p] += rend;
           projPorAno[p][yr] = (projPorAno[p][yr] ?? 0) + rend;
@@ -674,10 +727,9 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     this.previsaoPorProjeto = PROJETOS_KEY
       .map((p, i) => {
         const histAcum = histAcumFor(p);
-        const endDate = PROJ_END[p] ?? '2028-12';
         let acumRun = 0;
         const meses = results
-          .filter(m => m.mes <= endDate && (
+          .filter(m => (
             (m.proj_rend[p] ?? 0) > 0.01 ||
             ((this._sheetsRendimentos.get(m.mes) ?? 0) * (m.proj_part[p] ?? 0)) > 0.01
           ))
@@ -875,6 +927,19 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         if (this._rawPrevResults.length) this.computarPrevisao(this._rawPrevResults);
       });
 
+      /**
+       * A previsão vinha de um JSON que foi descontinuado — e a guarda
+       * `if (_rawPrevResults.length)` ficou, então `computarPrevisao` nunca
+       * rodava e a tela mostrava projeção zerada e Total Geral zerado.
+       *
+       * Agora a série de meses futuros é montada da projeção oficial, por
+       * projeto e competência, lida do Rateio • Realizado a cada carga.
+       */
+      this.dataService.getProjecaoPorProjeto().subscribe(projecoes => {
+        this._rawPrevResults = this.previsaoDaPlanilha(projecoes);
+        this.computarPrevisao(this._rawPrevResults);
+      });
+
       this.preloadLogo('/logo-impacthub.png').then(r => { this.logoIH = r.data; this.logoIHW = r.w; this.logoIHH = r.h; });
       this.preloadLogo('/logo-enap.png').then(r => { this.logoEnap = r.data; this.logoEnapW = r.w; this.logoEnapH = r.h; });
     }
@@ -995,134 +1060,84 @@ export class RendimentosComponent implements OnInit, OnDestroy {
    * O rendimento líquido do mês é distribuído proporcionalmente.
    * O resultado é exclusivamente informativo.
    */
+  /**
+   * Atribuição por projeto no mês clicado — da fonte oficial.
+   *
+   * Este modal tinha a terceira implementação do rateio da casa, e a mais
+   * antiga: distribuía sobre uma foto do saldo no mês, somava o remanescente
+   * de outros projetos à Operação Básica e transferia só saldo positivo dos
+   * encerrados. Dava números que nenhuma outra tela dava.
+   *
+   * Em competência fechada a resposta é a da planilha: rendimento do mês e
+   * acumulado saem de "Rateio • Realizado" sobre a abertura documental, e a
+   * participação é a que a própria aba registra. Fora do alcance da fonte
+   * oficial o motor ainda responde — é o caso dos meses anteriores a 2026.
+   */
   abrirDetalhe(mesAno: string): void {
+    const oficial = this.serieOficial;
+    if (oficial?.disponivel && oficial.competencias.includes(mesAno)) {
+      const linhas = Array.from(oficial.series.values())
+        .map(serie => {
+          const ate = serie.meses.filter(m => mesKey(m.mesAno) <= mesKey(mesAno));
+          const doMes = ate[ate.length - 1];
+          return {
+            projeto: serie.projeto,
+            pctParticipacao: (doMes?.participacao ?? 0) * 100,
+            rendimentoMes: doMes?.rendimento ?? 0,
+            rendimentoAcumulado: doMes?.acumulado ?? serie.abertura,
+            // A caixa que ponderou o mês é o que a aba chama de abertura; é
+            // ela que explica a participação exibida ao lado.
+            saldoProjeto: doMes?.caixaAbertura ?? 0,
+          };
+        })
+        .filter(d => d.rendimentoAcumulado > 0.01)
+        .sort((a, b) => b.rendimentoAcumulado - a.rendimentoAcumulado);
+
+      this.detalhesRend = linhas.map((d, i) => ({ ...d, cor: PALETTE[i % PALETTE.length] }));
+      this.mesAnoSelecionado = mesAno;
+      return;
+    }
+
+    this.abrirDetalhePeloMotor(mesAno);
+  }
+
+  /**
+   * Fallback para competências fora do alcance da fonte oficial.
+   *
+   * Vale para os meses anteriores a janeiro/2026, que o Rateio • Realizado não
+   * cobre. Mantém o critério do motor único: encerrados varridos para a
+   * Operação Básica com o sinal que tiverem, Plataforma sem atribuição.
+   */
+  private abrirDetalhePeloMotor(mesAno: string): void {
+    const rateio = ratearRendimentos({
+      porMes: this.resumo.porMes,
+      lancamentos: this.lancamentosOriginais,
+      utilizacaoPorMes: this.utilizacaoPorMes,
+      projetosEncerrados: this.projetosEncerrados,
+      projetosInativos: this.projetosInativos,
+      projetosSemAtribuicao: PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
+    });
+    if (!rateio) { this.detalhesRend = []; this.mesAnoSelecionado = mesAno; return; }
+
     const cutoff = mesKey(mesAno);
-
-    // Determina se o mês clicado é "disponível" ou "utilizado"
-    const isClickedDisponivel = (this.utilizacaoPorMes.get(mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
-
-    // Encontra o primeiro mês "disponível" (ponto de reset do acumulado)
-    const allMonthsSorted = [...this.resumo.porMes].sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
-    const firstDispMc = allMonthsSorted.reduce((acc, m) => {
-      const isDisp = (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
-      return isDisp && acc === Infinity ? mesKey(m.mesAno) : acc;
-    }, Infinity);
-
-    // Ordena lancamentos cronologicamente uma vez
-    const lancsSorted = [...this.lancamentosOriginais]
-      .filter(l => l.mesAno)
-      .sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
-
-    // Filtra os meses de rendimento pelo mesmo período que porMesCorrigido:
-    // - se clicado é "disponível": só meses a partir do primeiro disponível
-    // - se clicado é "utilizado": só meses "utilizado"
-    const sortedMonths = this.resumo.porMes
-      .filter(m => {
-        const mc = mesKey(m.mesAno);
-        if (mc > cutoff) return false;
-        const isDisp = (this.utilizacaoPorMes.get(m.mesAno) ?? '').toLowerCase().trim() !== 'utilizado';
-        return isClickedDisponivel ? mc >= firstDispMc : !isDisp;
-      })
-      .sort((a, b) => mesKey(a.mesAno) - mesKey(b.mesAno));
-
-    // Saldo corrente por projeto (avança mês a mês)
-    const runningBalance = new Map<string, number>();
-    const projRendAcum = new Map<string, number>();
-    let lIdx = 0;
-    let undistributed = 0; // rendimento acumulado de meses sem projetos com saldo positivo
-
-    for (const mes of sortedMonths) {
-      const mc = mesKey(mes.mesAno);
-
-      // Incorpora todos os lançamentos até o final deste mês de rendimento
-      // (inclui o próprio mês pois o rendimento é apurado no último dia do mês)
-      while (lIdx < lancsSorted.length && mesKey(lancsSorted[lIdx].mesAno) <= mc) {
-        const l = lancsSorted[lIdx++];
-        if (!l.projeto) continue; // ignora créditos de rendimento sem projeto
-        runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
-      }
-
-      // Zera projetos encerrados e transfere saldo positivo para Operação Básica
-      this.projetosEncerrados.forEach((closedMc, proj) => {
-        if (mc > closedMc) {
-          const bal = runningBalance.get(proj) ?? 0;
-          if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
-          runningBalance.set(proj, 0);
-        }
-      });
-
-      // Distribui o rendimento líquido do mês proporcionalmente aos saldos positivos.
-      // Rendimentos de meses sem projetos com saldo positivo são acumulados e redistribuídos
-      // no próximo mês com distribuição possível, garantindo que a soma = total acumulado.
-      const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
-      const toDistribute = mes.liquido + undistributed;
-      if (totalPos > 0 && toDistribute > 0) {
-        runningBalance.forEach((saldo, proj) => {
-          if (saldo > 0) {
-            projRendAcum.set(proj, (projRendAcum.get(proj) ?? 0) + toDistribute * (saldo / totalPos));
-          }
-        });
-        undistributed = 0;
-      } else {
-        undistributed += mes.liquido;
-      }
-    }
-
-    // Consolida rendimento de projetos encerrados/inativos em Operação Básica
-    const isInativo = (proj: string) =>
-      this.projetosInativos.has(proj) ||
-      (this.projetosEncerrados.has(proj) && cutoff >= this.projetosEncerrados.get(proj)!);
-
-    projRendAcum.forEach((rend, proj) => {
-      if (proj !== 'Operação Básica' && isInativo(proj)) {
-        if (rend > 0)
-          projRendAcum.set('Operação Básica', (projRendAcum.get('Operação Básica') ?? 0) + rend);
-        projRendAcum.delete(proj);
-      }
-    });
-
-    // Correção de arredondamento: garante que a soma dos acumulados por projeto
-    // seja exatamente igual ao acumulado total exibido no header (evita Δ de R$ 0,01).
-    projRendAcum.forEach((rend, proj) => {
-      projRendAcum.set(proj, Math.round(rend * 100) / 100);
-    });
-    const expectedTotal = Math.round(sortedMonths.reduce((s, m) => s + m.liquido, 0) * 100) / 100;
-    const actualSum    = Math.round(Array.from(projRendAcum.values()).reduce((s, v) => s + v, 0) * 100) / 100;
-    const residuo = Math.round((expectedTotal - actualSum) * 100) / 100;
-    if (residuo !== 0) {
-      let maxProj = ''; let maxRend = -Infinity;
-      projRendAcum.forEach((rend, proj) => { if (rend > maxRend) { maxRend = rend; maxProj = proj; } });
-      if (maxProj) projRendAcum.set(maxProj, Math.round((projRendAcum.get(maxProj)! + residuo) * 100) / 100);
-    }
-
-    // Saldo de cada projeto ao início do mês clicado (para exibir % de participação atual)
-    const saldoBase = new Map<string, number>();
-    this.lancamentosOriginais.forEach(l => {
-      if (!l.mesAno || !l.projeto || mesKey(l.mesAno) > cutoff) return;
-      const closedMc = this.projetosEncerrados.get(l.projeto);
-      if (closedMc && cutoff > closedMc) return;
-      saldoBase.set(l.projeto, (saldoBase.get(l.projeto) ?? 0) + l.valor);
-    });
-    if (this.srOutrosProjetos > 0)
-      saldoBase.set('Operação Básica', (saldoBase.get('Operação Básica') ?? 0) + this.srOutrosProjetos);
-    const totalBase = Array.from(saldoBase.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
     const mesLiquido = this.resumo.porMes.find(m => m.mesAno === mesAno)?.liquido ?? 0;
 
-    this.detalhesRend = Array.from(projRendAcum.keys())
-      .map((projeto, i) => {
-        const saldo = saldoBase.get(projeto) ?? 0;
-        const pct = totalBase > 0 && saldo > 0 ? saldo / totalBase : 0;
+    this.detalhesRend = Array.from(rateio.porProjetoMes.entries())
+      .map(([projeto, porMes]) => {
+        let acumulado = 0;
+        porMes.forEach((v, m) => { if (mesKey(m) <= cutoff) acumulado += v; });
+        const doMes = porMes.get(mesAno) ?? 0;
         return {
           projeto,
-          pctParticipacao: pct * 100,
-          rendimentoMes: mesLiquido * pct,
-          rendimentoAcumulado: projRendAcum.get(projeto) ?? 0,
-          saldoProjeto: saldo,
-          cor: PALETTE[i % PALETTE.length],
+          pctParticipacao: mesLiquido > 0 ? (doMes / mesLiquido) * 100 : 0,
+          rendimentoMes: doMes,
+          rendimentoAcumulado: cent(acumulado),
+          saldoProjeto: 0,
         };
       })
       .filter(d => d.rendimentoAcumulado > 0.01)
-      .sort((a, b) => b.rendimentoAcumulado - a.rendimentoAcumulado);
+      .sort((a, b) => b.rendimentoAcumulado - a.rendimentoAcumulado)
+      .map((d, i) => ({ ...d, cor: PALETTE[i % PALETTE.length] }));
 
     this.mesAnoSelecionado = mesAno;
   }

@@ -570,7 +570,11 @@
                         <th class="col-pct">Participação</th>
                         <th class="col-rend num">Rend. estimado</th>
                         <th class="col-acum num">Acum. proj.</th>
+                        <!-- Só quando a fonte publica o saldo projetado. Mostrar
+                             "R$ 0" para um dado que não existe é pior que omiti-lo. -->
+                        @if (temSaldoEstimado) {
                         <th class="col-saldo num">Saldo est. final</th>
+                        }
                       </tr>
                     </thead>
                     <tbody>
@@ -596,7 +600,9 @@
                             </div>
                           </div>
                         </td>
+                        @if (temSaldoEstimado) {
                         <td class="col-saldo num saldo-est">{{ m.saldoFin | currency:'BRL':'symbol':'1.0-0' }}</td>
+                        }
                       </tr>
                       }
                       <tr class="verif-row">

@@ -1574,7 +1574,8 @@ export class DataService {
 
   private parseRateioRealizado(csvText: string, corte: string): SerieRealizada {
     const vazia: SerieRealizada = {
-      porCompetencia: new Map(), competencias: [], projetos: [], corte, avisos: [],
+      porCompetencia: new Map(), competencias: [], projetos: [], projecoes: new Map(),
+      corte, avisos: [],
     };
     if (!csvText.includes('RATEIO REALIZADO')) {
       return { ...vazia, avisos: ['Rateio • Realizado: aba não publicada ou fora do formato esperado'] };
@@ -1603,6 +1604,9 @@ export class DataService {
       saldoLivre: /^saldo\s+livre$/i,
       caixaFechamento: /caixa\s+no\s+fechamento/i,
     };
+    // A projeção vive em coluna própria. A de rendimento atribuído fica zerada
+    // em mês não fechado, e zero não é previsão.
+    const RE_PROJETADO = /registrado\s*\/\s*projetado/i;
     // Basta Competência + Projeto para reconhecer o cabeçalho: se uma coluna
     // obrigatória sumiu, o aviso tem de dizer QUAL, não "cabeçalho não
     // encontrado".
@@ -1627,7 +1631,9 @@ export class DataService {
     }
 
     const corteKey = this.mesKeyLocal(corte);
+    const colProjetado = cab.findIndex(t => RE_PROJETADO.test(t));
     const porCompetencia = new Map<string, Map<string, LinhaRealizada>>();
+    const projecoes = new Map<string, Map<string, number>>();
     const projetos = new Set<string>();
     const foraDoCorte: string[] = [];
 
@@ -1635,7 +1641,19 @@ export class DataService {
       const competencia = this.competenciaDeTexto(cel(rows[i], col['competencia']));
       if (!competencia) continue;
       const situacao = cel(rows[i], col['situacao']);
-      // Só mês fechado. Projeção e blocos de conferência ficam de fora.
+
+      // Mês posterior ao corte é previsão: entra por outra porta, pela coluna
+      // "Registrado / projetado", e nunca como realizado.
+      if (/proje/i.test(situacao) && colProjetado >= 0) {
+        const valor = this.parseValor(cel(rows[i], colProjetado));
+        const proj = this.normalizarProjeto(cel(rows[i], col['projeto']));
+        if (proj && valor) {
+          if (!projecoes.has(competencia)) projecoes.set(competencia, new Map());
+          projecoes.get(competencia)!.set(proj, valor);
+        }
+        continue;
+      }
+      // Só mês fechado daqui para baixo. Blocos de conferência ficam de fora.
       if (!/hist[óo]rico|apurado/i.test(situacao)) continue;
 
       if (this.mesKeyLocal(competencia) > corteKey) {
@@ -1670,6 +1688,14 @@ export class DataService {
     if (!porCompetencia.size) {
       avisos.push(`Rateio • Realizado: nenhuma competência fechada até o corte de ${corte}`);
     }
+    if (colProjetado < 0) {
+      avisos.push(
+        'Rateio • Realizado: coluna "Registrado / projetado" não encontrada — a previsão dos ' +
+        'meses posteriores ao corte não pôde ser lida'
+      );
+    } else if (!projecoes.size) {
+      avisos.push(`Rateio • Realizado: nenhuma projeção após o corte de ${corte}`);
+    }
 
     const competencias = Array.from(porCompetencia.keys())
       .sort((a, b) => this.mesKeyLocal(a) - this.mesKeyLocal(b));
@@ -1693,7 +1719,7 @@ export class DataService {
       }
     }
 
-    return { porCompetencia, competencias, projetos: todos, corte, avisos };
+    return { porCompetencia, competencias, projetos: todos, projecoes, corte, avisos };
   }
 
   /**
@@ -1738,7 +1764,11 @@ export class DataService {
             const linha = realizada.porCompetencia.get(c)!.get(projeto);
             const rendimento = cent(linha?.rendimentoAtribuido ?? 0);
             acumulado = cent(acumulado + rendimento);
-            return { mesAno: c, rendimento, acumulado, participacao: linha?.participacao ?? 0 };
+            return {
+              mesAno: c, rendimento, acumulado,
+              participacao: linha?.participacao ?? 0,
+              caixaAbertura: cent(linha?.caixaAbertura ?? 0),
+            };
           });
           const destinado = oficio?.projetos.find(p => p.projeto === projeto)?.destinado ?? 0;
           const ultima = realizada.competencias.length
@@ -2124,10 +2154,50 @@ export class DataService {
   private readonly ORCAMENTO_BASE =
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQk5MAr4iJ1c7JubFqBVw8BPbcallMvsRdfFiIMQeSufBLRuYgZvQOYC79_vTyv0Q/pub?output=csv';
 
+  /**
+   * Rendimento projetado por competência futura — "YYYY-MM" → total.
+   *
+   * A fonte antiga era uma planilha DFC publicada à parte, que deixou de
+   * responder CSV e passou a devolver a página de login do Google. O parser
+   * não achava cabeçalho de mês, devolvia mapa vazio, e a tela mostrava
+   * projeção zero como se fosse previsão real — um vínculo quebrado aparecendo
+   * como dado atualizado.
+   *
+   * Agora a projeção sai da coluna "Registrado / projetado" do Rateio •
+   * Realizado, nos meses posteriores ao corte. É a mesma previsão que as abas
+   * dos projetos calculam, lida da planilha a cada carga. A fonte antiga
+   * continua como segunda tentativa, e falhar nas duas vira aviso em vez de
+   * zero silencioso.
+   */
   getOrcamentoRendimentos(): Observable<Map<string, number>> {
-    return this.http.get(this.ORCAMENTO_BASE, { responseType: 'text' }).pipe(
-      map(csv => this.parseOrcamentoRendimentos(csv))
+    const legado = this.http.get(this.ORCAMENTO_BASE, { responseType: 'text' }).pipe(
+      map(csv => this.parseOrcamentoRendimentos(csv)),
+      catchError(() => of(new Map<string, number>()))
     );
+
+    return this.getSerieRealizada().pipe(
+      switchMap(serie => {
+        if (serie.projecoes.size) {
+          const mapa = new Map<string, number>();
+          serie.projecoes.forEach((porProjeto, competencia) => {
+            const [mes, ano] = competencia.split('/');
+            const total = cent(Array.from(porProjeto.values()).reduce((s, v) => s + v, 0));
+            if (total) mapa.set(`${ano}-${mes}`, total);
+          });
+          return of(mapa);
+        }
+        return legado;
+      }),
+      shareReplay(1)
+    );
+  }
+
+  /**
+   * Projeção por projeto e competência futura, para quem precisa do detalhe.
+   * Mesma fonte do total, sem recalcular por outra via.
+   */
+  getProjecaoPorProjeto(): Observable<Map<string, Map<string, number>>> {
+    return this.getSerieRealizada().pipe(map(s => s.projecoes));
   }
 
   private parseOrcamentoRendimentos(csv: string): Map<string, number> {

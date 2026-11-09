@@ -126,6 +126,29 @@ describe('Série oficial do realizado • Rateio • Realizado', () => {
     expect(s.avisos.some(a => a.includes('Último mês encerrado'))).toBeTrue();
   });
 
+  it('lê a projeção da coluna própria, não da de rendimento atribuído', () => {
+    const s = carregar();
+    const nov = s.projecoes.get('11/2026')!;
+    expect(nov.get('Operação Básica')).toBe(316.20);
+    expect(nov.get('Alimenta +1000 Cidades')).toBe(29253.77);
+    // A coluna de rendimento atribuído está zerada nesses meses: zero não é previsão.
+    expect(s.porCompetencia.has('11/2026')).toBeFalse();
+  });
+
+  it('entrega a projeção ao orçamento no formato YYYY-MM', () => {
+    let mapa = new Map<string, number>();
+    service.getOrcamentoRendimentos().subscribe(m => (mapa = m));
+    http.expectOne(environment.rateioRealizadoUrl).flush(CSV_RATEIO);
+    http.expectOne(environment.controleIntegracoesUrl).flush(CSV_CONTROLE);
+    // Só nov/2026 está no recorte do teste; o total é a soma dos projetos.
+    expect(Math.round(mapa.get('2026-11')! * 100) / 100).toBe(29569.97);
+  });
+
+  it('avisa quando a coluna de projeção some', () => {
+    const s = carregar(CSV_RATEIO.replace('Registrado / projetado', 'Registrado'));
+    expect(s.avisos.some(a => a.includes('Registrado / projetado'))).toBeTrue();
+  });
+
   it('não aceita a página de login de uma aba despublicada', () => {
     const s = carregar('<html><title>Fazer login</title></html>');
     expect(s.competencias).toEqual([]);

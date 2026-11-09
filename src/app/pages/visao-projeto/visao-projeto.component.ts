@@ -1044,7 +1044,9 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
         pctParticipacao: m.participacao * 100,
         rendimentoMes: m.rendimento,
         rendimentoAcumulado: m.acumulado,
-        saldoProjeto: 0,
+        // A caixa que ponderou o mês, como a planilha a publica — é ela que
+        // explica a participação exibida ao lado.
+        saldoProjeto: m.caixaAbertura,
       } as RendAtribuido));
       this.totalRendimentoAtribuido = oficialDoProjeto.acumulado;
       return;

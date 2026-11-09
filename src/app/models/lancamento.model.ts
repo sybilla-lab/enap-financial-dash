@@ -290,6 +290,13 @@ export interface SerieRealizada {
   porCompetencia: Map<string, Map<string, LinhaRealizada>>;
   /** Competências fechadas, em ordem cronológica. */
   competencias: string[];
+  /**
+   * Projeção por competência posterior ao corte: competência → projeto → valor.
+   *
+   * Vem da coluna "Registrado / projetado", não da de rendimento atribuído —
+   * essa fica zerada em mês não fechado, e zero não é previsão.
+   */
+  projecoes: Map<string, Map<string, number>>;
   /** Projetos presentes na série. */
   projetos: string[];
   /** Último mês fechado, de "Controle • Integrações!B4". */
@@ -302,7 +309,9 @@ export interface SerieOficialProjeto {
   projeto: string;
   /** Acumulado documental na abertura (até 12/2025). */
   abertura: number;
-  meses: { mesAno: string; rendimento: number; acumulado: number; participacao: number }[];
+  /** `caixaAbertura` é a base que ponderou o mês, como a planilha a publica. */
+  meses: { mesAno: string; rendimento: number; acumulado: number; participacao: number;
+           caixaAbertura: number }[];
   /** Abertura mais todos os meses fechados. */
   acumulado: number;
   /** Acumulado menos o destinado por ofício. */
