@@ -55,7 +55,18 @@ export class SaldosGestaoComponent implements OnInit {
   eventos: EventoHistorico[] = [];
   eventosFiltrados: EventoHistorico[] = [];
   tipoFiltro: TipoEventoHistorico | null = null;
-  tiposDisponiveis: { tipo: TipoEventoHistorico; rotulo: string; quantidade: number }[] = [];
+  /**
+   * `badge` é o que o chip exibe ao lado do rótulo, e `null` esconde o número.
+   *
+   * Em "Conciliação" o número só faz sentido como divergência em aberto: com
+   * as duas já regularizadas na origem, um "(2)" ali continuava pedindo
+   * atenção para o que não precisa mais. Os eventos seguem na linha do tempo,
+   * com a memória do valor anterior. Nos demais tipos o número é inventário —
+   * quantos daquilo aconteceram — e continua aparecendo.
+   */
+  tiposDisponiveis: {
+    tipo: TipoEventoHistorico; rotulo: string; quantidade: number; badge: number | null;
+  }[] = [];
 
   totalRemanescente = 0;
   totalDestinado = 0;
@@ -118,11 +129,16 @@ export class SaldosGestaoComponent implements OnInit {
       this.qtdPendencias = pendencias.length;
 
       this.tiposDisponiveis = ORDEM_TIPOS
-        .map(tipo => ({
-          tipo,
-          rotulo: ROTULOS[tipo],
-          quantidade: eventos.filter(e => e.tipo === tipo).length,
-        }))
+        .map(tipo => {
+          const doTipo = eventos.filter(e => e.tipo === tipo);
+          const abertos = doTipo.filter(e => e.emAberto).length;
+          return {
+            tipo,
+            rotulo: ROTULOS[tipo],
+            quantidade: doTipo.length,
+            badge: tipo === "pendencia" ? (abertos || null) : doTipo.length,
+          };
+        })
         .filter(t => t.quantidade > 0);
 
       this.aplicarFiltro();

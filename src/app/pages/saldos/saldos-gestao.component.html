@@ -70,7 +70,10 @@
     @for (t of tiposDisponiveis; track t.tipo) {
       <button type="button" class="chip" [class.ativo]="tipoFiltro === t.tipo"
               [attr.data-tipo]="t.tipo" (click)="filtrarPorTipo(t.tipo)">
-        {{ t.rotulo }} <span class="chip-count">{{ t.quantidade }}</span>
+        {{ t.rotulo }}
+        @if (t.badge !== null) {
+          <span class="chip-count">{{ t.badge }}</span>
+        }
       </button>
     }
   </div>
