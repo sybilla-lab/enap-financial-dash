@@ -10,7 +10,7 @@ import { BaseChartDirective } from "ng2-charts";
 import { ChartConfiguration } from "chart.js";
 import { DataService } from "../../services/data.service";
 import { RelatorioPdfService, CabecalhoRelatorio } from '../../services/relatorio-pdf.service';
-import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento, UtilizacaoRendimento } from "../../models/lancamento.model";
+import { Rendimento, OficioRendimentos, ProjetoOficio, TransferenciaRendimento, UtilizacaoRendimento, SerieOficialProjeto } from "../../models/lancamento.model";
 import {
   ratearRendimentos,
   comporSaldo,
@@ -195,6 +195,21 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   utilizacoes: UtilizacaoRendimento[] = [];
   /** Falhas de leitura da aba, exibidas na página em vez de silenciadas. */
   avisosLeitura: string[] = [];
+
+  /**
+   * Série oficial do realizado — "Rateio • Realizado" mais a abertura
+   * documental. É ela que alimenta a tabela, os cards e as exportações nas
+   * competências fechadas.
+   */
+  serieOficial: {
+    series: Map<string, SerieOficialProjeto>;
+    corte: string;
+    competencias: string[];
+    avisos: string[];
+    disponivel: boolean;
+  } | null = null;
+  /** Falhas de leitura da fonte oficial, mostradas junto das demais. */
+  avisosSerieOficial: string[] = [];
 
   /**
    * Divergências entre o valor registrado no projeto e o lançado na Principal,
@@ -918,6 +933,12 @@ export class RendimentosComponent implements OnInit, OnDestroy {
 
     this.dataService.getAvisosRendimentos().subscribe(a => { this.avisosLeitura = a; });
 
+    this.dataService.getSerieOficialPorProjeto().subscribe(o => {
+      this.serieOficial = o;
+      this.avisosSerieOficial = o.avisos;
+      this.tryComputarHistorico();
+    });
+
     this.dataService.getConciliacoes().subscribe(cs => {
       this.conciliacoesAbertas = cs.filter(c => !c.regularizado);
       this.conciliacoesRegularizadas = cs.filter(c => c.regularizado);
@@ -1137,24 +1158,51 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     const dispMonths = rateio.meses;
     const projMesRend = rateio.porProjetoMes;
     const projRendAcum = rateio.acumulado;
-    const expectedTotal = rateio.totalEsperado;
 
-    this.historicoPorProjeto = Array.from(projRendAcum.keys())
-      .filter(p => (projRendAcum.get(p) ?? 0) > 0.01)
-      .sort((a, b) => (projRendAcum.get(b) ?? 0) - (projRendAcum.get(a) ?? 0))
+    /**
+     * Fonte do realizado: a planilha, não o motor.
+     *
+     * Para as competências fechadas a série vem de "Rateio • Realizado", que
+     * pondera pela caixa na abertura de cada projeto. O motor fecha o mesmo
+     * total do mês mas reparte diferente, e o que a prestação de contas publica
+     * é a repartição da planilha. O motor continua rodando acima — é dele que
+     * saem a projeção e o recálculo de auditoria.
+     */
+    const oficial = this.serieOficial;
+    const usarOficial = !!oficial?.disponivel;
+
+    const expectedTotal = usarOficial
+      ? cent(Array.from(oficial!.series.values()).reduce((s, x) => s + x.acumulado, 0))
+      : rateio.totalEsperado;
+
+    const chaves = usarOficial
+      ? Array.from(oficial!.series.keys()).filter(p => (oficial!.series.get(p)!.acumulado) > 0.01)
+      : Array.from(projRendAcum.keys()).filter(p => (projRendAcum.get(p) ?? 0) > 0.01);
+    const acumDe = (p: string) =>
+      usarOficial ? (oficial!.series.get(p)?.acumulado ?? 0) : (projRendAcum.get(p) ?? 0);
+
+    this.historicoPorProjeto = chaves
+      .sort((a, b) => acumDe(b) - acumDe(a))
       .map((proj, i) => {
         const mesMap = projMesRend.get(proj) ?? new Map<string, number>();
         let acumRun = 0;
-        const meses = dispMonths
-          .filter(m => mesMap.has(m.mesAno))
-          .map(m => {
-            const rendMes = Math.round((mesMap.get(m.mesAno) ?? 0) * 100) / 100;
-            acumRun = Math.round((acumRun + rendMes) * 100) / 100;
-            return { mesAno: m.mesAno, rendimentoMes: rendMes, rendimentoAcumulado: acumRun,
-                     pctParticipacao: m.liquido > 0 ? (rendMes / m.liquido) * 100 : 0 } as MesProjHistorico;
-          });
+        const meses: MesProjHistorico[] = usarOficial
+          ? oficial!.series.get(proj)!.meses.map(m => ({
+              mesAno: m.mesAno,
+              rendimentoMes: m.rendimento,
+              rendimentoAcumulado: m.acumulado,
+              pctParticipacao: m.participacao * 100,
+            } as MesProjHistorico))
+          : dispMonths
+              .filter(m => mesMap.has(m.mesAno))
+              .map(m => {
+                const rendMes = Math.round((mesMap.get(m.mesAno) ?? 0) * 100) / 100;
+                acumRun = Math.round((acumRun + rendMes) * 100) / 100;
+                return { mesAno: m.mesAno, rendimentoMes: rendMes, rendimentoAcumulado: acumRun,
+                         pctParticipacao: m.liquido > 0 ? (rendMes / m.liquido) * 100 : 0 } as MesProjHistorico;
+              });
         const doEvento = this.oficio?.projetos.find(x => x.projeto === proj);
-        const gerado = projRendAcum.get(proj)!;
+        const gerado = acumDe(proj);
 
         /**
          * A última linha da tabela tem de bater com o total declarado abaixo

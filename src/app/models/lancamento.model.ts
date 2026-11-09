@@ -220,6 +220,14 @@ export interface ProjetoFotografia {
   projeto: string;
   /** Acumulado até a data-base, como consta no documento enviado à ENAP. */
   acumuladoDocumental: number;
+  /**
+   * Abertura da série realizada — acumulado até a competência anterior ao
+   * primeiro mês que o Rateio • Realizado cobre.
+   *
+   * É documental e por projeto. O motor não pode mexer nela: a série oficial
+   * começa aqui e só então soma mês a mês.
+   */
+  acumuladoAbertura: number;
   /** Série mensal preservada, quando a memória a registra. mesAno → valor. */
   serieMensal: Map<string, number>;
   /** Saldo livre registrado na memória, quando houver — só conferência. */
@@ -247,8 +255,60 @@ export interface FotografiaDocumental {
   projetos: Map<string, ProjetoFotografia>;
   /** Soma dos acumulados documentais — o checkpoint do ofício. */
   total: number;
+  /** "12/2025" — competência da abertura documental da série realizada. */
+  competenciaAbertura: string;
   /** Falhas de leitura, para a página dizer o que não conseguiu ler. */
   avisos: string[];
+}
+
+/** Uma linha do Rateio • Realizado: um projeto numa competência. */
+export interface LinhaRealizada {
+  competencia: string;          // "01/2026"
+  projeto: string;
+  caixaAbertura: number;
+  participacao: number;         // fração do líquido, 0..1
+  liquidoBancario: number;
+  rendimentoAtribuido: number;
+  saldoLivre: number;
+  caixaFechamento: number;
+  situacao: string;
+}
+
+/**
+ * Distribuição realizada por projeto, lida da aba "Rateio • Realizado".
+ *
+ * A aba se declara "fonte única para as abas e o dashboard", e é mesmo: ela
+ * pondera pela caixa na abertura de cada projeto, que não é a mesma grandeza
+ * que o saldo interno reconstruído dos lançamentos. Rodar o motor por cima
+ * destes meses dava outra repartição — mesmo total, projetos diferentes.
+ *
+ * Só meses fechados entram. Os meses em projeção aparecem zerados na aba, e
+ * zero não é previsão.
+ */
+export interface SerieRealizada {
+  /** competência "MM/AAAA" → projeto → linha. Apenas meses fechados. */
+  porCompetencia: Map<string, Map<string, LinhaRealizada>>;
+  /** Competências fechadas, em ordem cronológica. */
+  competencias: string[];
+  /** Projetos presentes na série. */
+  projetos: string[];
+  /** Último mês fechado, de "Controle • Integrações!B4". */
+  corte: string;                // "10/2026"
+  avisos: string[];
+}
+
+/** A série oficial de um projeto: abertura documental mais meses fechados. */
+export interface SerieOficialProjeto {
+  projeto: string;
+  /** Acumulado documental na abertura (até 12/2025). */
+  abertura: number;
+  meses: { mesAno: string; rendimento: number; acumulado: number; participacao: number }[];
+  /** Abertura mais todos os meses fechados. */
+  acumulado: number;
+  /** Acumulado menos o destinado por ofício. */
+  saldoLivre: number;
+  /** Saldo livre como a própria aba o registra, para conferência. */
+  saldoLivreRegistrado: number | null;
 }
 
 export interface ProjetoOficio {

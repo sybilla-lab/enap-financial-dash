@@ -17,6 +17,13 @@ const ORCAMENTO_PUB =
  */
 const MEMORIAS_ENAP_URL = `${ORCAMENTO_PUB}?gid=191109002&single=true&output=csv`;
 
+/**
+ * Rateio • Realizado — fonte oficial da distribuição por projeto nos meses
+ * fechados; e Controle • Integrações, de onde sai o corte de fechamento.
+ */
+const RATEIO_REALIZADO_URL = `${ORCAMENTO_PUB}?gid=191109003&single=true&output=csv`;
+const CONTROLE_INTEGRACOES_URL = `${ORCAMENTO_PUB}?gid=190010006&single=true&output=csv`;
+
 const MOVIMENTACOES_URLS = [
   `${ORCAMENTO_PUB}?gid=185205069&single=true&output=csv`,  // Movimentações de Rendimentos (oficial)
   `${ORCAMENTO_PUB}?gid=96584928&single=true&output=csv`,   // Dashboard • Movimentações Rendimentos
@@ -27,6 +34,8 @@ export const environment = {
   googleSheetsBaseUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTcM2aU8ucv35H649ATmgyUMR6S7pvkVaxPQSwN0p-Hs9DsvAIG5Mm-4PutXobweeZ0vp21mklhYqBM/pub?output=csv",
   movimentacoesRendimentosUrls: MOVIMENTACOES_URLS,
   memoriasEnapUrl: MEMORIAS_ENAP_URL,
+  rateioRealizadoUrl: RATEIO_REALIZADO_URL,
+  controleIntegracoesUrl: CONTROLE_INTEGRACOES_URL,
   features: {
     auditoria: ("__FEATURE_AUDITORIA__" as string) === "true",
   },

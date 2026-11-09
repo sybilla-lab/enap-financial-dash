@@ -23,11 +23,15 @@ import {
   EventoHistorico,
   FotografiaDocumental,
   ProjetoFotografia,
+  LinhaRealizada,
+  SerieRealizada,
+  SerieOficialProjeto,
 } from "../models/lancamento.model";
 import { environment } from "../../environments/environment";
 import {
   ratearRendimentos,
   cortarRateio,
+  competenciaKey,
   MesRendimento,
   PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
 } from "./rateio-rendimentos";
@@ -401,7 +405,9 @@ export class DataService {
   private parseValor(valorStr: string): number {
     if (!valorStr) return 0;
     let isNegative = false;
-    let cleanStr = valorStr.replace(/"/g, "").trim();
+    // O símbolo da moeda aparece nas abas de orçamento ("R$ 32.545,67") e não
+    // nas da Base. Tirar aqui serve as duas sem um segundo parser.
+    let cleanStr = valorStr.replace(/"/g, "").replace(/R\$/gi, "").trim();
 
     if (cleanStr.startsWith("(") && cleanStr.endsWith(")")) {
       isNegative = true;
@@ -1373,6 +1379,7 @@ export class DataService {
   private movimentacoes$?: Observable<MovimentacaoRendimento[]>;
   private oficio$?: Observable<OficioRendimentos | null>;
   private fotografias$?: Observable<FotografiaDocumental[]>;
+  private serieRealizada$?: Observable<SerieRealizada>;
 
   /** Abreviações de mês como a memória as escreve. */
   private static readonly MESES_ABREV: Record<string, string> = {
@@ -1417,7 +1424,7 @@ export class DataService {
     const linhaOficio = rows.find(r => /of[ií]cio/i.test(cel(r)) && /data-base/i.test(cel(r)));
     if (!linhaOficio) {
       return [{
-        oficio: '', dataBase: '', competenciaEfeito: '', projetos: new Map(), total: 0,
+        oficio: '', dataBase: '', competenciaEfeito: '', projetos: new Map(), total: 0, competenciaAbertura: '',
         avisos: ['Memórias • ENAP: nenhuma seção de ofício com data-base foi encontrada'],
       }];
     }
@@ -1440,29 +1447,45 @@ export class DataService {
     const idxCab = rows.findIndex(r => /^projeto$/i.test(cel(r)) && r.some(c => reAcum.test((c ?? '').trim())));
     if (idxCab < 0) {
       avisos.push('Memórias • ENAP: a série por projeto não foi encontrada (cabeçalho "Projeto" com "Acumulado até")');
-      return [{ oficio, dataBase, competenciaEfeito, projetos: new Map(), total: 0, avisos }];
+      return [{ oficio, dataBase, competenciaEfeito, projetos: new Map(), total: 0, competenciaAbertura: '', avisos }];
     }
 
     const cab = rows[idxCab].map(c => (c ?? '').trim());
     let colAcumulado = -1;
     let colLivre = -1;
     let colCaixa = -1;
+    // A abertura é a coluna "Acumulado até" mais antiga — a que fecha o período
+    // anterior ao primeiro mês da série realizada.
+    let colAbertura = -1;
+    let chaveAbertura = Infinity;
+    let competenciaAbertura = '';
     const colsMes: { idx: number; mesAno: string }[] = [];
     cab.forEach((texto, i) => {
       const a = texto.match(reAcum);
-      if (a && `${a[1]}/${a[2]}` === compDataBase) colAcumulado = i;
+      if (a) {
+        const comp = `${a[1]}/${a[2]}`;
+        if (comp === compDataBase) colAcumulado = i;
+        const chave = parseInt(a[2], 10) * 100 + parseInt(a[1], 10);
+        if (chave < chaveAbertura) { chaveAbertura = chave; colAbertura = i; competenciaAbertura = comp; }
+      }
       if (/saldo\s+livre/i.test(texto)) colLivre = i;
       if (/^caixa\b/i.test(texto)) colCaixa = i;
       const m = texto.toLowerCase().match(/^([a-zç]{3})\.?\/(\d{4})$/);
       const num = m ? DataService.MESES_ABREV[m[1]] : undefined;
       if (m && num) colsMes.push({ idx: i, mesAno: `${num}/${m[2]}` });
     });
+    if (colAbertura < 0 || colAbertura === colAcumulado) {
+      avisos.push(
+        'Memórias • ENAP: não há coluna de abertura ("Acumulado até" anterior à data-base) — ' +
+        'a série realizada de 2026 começaria do zero em vez do acumulado documental'
+      );
+    }
     if (colAcumulado < 0) {
       avisos.push(
         `Memórias • ENAP: nenhuma coluna "Acumulado até ${compDataBase}" na série por projeto — ` +
         `o checkpoint do ${oficio || 'ofício'} não pôde ser lido`
       );
-      return [{ oficio, dataBase, competenciaEfeito, projetos: new Map(), total: 0, avisos }];
+      return [{ oficio, dataBase, competenciaEfeito, projetos: new Map(), total: 0, competenciaAbertura: '', avisos }];
     }
 
     const projetos = new Map<string, ProjetoFotografia>();
@@ -1482,6 +1505,9 @@ export class DataService {
       projetos.set(this.normalizarProjeto(nomeProj), {
         projeto: this.normalizarProjeto(nomeProj),
         acumuladoDocumental: this.parseValor(cel(rows[i], colAcumulado)),
+        acumuladoAbertura: colAbertura >= 0 && colAbertura !== colAcumulado
+          ? this.parseValor(cel(rows[i], colAbertura))
+          : 0,
         serieMensal,
         saldoLivreRegistrado: livre ? this.parseValor(livre) : null,
         caixaRegistrado: caixa ? this.parseValor(caixa) : null,
@@ -1490,7 +1516,264 @@ export class DataService {
     if (!projetos.size) avisos.push('Memórias • ENAP: a série por projeto está vazia');
 
     const total = cent(Array.from(projetos.values()).reduce((s, p) => s + p.acumuladoDocumental, 0));
-    return [{ oficio, dataBase, competenciaEfeito, projetos, total, avisos }];
+    return [{ oficio, dataBase, competenciaEfeito, projetos, total, competenciaAbertura, avisos }];
+  }
+
+  /** "jan./2026", "jul/2026", "out./26" → "01/2026". Vazio quando não é competência. */
+  private competenciaDeTexto(txt: string): string {
+    const m = (txt || '').trim().toLowerCase().match(/^([a-zç]{3})\.?\s*[\/\-]\s*(\d{2}|\d{4})$/);
+    if (!m) return '';
+    const mes = DataService.MESES_ABREV[m[1]];
+    if (!mes) return '';
+    const ano = m[2].length === 2 ? `20${m[2]}` : m[2];
+    return `${mes}/${ano}`;
+  }
+
+  /**
+   * Distribuição realizada por projeto — aba "Rateio • Realizado".
+   *
+   * A aba é a fonte oficial do realizado: ela pondera pela caixa na abertura
+   * de cada projeto, grandeza que o motor não reproduz (o saldo interno dele
+   * não incorpora os complementos de encerramento como caixa e ainda desconta
+   * a reserva do ofício, que não move caixa). Rodar o motor por cima destes
+   * meses dava o mesmo total com outra repartição.
+   *
+   * O corte de fechamento vem de "Controle • Integrações!B4". Mês depois do
+   * corte é projeção e NÃO entra: a aba mostra zero nesses meses, e zero não é
+   * previsão.
+   */
+  getSerieRealizada(): Observable<SerieRealizada> {
+    if (this.serieRealizada$) return this.serieRealizada$;
+
+    const corte$ = this.http.get(environment.controleIntegracoesUrl, { responseType: 'text' }).pipe(
+      map(csv => {
+        const rows = Papa.parse(csv, { header: false, skipEmptyLines: false }).data as string[][];
+        const linha = rows.find(r => /último\s+mês\s+encerrado/i.test((r?.[0] ?? '').trim()) ||
+                                     /último\s+mês\s+encerrado/i.test((r?.[1] ?? '').trim()));
+        if (!linha) return '';
+        for (const c of linha) {
+          const comp = this.competenciaDeTexto(c ?? '');
+          if (comp) return comp;
+        }
+        return '';
+      }),
+      catchError(() => of(''))
+    );
+
+    this.serieRealizada$ = combineLatest([
+      this.http.get(environment.rateioRealizadoUrl, { responseType: 'text' }).pipe(
+        catchError(() => of(''))
+      ),
+      corte$,
+    ]).pipe(
+      map(([csv, corte]) => this.parseRateioRealizado(csv, corte)),
+      shareReplay(1)
+    );
+    return this.serieRealizada$;
+  }
+
+  private parseRateioRealizado(csvText: string, corte: string): SerieRealizada {
+    const vazia: SerieRealizada = {
+      porCompetencia: new Map(), competencias: [], projetos: [], corte, avisos: [],
+    };
+    if (!csvText.includes('RATEIO REALIZADO')) {
+      return { ...vazia, avisos: ['Rateio • Realizado: aba não publicada ou fora do formato esperado'] };
+    }
+    const avisos: string[] = [];
+    if (!corte) {
+      avisos.push(
+        'Controle • Integrações: "Último mês encerrado" não foi lido — sem corte de fechamento, ' +
+        'nenhuma competência é tratada como realizada'
+      );
+      return { ...vazia, avisos };
+    }
+
+    const rows = Papa.parse(csvText, { header: false, skipEmptyLines: false }).data as string[][];
+    const cel = (r: string[] | undefined, i: number) => (r?.[i] ?? '').trim();
+
+    // Colunas pelo texto do cabeçalho — a aba é mantida à mão.
+    const OBRIGATORIAS: Record<string, RegExp> = {
+      competencia: /^compet[êe]ncia$/i,
+      projeto: /^projeto$/i,
+      caixaAbertura: /caixa\s+na\s+abertura/i,
+      participacao: /^participa[çc][ãa]o$/i,
+      liquido: /l[íi]quido\s+banc[áa]rio/i,
+      atribuido: /rendimento\s+atribu[íi]do/i,
+      situacao: /^situa[çc][ãa]o$/i,
+      saldoLivre: /^saldo\s+livre$/i,
+      caixaFechamento: /caixa\s+no\s+fechamento/i,
+    };
+    // Basta Competência + Projeto para reconhecer o cabeçalho: se uma coluna
+    // obrigatória sumiu, o aviso tem de dizer QUAL, não "cabeçalho não
+    // encontrado".
+    const idxCab = rows.findIndex(r => r.some(c => OBRIGATORIAS['competencia'].test((c ?? '').trim()))
+                                    && r.some(c => OBRIGATORIAS['projeto'].test((c ?? '').trim())));
+    if (idxCab < 0) {
+      return { ...vazia, avisos: [...avisos, 'Rateio • Realizado: cabeçalho não encontrado'] };
+    }
+    const cab = rows[idxCab].map(c => (c ?? '').trim());
+    const col: Record<string, number> = {};
+    const faltando: string[] = [];
+    for (const [nome, re] of Object.entries(OBRIGATORIAS)) {
+      const i = cab.findIndex(t => re.test(t));
+      if (i < 0) faltando.push(nome);
+      col[nome] = i;
+    }
+    if (faltando.length) {
+      return {
+        ...vazia,
+        avisos: [...avisos, `Rateio • Realizado: coluna obrigatória ausente — ${faltando.join(', ')}`],
+      };
+    }
+
+    const corteKey = this.mesKeyLocal(corte);
+    const porCompetencia = new Map<string, Map<string, LinhaRealizada>>();
+    const projetos = new Set<string>();
+    const foraDoCorte: string[] = [];
+
+    for (let i = idxCab + 1; i < rows.length; i++) {
+      const competencia = this.competenciaDeTexto(cel(rows[i], col['competencia']));
+      if (!competencia) continue;
+      const situacao = cel(rows[i], col['situacao']);
+      // Só mês fechado. Projeção e blocos de conferência ficam de fora.
+      if (!/hist[óo]rico|apurado/i.test(situacao)) continue;
+
+      if (this.mesKeyLocal(competencia) > corteKey) {
+        if (!foraDoCorte.includes(competencia)) foraDoCorte.push(competencia);
+        continue;
+      }
+      const projeto = this.normalizarProjeto(cel(rows[i], col['projeto']));
+      if (!projeto) continue;
+
+      const pct = cel(rows[i], col['participacao']).replace('%', '');
+      if (!porCompetencia.has(competencia)) porCompetencia.set(competencia, new Map());
+      porCompetencia.get(competencia)!.set(projeto, {
+        competencia,
+        projeto,
+        caixaAbertura: this.parseValor(cel(rows[i], col['caixaAbertura'])),
+        participacao: this.parseValor(pct) / 100,
+        liquidoBancario: this.parseValor(cel(rows[i], col['liquido'])),
+        rendimentoAtribuido: this.parseValor(cel(rows[i], col['atribuido'])),
+        saldoLivre: this.parseValor(cel(rows[i], col['saldoLivre'])),
+        caixaFechamento: this.parseValor(cel(rows[i], col['caixaFechamento'])),
+        situacao,
+      });
+      projetos.add(projeto);
+    }
+
+    if (foraDoCorte.length) {
+      avisos.push(
+        `Rateio • Realizado: ${foraDoCorte.join(', ')} está marcado como fechado na aba mas é ` +
+        `posterior ao corte de ${corte} — não foi usado como realizado`
+      );
+    }
+    if (!porCompetencia.size) {
+      avisos.push(`Rateio • Realizado: nenhuma competência fechada até o corte de ${corte}`);
+    }
+
+    const competencias = Array.from(porCompetencia.keys())
+      .sort((a, b) => this.mesKeyLocal(a) - this.mesKeyLocal(b));
+
+    // Uma competência fechada tem de trazer todos os projetos da série; faltar
+    // um é leitura incompleta, não projeto sem rendimento.
+    const todos = Array.from(projetos);
+    competencias.forEach(c => {
+      const ausentes = todos.filter(p => !porCompetencia.get(c)!.has(p));
+      if (ausentes.length) {
+        avisos.push(`Rateio • Realizado: ${c} não traz ${ausentes.join(', ')}`);
+      }
+    });
+
+    // Buracos na sequência de competências.
+    for (let i = 1; i < competencias.length; i++) {
+      const [ma, aa] = competencias[i - 1].split('/').map(Number);
+      const esperado = ma === 12 ? `01/${aa + 1}` : `${String(ma + 1).padStart(2, '0')}/${aa}`;
+      if (competencias[i] !== esperado) {
+        avisos.push(`Rateio • Realizado: falta a competência ${esperado} entre ${competencias[i - 1]} e ${competencias[i]}`);
+      }
+    }
+
+    return { porCompetencia, competencias, projetos: todos, corte, avisos };
+  }
+
+  /**
+   * A série oficial por projeto: abertura documental mais os meses fechados.
+   *
+   * É esta que alimenta as telas, as tabelas e as exportações. O motor segue
+   * existindo para a projeção e como recálculo de auditoria, mas não entra
+   * aqui — recalcular um mês fechado é trocar o número da planilha oficial por
+   * outro com o mesmo total.
+   */
+  getSerieOficialPorProjeto(): Observable<{
+    series: Map<string, SerieOficialProjeto>;
+    corte: string;
+    competencias: string[];
+    avisos: string[];
+    disponivel: boolean;
+  }> {
+    return combineLatest({
+      realizada: this.getSerieRealizada(),
+      fotografias: this.getFotografiasDocumentais(),
+      oficio: this.getOficioRendimentos(),
+    }).pipe(
+      map(({ realizada, fotografias, oficio }) => {
+        const avisos = [...realizada.avisos];
+        const foto = fotografias.find(f => f.projetos.size > 0) ?? null;
+        if (!foto) {
+          avisos.push('Memórias • ENAP: sem fotografia documental — a abertura de 2026 não pôde ser lida');
+        }
+
+        const nomes = new Set<string>([...realizada.projetos]);
+        foto?.projetos.forEach((_, p) => nomes.add(p));
+
+        const series = new Map<string, SerieOficialProjeto>();
+        nomes.forEach(projeto => {
+          const docProj = foto?.projetos.get(projeto);
+          if (foto && !docProj) {
+            avisos.push(`Memórias • ENAP: ${projeto} está no Rateio • Realizado mas não tem abertura documental`);
+          }
+          const abertura = cent(docProj?.acumuladoAbertura ?? 0);
+          let acumulado = abertura;
+          const meses = realizada.competencias.map(c => {
+            const linha = realizada.porCompetencia.get(c)!.get(projeto);
+            const rendimento = cent(linha?.rendimentoAtribuido ?? 0);
+            acumulado = cent(acumulado + rendimento);
+            return { mesAno: c, rendimento, acumulado, participacao: linha?.participacao ?? 0 };
+          });
+          const destinado = oficio?.projetos.find(p => p.projeto === projeto)?.destinado ?? 0;
+          const ultima = realizada.competencias.length
+            ? realizada.porCompetencia.get(realizada.competencias[realizada.competencias.length - 1])!.get(projeto)
+            : undefined;
+          series.set(projeto, {
+            projeto,
+            abertura,
+            meses,
+            acumulado,
+            saldoLivre: cent(acumulado - destinado),
+            saldoLivreRegistrado: ultima ? cent(ultima.saldoLivre) : null,
+          });
+        });
+
+        // O saldo livre composto tem de bater com o que a própria aba registra.
+        series.forEach(s => {
+          if (s.saldoLivreRegistrado !== null && Math.abs(s.saldoLivre - s.saldoLivreRegistrado) > 0.02) {
+            avisos.push(
+              `${s.projeto}: saldo livre composto (${this.brlLocal(s.saldoLivre)}) difere do ` +
+              `registrado em Rateio • Realizado (${this.brlLocal(s.saldoLivreRegistrado)})`
+            );
+          }
+        });
+
+        return {
+          series,
+          corte: realizada.corte,
+          competencias: realizada.competencias,
+          avisos,
+          disponivel: series.size > 0 && realizada.competencias.length > 0,
+        };
+      }),
+      shareReplay(1)
+    );
   }
 
   getMovimentacoesRendimentos(): Observable<MovimentacaoRendimento[]> {
@@ -1600,6 +1883,7 @@ export class DataService {
       saldos: this.saldos$,
       status: this.status$,
       fotografias: this.getFotografiasDocumentais(),
+      realizada: this.getSerieRealizada(),
     }).pipe(
       map(d => this.apurarOficio(d)),
       catchError(() => of(null)),
@@ -1616,6 +1900,7 @@ export class DataService {
     saldos: SaldoRemanescente[];
     status: StatusProjeto[];
     fotografias: FotografiaDocumental[];
+    realizada: SerieRealizada;
   }): OficioRendimentos | null {
     const mov = d.movimentacoes.filter(m => m.status.toLowerCase().trim() === 'vigente');
     if (!mov.length || !d.resumo.porMes.length || !d.lancamentos.length) return null;
@@ -1695,9 +1980,33 @@ export class DataService {
       );
     }
 
+    /**
+     * Rendimento por projeto da competência de efeito até o corte, pela fonte
+     * oficial. Null quando a série não cobre o período — aí o recálculo
+     * assume, com aviso, nunca em silêncio.
+     */
+    const efeitoKey = competenciaKey(competenciaEfeito);
+    const cobertas = d.realizada.competencias.filter(c => this.mesKeyLocal(c) >= efeitoKey);
+    let novosOficiais: Map<string, number> | null = null;
+    if (cobertas.length) {
+      novosOficiais = new Map<string, number>();
+      cobertas.forEach(c => {
+        d.realizada.porCompetencia.get(c)!.forEach((linha, proj) => {
+          novosOficiais!.set(proj, cent((novosOficiais!.get(proj) ?? 0) + linha.rendimentoAtribuido));
+        });
+      });
+    } else {
+      avisosDocumentais.push(
+        `Rateio • Realizado não cobre nenhuma competência a partir de ${competenciaEfeito}: ` +
+        `o rendimento posterior ao ofício está vindo de recálculo sobre a Base.`
+      );
+    }
+    avisosDocumentais.push(...d.realizada.avisos);
+
     const nomes = new Set<string>([...corte.ate.keys(), ...corte.depois.keys()]);
     mov.forEach(m => { nomes.add(m.origem); nomes.add(m.destino); });
     fotografia?.projetos.forEach((_, p) => nomes.add(p));
+    novosOficiais?.forEach((_, p) => nomes.add(p));
 
     const projetos: ProjetoOficio[] = Array.from(nomes)
       .filter(p => !!p)
@@ -1711,7 +2020,17 @@ export class DataService {
         // O checkpoint é lido da memória; o recálculo fica ao lado, para
         // mostrar o quanto a Base andou desde a emissão do ofício.
         const historico = documental !== undefined ? cent(documental) : recalculado;
-        const novos = cent(corte.depois.get(p) ?? 0);
+        /**
+         * Rendimento posterior ao corte: da fonte oficial, não do motor.
+         *
+         * É a mesma razão do checkpoint. O motor fecha o total do mês mas
+         * reparte diferente — em out/2026 dava R$ 34.473,43 ao Alimenta onde a
+         * planilha registra R$ 32.545,67. Com a oficial, o saldo livre de cada
+         * projeto reproduz a coluna "Saldo livre" da própria aba.
+         */
+        const novos = novosOficiais !== null
+          ? cent(novosOficiais.get(p) ?? 0)
+          : cent(corte.depois.get(p) ?? 0);
         const destinado = cent(cedido + propria);
         return {
           projeto: p,

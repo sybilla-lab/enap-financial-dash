@@ -18,6 +18,20 @@
   </div>
   }
 
+  <!-- A fonte oficial do realizado tem alerta próprio: uma competência ou um
+       projeto que falte ali não pode ser suprido pelo motor em silêncio. -->
+  @if (avisosSerieOficial.length) {
+  <div class="rend-avisos" role="alert">
+    <mat-icon>report_problem</mat-icon>
+    <div>
+      <strong>Leitura da fonte oficial do realizado com pendências</strong>
+      <ul>
+        @for (a of avisosSerieOficial; track a) { <li>{{ a }}</li> }
+      </ul>
+    </div>
+  </div>
+  }
+
   <!-- Carregamento sincronizado: a tela inteira espera o painel "Rendimentos
        da conta", que é a seção mais lenta. Liberar cada bloco no seu tempo
        montava a página aos pedaços, com números trocando de valor na frente do

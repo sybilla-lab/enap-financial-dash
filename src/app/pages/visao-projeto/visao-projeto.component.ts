@@ -14,7 +14,7 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 import { RelatorioPdfService, CabecalhoRelatorio } from "../../services/relatorio-pdf.service";
 import { EventoInstitucionalComponent } from "../../components/evento-institucional/evento-institucional.component";
-import { OficioRendimentos, TransferenciaRendimento } from "../../models/lancamento.model";
+import { OficioRendimentos, TransferenciaRendimento, SerieOficialProjeto } from "../../models/lancamento.model";
 import {
   ratearRendimentos,
   PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
@@ -308,6 +308,16 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
   private rendUtilizacaoPorMes = new Map<string, string>();
   /** Transferências internas do Ofício, no formato que o rateio consome. */
   private rendTransferencias: TransferenciaRendimento[] = [];
+  /** Série oficial do realizado, a mesma que a página de Rendimentos usa. */
+  private serieOficial: {
+    series: Map<string, SerieOficialProjeto>;
+    corte: string;
+    competencias: string[];
+    avisos: string[];
+    disponivel: boolean;
+  } | null = null;
+  /** Falhas de leitura da fonte oficial, exibidas em vez de silenciadas. */
+  avisosSerieOficial: string[] = [];
   private rendProjetosEncerrados = new Map<string, number>();
   rendimentosAtribuidos: RendAtribuido[] = [];
   totalRendimentoAtribuido = 0;
@@ -497,6 +507,12 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
     this.dataService.getTransferenciasRendimentos().subscribe(t => {
       this.rendTransferencias = t;
+      this.computarRendimentosAtribuidos();
+    });
+
+    this.dataService.getSerieOficialPorProjeto().subscribe(o => {
+      this.serieOficial = o;
+      this.avisosSerieOficial = o.avisos;
       this.computarRendimentosAtribuidos();
     });
 
@@ -1001,7 +1017,40 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
    */
   private computarRendimentosAtribuidos(): void {
     const proj = this.projetoSelecionado;
-    if (!proj || !this.rendResumoData || this.rendResumoData.porMes.length === 0 || this.allLancamentos.length === 0
+    if (!proj) {
+      this.rendimentosAtribuidos = [];
+      this.totalRendimentoAtribuido = 0;
+      return;
+    }
+
+    /**
+     * Competências fechadas vêm da planilha oficial, não do motor.
+     *
+     * "Rateio • Realizado" pondera pela caixa na abertura de cada projeto; o
+     * motor pondera por saldo interno reconstruído da Principal. Os totais
+     * mensais coincidem, a repartição não — e é a repartição da planilha que a
+     * prestação de contas publica. Esta tela e a de Rendimentos leem a mesma
+     * fonte, pela mesma função do serviço.
+     *
+     * Vem antes das entradas do motor de propósito: a série oficial não
+     * depende delas, e esperar por elas atrasaria a tela sem motivo.
+     */
+    const oficialDoProjeto = this.serieOficial?.disponivel
+      ? this.serieOficial.series.get(proj)
+      : undefined;
+    if (oficialDoProjeto) {
+      this.rendimentosAtribuidos = oficialDoProjeto.meses.map(m => ({
+        mesAno: m.mesAno,
+        pctParticipacao: m.participacao * 100,
+        rendimentoMes: m.rendimento,
+        rendimentoAcumulado: m.acumulado,
+        saldoProjeto: 0,
+      } as RendAtribuido));
+      this.totalRendimentoAtribuido = oficialDoProjeto.acumulado;
+      return;
+    }
+
+    if (!this.rendResumoData || this.rendResumoData.porMes.length === 0 || this.allLancamentos.length === 0
         || !this.rendUtilizacaoPorMes.size) {
       this.rendimentosAtribuidos = [];
       this.totalRendimentoAtribuido = 0;
