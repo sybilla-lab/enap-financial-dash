@@ -944,6 +944,18 @@ export class RendimentosComponent implements OnInit, OnDestroy {
         if (st === 'finalizado' || st === 'encerrado')
           this.projetosInativos.add(s.projeto);
       });
+      /**
+       * Recalcular aqui também, como em toda fonte que entra no rateio.
+       *
+       * O DataService carrega no construtor, então ao navegar para esta página
+       * os BehaviorSubjects já têm dado e reemitem em ordem de inscrição: este
+       * subscribe é o último, e sem esta chamada o rateio rodava com
+       * `projetosInativos` ainda vazio. Os oito projetos encerrados não eram
+       * varridos para a Operação Básica e mantinham rendimento próprio —
+       * R$ 13.846,97 somados ao saldo livre exibido (R$ 572.935,55 contra os
+       * R$ 559.088,58 do total global).
+       */
+      this.tryComputarHistorico();
     });
   }
 
