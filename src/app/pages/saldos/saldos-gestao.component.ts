@@ -110,7 +110,10 @@ export class SaldosGestaoComponent implements OnInit {
       this.totalDestinado = destinacoes.reduce((s, e) => s + e.valor, 0);
       this.qtdDestinacoes = destinacoes.length;
 
-      const pendencias = eventos.filter(e => e.tipo === "pendencia");
+      // Só o que continua em aberto conta como pendência. Uma divergência já
+      // regularizada na origem segue visível no histórico, com a memória do
+      // valor anterior, mas não infla o contador de pendências.
+      const pendencias = eventos.filter(e => e.tipo === "pendencia" && e.emAberto);
       this.totalPendente = pendencias.reduce((s, e) => s + e.valor, 0);
       this.qtdPendencias = pendencias.length;
 

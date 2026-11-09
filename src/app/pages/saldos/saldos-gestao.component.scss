@@ -229,6 +229,14 @@
   background: rgba(245, 158, 11, 0.1);
 }
 
+// Verde, e não a ausência do selo âmbar: uma divergência que foi conferida e
+// fechada na origem diz algo diferente de uma que nunca existiu.
+.evento-tag.regularizado {
+  color: #10b981;
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
 .evento-titulo {
   font-size: 15px;
   font-weight: 600;

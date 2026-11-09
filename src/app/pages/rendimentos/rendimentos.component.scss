@@ -1403,7 +1403,8 @@
   p + p { margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--ev-border); }
   strong { color: var(--text-primary); }
 }
-.hist-pendencia {
+.hist-pendencia,
+.hist-regularizado {
   display: flex;
   align-items: flex-start;
   gap: 7px;
@@ -1417,3 +1418,7 @@
     &:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 2px; }
   }
 }
+
+/* Verde: a conciliação fechada na origem não é só a ausência do alerta âmbar —
+   é um estado próprio, e some da contagem de pendências em aberto. */
+.hist-regularizado mat-icon { color: #10b981; }

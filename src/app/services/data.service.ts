@@ -1098,17 +1098,68 @@ export class DataService {
   }
 
   /**
-   * Diferenças conhecidas entre o valor registrado no projeto e o lançado na
-   * aba Principal, nas transferências de 31/05/2025.
+   * Divergências entre o valor registrado no projeto e o lançado na aba
+   * Principal, nas transferências de 31/05/2025.
    *
    * Nenhum lançamento é criado para fechá-las: um ajuste inventado esconderia a
-   * divergência em vez de resolvê-la, e é justamente ela que precisa ser
-   * investigada na origem. Ficam no histórico, marcadas como em aberto.
+   * divergência em vez de resolvê-la. O estado não é fixo — é apurado contra o
+   * registro vigente em "Saldos remanescentes" a cada carga. Quando o registro
+   * passa a coincidir com a Principal, a pendência está regularizada na origem
+   * e sai da contagem em aberto; o valor anterior continua à vista como
+   * memória, que é o que foi enviado à ENAP.
    */
   private readonly PENDENCIAS_CONCILIACAO = [
-    { projeto: 'Ambiente Promotor', data: '31/05/2025', noProjeto: 5882.65, naPrincipal: 4107.65, diferenca: 1775.00 },
-    { projeto: 'Feira Reversa', data: '31/05/2025', noProjeto: 41498.88, naPrincipal: 44626.93, diferenca: 3128.05 },
+    {
+      projeto: 'Ambiente Promotor',
+      projetoBase: 'Ambiente Promotor de Inovação',
+      data: '31/05/2025',
+      memoriaAnterior: 5882.65,
+      naPrincipal: 4107.65,
+      diferenca: 1775.00,
+    },
+    {
+      projeto: 'Feira Reversa',
+      projetoBase: 'Feira Reversa',
+      data: '31/05/2025',
+      memoriaAnterior: 41498.88,
+      naPrincipal: 44626.93,
+      diferenca: 3128.05,
+    },
   ];
+
+  /**
+   * Estado de cada divergência contra o registro vigente da Base.
+   *
+   * Usado pelo histórico e pela página de Rendimentos — as duas têm de contar
+   * a mesma história sobre a mesma pendência.
+   */
+  getConciliacoes(): Observable<{
+    projeto: string;
+    data: string;
+    memoriaAnterior: number;
+    naPrincipal: number;
+    registradoNaBase: number | null;
+    diferenca: number;
+    regularizado: boolean;
+  }[]> {
+    return this.saldos$.pipe(
+      map(saldos =>
+        this.PENDENCIAS_CONCILIACAO.map(p => {
+          const registro = saldos.find(s => s.projeto === p.projetoBase);
+          const registrado = registro ? cent(registro.valorTransferido) : null;
+          return {
+            projeto: p.projeto,
+            data: p.data,
+            memoriaAnterior: p.memoriaAnterior,
+            naPrincipal: p.naPrincipal,
+            registradoNaBase: registrado,
+            diferenca: p.diferenca,
+            regularizado: registrado !== null && Math.abs(registrado - p.naPrincipal) < 0.02,
+          };
+        })
+      )
+    );
+  }
 
   /** "31/05/2025" → 20250531; "08/2025" → 20250800; "2026" → 20260000. */
   private ordemDeData(data: string): number {
@@ -1194,18 +1245,30 @@ export class DataService {
           });
 
         this.PENDENCIAS_CONCILIACAO.forEach(p => {
+          const registro = saldos.find(s => s.projeto === p.projetoBase);
+          const registrado = registro ? cent(registro.valorTransferido) : null;
+          const regularizado = registrado !== null && Math.abs(registrado - p.naPrincipal) < 0.02;
           eventos.push({
             tipo: 'pendencia',
             data: p.data,
             ordem: this.ordemDeData(p.data),
-            titulo: `${p.projeto}: divergência entre o projeto e a aba Principal`,
+            titulo: regularizado
+              ? `${p.projeto}: divergência regularizada no registro`
+              : `${p.projeto}: divergência entre o projeto e a aba Principal`,
             projeto: p.projeto,
             valor: p.diferenca,
-            fonte: 'conferência entre a aba do projeto e a aba Principal',
-            detalhe: `Registrado no projeto: ${this.brlLocal(p.noProjeto)}; lançado na Principal: ` +
-              `${this.brlLocal(p.naPrincipal)}. A diferença permanece em aberto — nenhum ` +
-              `lançamento compensatório foi criado para fechá-la.`,
-            emAberto: true,
+            fonte: regularizado
+              ? 'registro vigente em "Saldos remanescentes", conferido contra a aba Principal'
+              : 'conferência entre a aba do projeto e a aba Principal',
+            detalhe: regularizado
+              ? `Regularizado no próprio registro: "Saldos remanescentes" traz ` +
+                `${this.brlLocal(registrado!)}, igual ao lançado na Principal. O valor anterior de ` +
+                `${this.brlLocal(p.memoriaAnterior)} fica preservado em Memórias • ENAP. Nenhum ` +
+                `ajuste financeiro foi reaplicado e nenhuma linha adicional foi criada.`
+              : `Registrado no projeto: ${this.brlLocal(p.memoriaAnterior)}; lançado na Principal: ` +
+                `${this.brlLocal(p.naPrincipal)}. A diferença permanece em aberto — nenhum ` +
+                `lançamento compensatório foi criado para fechá-la.`,
+            emAberto: !regularizado,
           });
         });
 

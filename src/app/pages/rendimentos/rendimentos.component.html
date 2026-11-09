@@ -397,12 +397,22 @@
               </p>
               <!-- Indicador discreto: a pendência continua visível, mas o detalhe
                    mora no Histórico de Movimentações, junto dos demais eventos. -->
-              @if (pendenciasConciliacao.length) {
+              @if (conciliacoesAbertas.length) {
               <p class="hist-pendencia">
                 <mat-icon>flag</mat-icon>
                 <span>
-                  {{ pendenciasConciliacao.length }} pendência(s) de conciliação em apuração,
+                  {{ conciliacoesAbertas.length }} pendência(s) de conciliação em apuração,
                   somando {{ totalPendenciasConciliacao | currency:'BRL':'symbol':'1.2-2' }}.
+                  <a routerLink="/saldos">Ver no Histórico de Movimentações</a>
+                </span>
+              </p>
+              }
+              @if (conciliacoesRegularizadas.length) {
+              <p class="hist-regularizado">
+                <mat-icon>task_alt</mat-icon>
+                <span>
+                  {{ conciliacoesRegularizadas.length }} conciliação(ões) regularizada(s) no próprio
+                  registro da Base — valores anteriores preservados em Memórias • ENAP.
                   <a routerLink="/saldos">Ver no Histórico de Movimentações</a>
                 </span>
               </p>

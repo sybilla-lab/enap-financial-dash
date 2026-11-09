@@ -197,20 +197,19 @@ export class RendimentosComponent implements OnInit, OnDestroy {
   avisosLeitura: string[] = [];
 
   /**
-   * Diferenças conhecidas entre o valor registrado no projeto e o lançado na
-   * aba Principal, nas transferências de 31/05/2025.
+   * Divergências entre o valor registrado no projeto e o lançado na Principal,
+   * nas transferências de 31/05/2025.
    *
-   * Ficam à vista como pendência de conciliação. Nenhum ajuste é criado para
-   * fechá-las: um lançamento inventado esconderia a divergência em vez de
-   * resolvê-la, e é justamente ela que precisa ser investigada na origem.
+   * O estado vem do DataService, apurado contra o registro vigente da Base —
+   * não é mais uma lista fixa aqui. Nenhum ajuste é criado para fechá-las: um
+   * lançamento inventado esconderia a divergência em vez de resolvê-la. As já
+   * regularizadas na origem saem da contagem em aberto e continuam no
+   * Histórico, com a memória do valor anterior.
    */
-  readonly pendenciasConciliacao = [
-    { projeto: 'Ambiente Promotor', noProjeto: 5882.65, naPrincipal: 4107.65, diferenca: 1775.00 },
-    { projeto: 'Feira Reversa', noProjeto: 41498.88, naPrincipal: 44626.93, diferenca: 3128.05 },
-  ];
+  conciliacoesAbertas: { projeto: string; memoriaAnterior: number; naPrincipal: number; diferenca: number }[] = [];
+  conciliacoesRegularizadas: { projeto: string; memoriaAnterior: number; naPrincipal: number }[] = [];
   /** Soma das diferenças em aberto — o detalhe fica no Histórico de Movimentações. */
-  readonly totalPendenciasConciliacao =
-    this.pendenciasConciliacao.reduce((s, p) => s + p.diferenca, 0);
+  totalPendenciasConciliacao = 0;
   /** `acumulado` aqui é o saldo DISPONÍVEL: acumulado do período menos o utilizado. */
   porMesCorrigido: {
     mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number;
@@ -918,6 +917,13 @@ export class RendimentosComponent implements OnInit, OnDestroy {
     });
 
     this.dataService.getAvisosRendimentos().subscribe(a => { this.avisosLeitura = a; });
+
+    this.dataService.getConciliacoes().subscribe(cs => {
+      this.conciliacoesAbertas = cs.filter(c => !c.regularizado);
+      this.conciliacoesRegularizadas = cs.filter(c => c.regularizado);
+      this.totalPendenciasConciliacao =
+        this.conciliacoesAbertas.reduce((s, c) => s + c.diferenca, 0);
+    });
 
     this.dataService.getSaldos().subscribe(saldos => {
       this.projetosEncerrados.clear();

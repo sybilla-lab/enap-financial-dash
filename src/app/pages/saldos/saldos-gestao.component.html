@@ -98,6 +98,8 @@
                   <span class="evento-tag">{{ rotuloDe(e.tipo) }}</span>
                   @if (e.emAberto) {
                     <span class="evento-tag em-aberto">em apuração</span>
+                  } @else if (e.tipo === "pendencia") {
+                    <span class="evento-tag regularizado">regularizado</span>
                   }
                 </div>
                 <div class="evento-titulo">{{ e.titulo }}</div>
