@@ -9,12 +9,16 @@ import { Chart, ChartConfiguration, registerables } from "chart.js";
 import { ActivatedRoute } from "@angular/router";
 import { Subject, combineLatest, takeUntil } from "rxjs";
 import { DataService } from "../../services/data.service";
-import { Lancamento, StatusProjeto, ProjetoResumo, Rendimento, SaldoRemanescente } from "../../models/lancamento.model";
+import { Lancamento, StatusProjeto, ProjetoResumo, SaldoRemanescente } from "../../models/lancamento.model";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { DragDropModule, CdkDragDrop, moveItemInArray } from "@angular/cdk/drag-drop";
 import { RelatorioPdfService, CabecalhoRelatorio } from "../../services/relatorio-pdf.service";
 import { EventoInstitucionalComponent } from "../../components/evento-institucional/evento-institucional.component";
-import { OficioRendimentos } from "../../models/lancamento.model";
+import { OficioRendimentos, TransferenciaRendimento } from "../../models/lancamento.model";
+import {
+  ratearRendimentos,
+  PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
+} from "../../services/rateio-rendimentos";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -40,8 +44,6 @@ function parseMesAno(s: string): number {
   return parseInt(a || "0") * 100 + (MES_NUM[(m || "").toUpperCase()] || 0);
 }
 
-// For MM/YYYY numeric key (rendimentos format)
-const mesKeyNum = (s: string) => { const [m, y] = s.split('/'); return parseInt(y) * 100 + parseInt(m); };
 
 const ALIMENTA_PRODUTOS: ProdutoAlimenta[] = [
   { codigo: "1.1", nome: "Configuração da plataforma", meta: "META 1 — Trilha de Implementação", orcamento: 106056.80, inicio: "NOV/2025", fim: "FEV/2026" },
@@ -297,7 +299,15 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
 
   // Rendimentos proporcionais
   private rendResumoData: { totalUtilizado: number; porMes: { mesAno: string; bruto: number; imposto: number; liquido: number; acumulado: number }[] } | null = null;
+  /**
+   * mesAno → "utilizado" quando o mês já foi consumido por encerramento de
+   * ciclo. Vem do DataService, a mesma fonte da página de Rendimentos — antes
+   * era remontado aqui a partir do rótulo por linha de rendimento, que é outra
+   * coisa e dava outro primeiro mês de distribuição.
+   */
   private rendUtilizacaoPorMes = new Map<string, string>();
+  /** Transferências internas do Ofício, no formato que o rateio consome. */
+  private rendTransferencias: TransferenciaRendimento[] = [];
   private rendProjetosEncerrados = new Map<string, number>();
   rendimentosAtribuidos: RendAtribuido[] = [];
   totalRendimentoAtribuido = 0;
@@ -480,13 +490,13 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
       this.processData();
     });
 
-    this.dataService.getRendimentos().subscribe((rends: Rendimento[]) => {
-      this.rendUtilizacaoPorMes.clear();
-      rends.forEach(r => {
-        if (r.valor > 0 && !this.rendUtilizacaoPorMes.has(r.mesAno)) {
-          this.rendUtilizacaoPorMes.set(r.mesAno, r.utilizacao);
-        }
-      });
+    this.dataService.getUtilizacaoPorMes().subscribe(mapa => {
+      this.rendUtilizacaoPorMes = mapa;
+      this.computarRendimentosAtribuidos();
+    });
+
+    this.dataService.getTransferenciasRendimentos().subscribe(t => {
+      this.rendTransferencias = t;
       this.computarRendimentosAtribuidos();
     });
 
@@ -976,87 +986,80 @@ export class VisaoProjetoComponent implements OnInit, OnDestroy {
     this.computarRendimentosAtribuidos();
   }
 
+  /**
+   * Série de rendimento do projeto selecionado — pelo motor único de rateio.
+   *
+   * Esta tela tinha uma segunda implementação do rateio, e ela respondia
+   * diferente da página de Rendimentos para a mesma pergunta: distribuía desde
+   * 12/2023 em vez de começar no primeiro mês não consumido por encerramento de
+   * ciclo; transferia só saldo positivo, apagando os passivos que a Plataforma
+   * (−R$ 323,65) e o Fundo Gov.Tech (−R$ 710,38) levaram à Operação Básica;
+   * tratava quem tem linha em "Saldos remanescentes" como encerrado, o que
+   * zerava a Plataforma por um caminho diferente do da regra institucional; e
+   * ignorava as transferências do Ofício. Agora as duas telas chamam a mesma
+   * função, com as mesmas entradas.
+   */
   private computarRendimentosAtribuidos(): void {
     const proj = this.projetoSelecionado;
-    if (!proj || !this.rendResumoData || this.rendResumoData.porMes.length === 0 || this.allLancamentos.length === 0) {
+    if (!proj || !this.rendResumoData || this.rendResumoData.porMes.length === 0 || this.allLancamentos.length === 0
+        || !this.rendUtilizacaoPorMes.size) {
       this.rendimentosAtribuidos = [];
       this.totalRendimentoAtribuido = 0;
       return;
     }
 
-    const closedMc = this.rendProjetosEncerrados.get(proj);
+    const projetosInativos = new Set<string>();
+    this.statusMap.forEach((st, p) => {
+      const s = (st ?? '').toLowerCase();
+      if (s === 'finalizado' || s === 'encerrado') projetosInativos.add(p);
+    });
 
-    // Mesmo critério de inativo usado em rendimentos.component
-    const isInativo = (p: string) => {
-      const st = (this.statusMap.get(p) ?? '').toLowerCase();
-      return st === 'finalizado' || st === 'encerrado' || this.rendProjetosEncerrados.has(p);
-    };
-
-    // Exclui lançamentos sem projeto (créditos de rendimento) — mesmo filtro de rendimentos.component
-    const lancsSorted = [...this.allLancamentos]
-      .filter(l => l.mesAno && l.projeto)
-      .sort((a, b) => mesKeyNum(a.mesAno) - mesKeyNum(b.mesAno));
-
-    const allMonthsSorted = [...this.rendResumoData.porMes]
-      .sort((a, b) => mesKeyNum(a.mesAno) - mesKeyNum(b.mesAno));
-
-    const runningBalance = new Map<string, number>();
-    let lIdx = 0;
-    let accumProject = 0;
-    let undistributed = 0;
-    const result: RendAtribuido[] = [];
-
-    for (const mes of allMonthsSorted) {
-      const mc = mesKeyNum(mes.mesAno);
-      if (closedMc && mc > closedMc) break;
-
-      // Sempre avança lançamentos para manter runningBalance correto
-      while (lIdx < lancsSorted.length && mesKeyNum(lancsSorted[lIdx].mesAno) <= mc) {
-        const l = lancsSorted[lIdx++];
-        runningBalance.set(l.projeto, (runningBalance.get(l.projeto) ?? 0) + l.valor);
-      }
-
-      // Transfere saldo de projetos encerrados (aba Saldos) para Op. Básica
-      this.rendProjetosEncerrados.forEach((cMc, p) => {
-        if (mc > cMc) {
-          const bal = runningBalance.get(p) ?? 0;
-          if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
-          runningBalance.set(p, 0);
-        }
-      });
-
-      // Transfere saldo de projetos inativos por Status (sem entrada na aba Saldos)
-      runningBalance.forEach((bal, p) => {
-        if (p !== 'Operação Básica' && isInativo(p) && !this.rendProjetosEncerrados.has(p)) {
-          if (bal > 0) runningBalance.set('Operação Básica', (runningBalance.get('Operação Básica') ?? 0) + bal);
-          runningBalance.set(p, 0);
-        }
-      });
-
-      const totalPos = Array.from(runningBalance.values()).reduce((s, v) => s + (v > 0 ? v : 0), 0);
-      const toDistribute = mes.liquido + undistributed;
-
-      if (totalPos <= 0 || toDistribute <= 0) {
-        undistributed += mes.liquido;
-        continue;
-      }
-
-      const saldoProjeto = runningBalance.get(proj) ?? 0;
-      if (saldoProjeto <= 0) {
-        undistributed = 0;
-        continue;
-      }
-
-      const pct = saldoProjeto / totalPos;
-      const rendimentoMes = toDistribute * pct;
-      undistributed = 0;
-
-      accumProject += rendimentoMes;
-      result.push({ mesAno: mes.mesAno, pctParticipacao: pct * 100, rendimentoMes, rendimentoAcumulado: accumProject, saldoProjeto });
+    const rateio = ratearRendimentos({
+      porMes: this.rendResumoData.porMes,
+      lancamentos: [
+        ...this.allLancamentos.filter(l => l.mesAno && l.projeto),
+        ...this.rendTransferencias,
+      ],
+      utilizacaoPorMes: this.rendUtilizacaoPorMes,
+      projetosEncerrados: this.rendProjetosEncerrados,
+      projetosInativos,
+      projetosSemAtribuicao: PROJETOS_SEM_ATRIBUICAO_RENDIMENTOS,
+    });
+    if (!rateio) {
+      this.rendimentosAtribuidos = [];
+      this.totalRendimentoAtribuido = 0;
+      return;
     }
 
-    this.rendimentosAtribuidos = result;
-    this.totalRendimentoAtribuido = result.reduce((s, r) => s + r.rendimentoMes, 0);
+    const doProjeto = rateio.porProjetoMes.get(proj);
+    if (!doProjeto) {
+      this.rendimentosAtribuidos = [];
+      this.totalRendimentoAtribuido = 0;
+      return;
+    }
+
+    let acumulado = 0;
+    this.rendimentosAtribuidos = rateio.meses
+      .filter(m => doProjeto.has(m.mesAno))
+      .map(m => {
+        const rendimentoMes = doProjeto.get(m.mesAno) ?? 0;
+        acumulado += rendimentoMes;
+        return {
+          mesAno: m.mesAno,
+          // A participação é a fração do líquido do mês que coube ao projeto —
+          // a mesma leitura da tabela de Rendimentos.
+          pctParticipacao: m.liquido > 0 ? (rendimentoMes / m.liquido) * 100 : 0,
+          rendimentoMes,
+          rendimentoAcumulado: acumulado,
+          saldoProjeto: 0,
+        } as RendAtribuido;
+      });
+
+    // O total é o acumulado fechado do rateio, que já carrega o resíduo de
+    // arredondamento; somar os meses de novo daria um centavo de diferença.
+    this.totalRendimentoAtribuido = rateio.acumulado.get(proj) ?? 0;
+    const ultimo = this.rendimentosAtribuidos[this.rendimentosAtribuidos.length - 1];
+    if (ultimo) ultimo.rendimentoAcumulado = this.totalRendimentoAtribuido;
   }
 
   toggleMeta(meta: MetaGrupo): void { meta.expandido = !meta.expandido; }
